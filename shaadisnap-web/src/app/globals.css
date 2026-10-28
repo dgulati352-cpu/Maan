@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --bg-ivory: #F8F5EF;
+  --accent-gold: #C6A76A;
+  --accent-gold-light: #E0C794;
+  --accent-gold-hover: #B39355;
+  --text-charcoal: #242321;
+  --text-charcoal-deep: #1A1918;
+  --surface-champagne: #E8DDD0;
+  --surface-champagne-light: #F2EBE1;
+  --cta-burgundy: #873F50;
+  --cta-burgundy-hover: #733443;
+  --text-muted: #716B63;
+  --border-champagne: #DED5C8;
+  --border-gold-subtle: rgba(198, 167, 106, 0.4);
+  --surface-white: #FFFFFF;
+}
+
+body {
+  background-color: var(--bg-ivory);
+  color: var(--text-charcoal);
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+.font-sans {
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Custom Luxury Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F5EF;
+}
+::-webkit-scrollbar-thumb {
+  background: #DED5C8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C6A76A;
+}
+
+/* Luxury Card & Border Shimmers */
+.gold-border-glow {
+  box-shadow: 0 0 25px -5px rgba(198, 167, 106, 0.25);
+}
+
+.burgundy-glow {
+  box-shadow: 0 10px 30px -10px rgba(135, 63, 80, 0.4);
+}
+
+/* Face Scan Scanner Line Animation */
+@keyframes scanline {
+  0% {
+    top: 0%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0.8;
+  }
+}
+
+.animate-scan {
+  animation: scanline 2.2s ease-in-out infinite alternate;
+}

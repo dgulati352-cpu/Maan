@@ -1,0 +1,72 @@
+# ==============================================================================
+# ShaadiSnap AI - Face Recognition Model Fine-Tuning Configuration
+# ==============================================================================
+
+system:
+  seed: 42
+  deterministic: true
+  device: "cuda"            # Auto falls back to "cpu" if CUDA is unavailable
+  mixed_precision: true     # FP16 Automatic Mixed Precision (AMP)
+  fallback_batch_sizes: [32, 16, 8, 4]  # Dynamic fallback on CUDA OOM
+
+model:
+  backbone: "iresnet50"     # Options: "iresnet50", "iresnet100", "resnet50"
+  embedding_size: 512       # Standard L2-normalized hyperspherical embedding
+  dropout_prob: 0.4
+  pretrained: true
+  pretrained_path: null     # Path to .pt/.pth or converted AuraFace Apache 2.0 weights
+  freeze_backbone_epochs: 1 # Epochs to train only the classification head before unfreezing
+
+loss:
+  type: "arcface"           # Options: "arcface", "cosface"
+  scale: 64.0               # Hypersphere radius scale (s)
+  margin: 0.50              # Angular margin in radians (m = 0.50 rad ~ 28.6 degrees)
+  easy_margin: false
+
+dataset:
+  train_csv: "data/synthetic_demo/train_manifest.csv"
+  val_csv: "data/synthetic_demo/val_manifest.csv"
+  test_csv: "data/synthetic_demo/test_manifest.csv"
+  image_size: [112, 112]    # Standard aligned face resolution (Height, Width)
+  min_face_size: 32         # Minimum pixel dimension for valid face crops
+  quality_checks:
+    min_laplacian_var: 50.0 # Blur detection threshold (higher = sharper)
+    min_brightness: 25.0    # Underexposure cutoff
+    max_brightness: 240.0   # Overexposure/blowout cutoff
+
+training:
+  epochs: 10
+  batch_size: 32
+  num_workers: 2
+  learning_rate: 0.001       # Learning rate for ArcFace head
+  backbone_lr: 0.0001        # Lower learning rate for fine-tuning backbone layers
+  weight_decay: 0.0005
+  momentum: 0.9
+  lr_scheduler: "cosine"     # Options: "cosine", "step"
+  warmup_epochs: 1
+  min_lr: 1e-6
+  grad_clip_norm: 5.0
+  early_stopping_patience: 5
+
+augmentation:
+  horizontal_flip_prob: 0.5
+  color_jitter:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.05
+  random_occlusion_prob: 0.2 # Simulates sunglasses, jewelry, garlands, dupattas
+  blur_prob: 0.15            # Simulates low-light wedding dance floor motion blur
+
+evaluation:
+  target_fmr: 0.001          # Target False Match Rate = 0.1% for high security
+  num_genuine_pairs: 500
+  num_impostor_pairs: 1500
+  retrieval_k: [1, 5, 10]
+  operating_threshold: 0.42  # Calibrated on validation set cosine similarity
+
+checkpoint:
+  dir: "checkpoints"
+  save_interval_epochs: 1
+  keep_best_metric: "val_acc" # Monitor validation verification accuracy
+  resume_from: null           # Path to checkpoint to resume training
