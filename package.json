@@ -1,4 +1,12 @@
 {
+  "name": "maan",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix shaadisnap-web",
+    "build": "npm run build --prefix shaadisnap-web",
+    "start": "npm run start --prefix shaadisnap-web"
+  },
   "dependencies": {
     "googleapis": "^188.0.0"
   }

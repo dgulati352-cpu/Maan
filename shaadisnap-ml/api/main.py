@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.inference import WeddingPhotoPipeline
+from src.compreface_client import CompreFaceClient
 
 # Configure structured audit logging
 logging.basicConfig(
@@ -30,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger("shaadisnap_api")
 
 API_KEY_SECRET = os.getenv("SHAADISNAP_INTERNAL_API_KEY", "shaadisnap_dev_secret_key_2026")
-MODEL_VERSION = "shaadisnap-v1.0.0-arcface-iresnet50"
+MODEL_VERSION = "shaadisnap-v1.0.0-compreface-arcface"
 
 app = FastAPI(
     title="ShaadiSnap AI - Face Recognition Microservice",
@@ -47,23 +48,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global pipeline instance
+# Global pipeline and CompreFace client instances
 pipeline: Optional[WeddingPhotoPipeline] = None
+compreface_client: Optional[CompreFaceClient] = None
 
 
 @app.on_event("startup")
 def startup_event():
-    global pipeline
+    global pipeline, compreface_client
+    
+    # 1. Initialize CompreFace client
+    compreface_url = os.getenv("COMPREFACE_URL", "http://localhost:8000")
+    compreface_key = os.getenv("COMPREFACE_API_KEY", "")
+    compreface_client = CompreFaceClient(base_url=compreface_url, api_key=compreface_key)
+    logger.info(f"CompreFace Client configured: URL={compreface_url}, API_KEY={'configured' if compreface_key else 'not_set'}")
+
+    # 2. Initialize Native PyTorch pipeline (if checkpoint/weights available)
     model_name = os.getenv("MODEL_NAME", "iresnet50")
     checkpoint = os.getenv("CHECKPOINT_PATH", None)
     logger.info(f"Initializing face pipeline: Model={model_name}, Checkpoint={checkpoint}")
-    pipeline = WeddingPhotoPipeline(
-        model_name=model_name,
-        checkpoint_path=checkpoint,
-        device="cpu",  # Default CPU, overridden by CUDA in GPU container
-        default_threshold=float(os.getenv("DEFAULT_MATCH_THRESHOLD", "0.42")),
-    )
-    logger.info("ShaadiSnap Face Recognition Pipeline ready.")
+    try:
+        pipeline = WeddingPhotoPipeline(
+            model_name=model_name,
+            checkpoint_path=checkpoint,
+            device="cpu",  # Default CPU, overridden by CUDA in GPU container
+            default_threshold=float(os.getenv("DEFAULT_MATCH_THRESHOLD", "0.42")),
+        )
+        logger.info("ShaadiSnap Native Face Recognition Pipeline ready.")
+    except Exception as e:
+        logger.warning(f"Native pipeline initialization deferred (using CompreFace backend): {e}")
 
 
 # Authentication Dependency
@@ -146,10 +159,12 @@ async def decode_upload_image(file: UploadFile) -> np.ndarray:
 
 @app.get("/health", tags=["System"])
 def health_check():
+    cf_health = compreface_client.check_health() if compreface_client else {"connected": False}
     return {
         "status": "healthy",
         "service": "shaadisnap-ml",
-        "model_loaded": pipeline is not None,
+        "native_model_loaded": pipeline is not None,
+        "compreface": cf_health,
         "timestamp": time.time(),
     }
 
@@ -322,3 +337,92 @@ def reindex_event(
     pipeline.event_indices[event_id] = WeddingPhotoPipeline(event_id)
     logger.info(f"Event {event_id} index reset for re-indexing.")
     return {"success": True, "event_id": event_id, "message": "Event index reset successfully."}
+
+
+# =========================================================================
+# CompreFace Dedicated Endpoints
+# =========================================================================
+
+@app.get("/api/v1/compreface/status", tags=["CompreFace"])
+def get_compreface_status():
+    """Checks connection to CompreFace service and configuration."""
+    if not compreface_client:
+        return {"status": "not_initialized", "connected": False}
+    health = compreface_client.check_health()
+    return {
+        **health,
+        "api_key_configured": compreface_client.is_configured(),
+        "model": "Exadel CompreFace (ArcFace / MobileFaceNet)",
+        "license": "Apache 2.0 (Commercial OK)",
+    }
+
+
+@app.post("/api/v1/compreface/detect", tags=["CompreFace"])
+async def compreface_detect(
+    file: UploadFile = File(...),
+    det_prob_threshold: float = 0.8,
+    _: str = Depends(verify_api_key),
+):
+    """Detects faces in an image using CompreFace Core."""
+    if not compreface_client:
+        raise HTTPException(status_code=503, detail="CompreFace client not initialized")
+    contents = await file.read()
+    results = compreface_client.detect_faces(contents, det_prob_threshold=det_prob_threshold)
+    return {"success": True, "faces_detected": len(results), "result": results}
+
+
+@app.post("/api/v1/compreface/enroll", tags=["CompreFace"])
+async def compreface_enroll(
+    subject: str = Form(...),
+    file: UploadFile = File(...),
+    _: str = Depends(verify_api_key),
+):
+    """Enrolls a face into a subject collection in CompreFace."""
+    if not compreface_client:
+        raise HTTPException(status_code=503, detail="CompreFace client not initialized")
+    contents = await file.read()
+    compreface_client.add_subject(subject)
+    res = compreface_client.add_face(contents, subject=subject)
+    return {"success": res is not None, "subject": subject, "result": res}
+
+
+@app.post("/api/v1/compreface/recognize", tags=["CompreFace"])
+async def compreface_recognize(
+    file: UploadFile = File(...),
+    similarity_threshold: float = 0.82,
+    _: str = Depends(verify_api_key),
+):
+    """Recognizes faces in an image against enrolled subjects."""
+    if not compreface_client:
+        raise HTTPException(status_code=503, detail="CompreFace client not initialized")
+    contents = await file.read()
+    matches = compreface_client.recognize_faces(contents, similarity_threshold=similarity_threshold)
+    return {"success": True, "matches_count": len(matches), "matches": matches}
+
+
+@app.post("/api/v1/compreface/verify", tags=["CompreFace"])
+async def compreface_verify(
+    source_file: UploadFile = File(...),
+    target_file: UploadFile = File(...),
+    _: str = Depends(verify_api_key),
+):
+    """Verifies if two faces belong to the same person."""
+    if not compreface_client:
+        raise HTTPException(status_code=503, detail="CompreFace client not initialized")
+    src_bytes = await source_file.read()
+    tgt_bytes = await target_file.read()
+    res = compreface_client.verify(src_bytes, tgt_bytes)
+    return res
+
+
+@app.delete("/api/v1/compreface/subjects/{subject}", tags=["CompreFace"])
+def compreface_delete_subject(
+    subject: str,
+    _: str = Depends(verify_api_key),
+):
+    """Deletes all biometric data for a subject in CompreFace (GDPR/DPDP erasure)."""
+    if not compreface_client:
+        raise HTTPException(status_code=503, detail="CompreFace client not initialized")
+    ok = compreface_client.delete_subject(subject)
+    return {"success": ok, "subject": subject, "deleted": ok}
+
