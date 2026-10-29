@@ -2,10 +2,13 @@
   "name": "maan",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "shaadisnap-web"
+  ],
   "scripts": {
-    "dev": "npm run dev --prefix shaadisnap-web",
-    "build": "npm run build --prefix shaadisnap-web",
-    "start": "npm run start --prefix shaadisnap-web"
+    "dev": "npm run dev --workspace=shaadisnap-web",
+    "build": "npm run build --workspace=shaadisnap-web",
+    "start": "npm run start --workspace=shaadisnap-web"
   },
   "dependencies": {
     "googleapis": "^188.0.0"
