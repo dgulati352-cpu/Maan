@@ -22,6 +22,7 @@ import {
   ChevronRight,
   FlipHorizontal,
   Timer,
+  Trash2,
 } from "lucide-react";
 import {
   MOCK_WEDDING_PHOTOS,
@@ -30,7 +31,7 @@ import {
   DemoSelfie,
   WEDDING_EVENT,
 } from "@/data/mockWeddingData";
-import { getWeddingPhotos } from "@/lib/weddingPhotoStore";
+import { getWeddingPhotos, deleteUploadedPhoto, clearUploadedPhotos } from "@/lib/weddingPhotoStore";
 
 export const GuestSelfieSearch: React.FC = () => {
   const [selfieImage, setSelfieImage] = useState<string | null>(null);
@@ -787,6 +788,19 @@ export const GuestSelfieSearch: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex items-center gap-3">
                 <button
+                  onClick={() => {
+                    if (confirm("Clear all uploaded test photos and show clean wedding gallery?")) {
+                      clearUploadedPhotos();
+                      setMatchedPhotos([]);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold text-[#873F50] bg-white border border-[#DED5C8] hover:bg-red-50 hover:border-red-200 transition-all shadow-xs"
+                  title="Remove test photos"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  <span>Clear Test Photos</span>
+                </button>
+                <button
                   onClick={() => alert("Downloading all matched photographs in high-resolution ZIP archive...")}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-[#873F50] hover:bg-[#733443] shadow-sm transition-all"
                 >
@@ -849,16 +863,29 @@ export const GuestSelfieSearch: React.FC = () => {
                           Photographer: {photo.photographer}
                         </p>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPhoto(photo);
-                        }}
-                        className="p-2 rounded-full bg-[#E8DDD0]/50 hover:bg-[#873F50] hover:text-white transition-colors text-[#242321]"
-                        title="View Full Resolution"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteUploadedPhoto(photo.id);
+                            setMatchedPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+                          }}
+                          className="p-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                          title="Delete this photo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPhoto(photo);
+                          }}
+                          className="p-2 rounded-full bg-[#E8DDD0]/50 hover:bg-[#873F50] hover:text-white transition-colors text-[#242321]"
+                          title="View Full Resolution"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

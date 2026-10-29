@@ -76,6 +76,21 @@ export function addUploadedPhoto(photo: {
 }
 
 /**
+ * Delete a specific photo by ID
+ */
+export function deleteUploadedPhoto(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getWeddingPhotos();
+    const updated = current.filter((p) => p.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event("shaadisnap_photos_updated"));
+  } catch (err) {
+    console.error("Failed to delete photo:", err);
+  }
+}
+
+/**
  * Clear all photos if requested
  */
 export function clearUploadedPhotos() {
