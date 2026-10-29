@@ -1,0 +1,6 @@
+# Ignore Python ML service and Docker CompreFace on Vercel
+shaadisnap-ml/
+compreface/
+.agents/
+.venv/
+node_modules/

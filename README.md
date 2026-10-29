@@ -10,5 +10,24 @@
 
 ## 🚀 Tech Stack
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion
-- **AI/ML Service**: FastAPI, InsightFace / FaceNet embeddings, PyTorch
+- **AI/ML Service**: Exadel CompreFace (Apache 2.0 ArcFace / MobileFaceNet), FastAPI, PyTorch
 - **Cloud Storage**: Google Drive API via Apps Script Web Service
+
+## 🧠 AI Model Setup (Exadel CompreFace)
+
+1. **Start CompreFace Cluster**:
+   ```powershell
+   cd compreface
+   .\start.ps1   # or docker compose up -d
+   ```
+2. **Access Web Console**:
+   - Open [http://localhost:8000](http://localhost:8000)
+   - Create your account and create a **Recognition Service**
+   - Copy your generated API key
+3. **Configure ML Service**:
+   - Add `COMPREFACE_API_KEY=<your_key>` in `shaadisnap-ml/.env`
+4. **Start Web Application**:
+   ```powershell
+   cd shaadisnap-web
+   npm run dev
+   ```
