@@ -270,7 +270,7 @@ export const GuestSelfieSearch: React.FC = () => {
     const allPhotos = getWeddingPhotos();
     const results = matchedIds
       ? allPhotos.filter((p) => matchedIds.includes(p.id))
-      : allPhotos.slice(0, 6); // Include newest live uploaded photos in results
+      : allPhotos; // Return all matching wedding photos from gallery without arbitrary slice limit
 
     setMatchedPhotos(results);
 
