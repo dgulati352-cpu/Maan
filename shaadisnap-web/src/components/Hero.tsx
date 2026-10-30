@@ -134,29 +134,7 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
                 </div>
               </div>
 
-              {/* Floating Match Result Demonstration Card */}
-              <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-[#DED5C8] max-w-xs transition-transform hover:-translate-y-1 duration-300">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                      alt="Matched Guest"
-                      className="w-12 h-12 rounded-full object-cover ring-2 ring-[#C6A76A]"
-                    />
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#873F50] text-white flex items-center justify-center">
-                      <Sparkles className="w-2.5 h-2.5" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold text-[#873F50] uppercase tracking-wide">Match Found</span>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    </div>
-                    <p className="text-sm font-semibold text-[#242321]">42 Photos for Ananya</p>
-                    <p className="text-[11px] text-[#716B63]">Confidence: 98.4% (ArcFace)</p>
-                  </div>
-                </div>
-              </div>
+
 
               {/* Floating Privacy Badge */}
               <div className="absolute -top-4 -right-4 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-full shadow-lg border border-[#C6A76A]/40 flex items-center gap-2">
