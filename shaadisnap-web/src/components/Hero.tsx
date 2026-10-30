@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Sparkles, ArrowRight, UploadCloud, Star, CheckCircle2, Shield } from "lucide-react";
+import { Sparkles, ArrowRight, UploadCloud, Shield } from "lucide-react";
 
 interface HeroProps {
   onFindPhotos: () => void;
@@ -58,44 +58,6 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
                 <UploadCloud className="w-4 h-4 text-[#C6A76A]" />
                 <span>Upload Photos</span>
               </button>
-            </div>
-
-            {/* Social Proof Section */}
-            <div className="pt-4 border-t border-[#DED5C8]/80 flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Guest Avatars */}
-              <div className="flex -space-x-2 overflow-hidden">
-                <img
-                  className="inline-block h-10 w-10 rounded-full ring-2 ring-[#F8F5EF] object-cover"
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                  alt="Guest avatar"
-                />
-                <img
-                  className="inline-block h-10 w-10 rounded-full ring-2 ring-[#F8F5EF] object-cover"
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
-                  alt="Guest avatar"
-                />
-                <img
-                  className="inline-block h-10 w-10 rounded-full ring-2 ring-[#F8F5EF] object-cover"
-                  src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80"
-                  alt="Guest avatar"
-                />
-                <div className="h-10 w-10 rounded-full bg-[#E8DDD0] border border-[#C6A76A]/40 flex items-center justify-center text-xs font-semibold text-[#873F50] ring-2 ring-[#F8F5EF]">
-                  +2.4k
-                </div>
-              </div>
-
-              {/* Stars & Editable Rating */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-[#C6A76A] text-[#C6A76A]" />
-                  ))}
-                  <span className="ml-1 text-sm font-bold text-[#242321]">4.9 / 5.0</span>
-                </div>
-                <span className="text-xs text-[#716B63]">
-                  Trusted by 2,400+ guests across luxury destination weddings
-                </span>
-              </div>
             </div>
 
           </div>
