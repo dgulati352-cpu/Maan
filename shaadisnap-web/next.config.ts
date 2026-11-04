@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import "./.next-mkdir-patch.cjs";
+
+if (process.platform === "win32" && !process.env.NODE_OPTIONS?.includes(".next-mkdir-patch.cjs")) {
+  process.env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require=./.next-mkdir-patch.cjs`.trim();
+}
 
 const nextConfig: NextConfig = {
   images: {
@@ -17,13 +22,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
+  experimental: {
+    cpus: 1,
   },
 };
 

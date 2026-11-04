@@ -23,13 +23,13 @@ export interface DemoSelfie {
 }
 
 export const WEDDING_EVENT = {
-  id: "simran-karan-udaipur-2026",
-  couple: "Simran & Karan",
+  id: "mahine-anand-2026",
+  couple: "Mahine Weds Anand",
   date: "December 14-16, 2026",
   venue: "The Oberoi Udaivilas, Udaipur",
-  totalPhotos: 1420,
+  totalPhotos: 1,
   photographer: "The Wedding Story & Stories by Joseph Radhik",
-  accessCode: "SIMRAN-KARAN-2026",
+  accessCode: "MAHINE-ANAND-2026",
   // Direct Google Drive Folder for the wedding album:
   googleDriveFolderUrl: "https://drive.google.com/drive/folders/188n-f26gJUCpngyyxnXuHTLsobGdqqqQ",
   googleDriveFolderId: "188n-f26gJUCpngyyxnXuHTLsobGdqqqQ",
@@ -50,8 +50,8 @@ export const MOCK_WEDDING_PHOTOS: WeddingPhoto[] = [
     id: "photo_01",
     // Paste your Google Drive Share Link or File ID directly here:
     url: drivePhotoUrl(
-      "https://drive.google.com/file/d/1tV63pC0L9yWw1q7R8U4v2N3s5X9Z8A1b/view?usp=sharing",
-      "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=85"
+      "",
+      "/hero-couple.jpg"
     ),
     title: "Regal Royal Portrait",
     ceremony: "Phere",

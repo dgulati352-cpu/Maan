@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   UploadCloud,
   Camera,
@@ -9,20 +9,22 @@ import {
   Image as ImageIcon,
   Heart,
   Calendar,
-  User,
   CheckCircle2,
   X,
   RefreshCw,
-  Sparkles,
-  Info,
   Sliders,
-  FileCheck,
-  AlertCircle,
-  ExternalLink,
   Trash2,
+  Download,
+  MapPin,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { addUploadedPhoto, getWeddingPhotos, clearUploadedPhotos } from "@/lib/weddingPhotoStore";
+
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MB
 
 interface UploadFileItem {
   id: string;
@@ -30,10 +32,12 @@ interface UploadFileItem {
   size: string;
   previewUrl: string;
   progress: number;
-  status: "pending" | "uploading" | "completed" | "error";
+  status: "pending" | "compressing" | "uploading" | "completed" | "error";
   facesDetected?: number;
   sharpness?: number;
   rawFile?: File;
+  compressedFile?: File;
+  compressionRatio?: string;
   driveFileId?: string;
 }
 
@@ -42,24 +46,37 @@ interface GuestPhotoUploadProps {
 }
 
 export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }) => {
-  const [activeSidebarItem, setActiveSidebarItem] = useState<string>("upload");
+  const [activeSidebarItem, setActiveSidebarItem] = useState<"upload" | "gallery" | "favorites" | "details">("upload");
   const [uploadFiles, setUploadFiles] = useState<UploadFileItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCeremony, setSelectedCeremony] = useState("Sangeet");
+  const [galleryCeremony, setGalleryCeremony] = useState("All");
   const [isBatchUploading, setIsBatchUploading] = useState(false);
-  const [liveStreamPhotos, setLiveStreamPhotos] = useState<WeddingPhoto[]>([]);
+  const [liveStreamPhotos, setLiveStreamPhotos] = useState<WeddingPhoto[]>(() =>
+    typeof window !== "undefined" ? getWeddingPhotos() : []
+  );
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Sync live uploaded photos
-  React.useEffect(() => {
-    setLiveStreamPhotos(getWeddingPhotos());
+  useEffect(() => {
     const handleSync = () => setLiveStreamPhotos(getWeddingPhotos());
     window.addEventListener("shaadisnap_photos_updated", handleSync);
     return () => window.removeEventListener("shaadisnap_photos_updated", handleSync);
   }, []);
 
-  // Upload a single file item to Google Drive via backend API
+  const toggleFavorite = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  // Upload photo in 100% full original uncompressed master quality (no compression)
   const uploadSingleItem = async (item: UploadFileItem) => {
     if (!item.rawFile) return;
 
@@ -70,9 +87,11 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     );
 
     try {
+      // Send original uncompressed master file directly to API
       const formData = new FormData();
       formData.append("file", item.rawFile);
       formData.append("ceremony", selectedCeremony);
+      formData.append("eventId", "mahine-anand-2026");
 
       const res = await fetch("/api/upload-photo", {
         method: "POST",
@@ -82,7 +101,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
       const data = await res.json();
 
       if (data.success && data.fileId) {
-        // Add to persistent wedding album so all pages show it!
         addUploadedPhoto({
           id: data.fileId,
           url: data.url,
@@ -113,8 +131,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           )
         );
       }
-    } catch (err) {
-      console.error("Upload error:", err);
+    } catch {
       setUploadFiles((current) =>
         current.map((f) =>
           f.id === item.id ? { ...f, progress: 0, status: "error" } : f
@@ -123,39 +140,57 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     }
   };
 
-  // Handle files added & trigger instant upload
+  // Batch file processor with validation
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const newItems: UploadFileItem[] = [];
-    Array.from(files).forEach((file, index) => {
-      const url = URL.createObjectURL(file);
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    const validFiles: File[] = [];
+    const errors: string[] = [];
 
-      const item: UploadFileItem = {
-        id: `file_${Date.now()}_${index}`,
-        name: file.name,
-        size: `${sizeMb} MB`,
-        previewUrl: url,
-        progress: 10,
-        status: "uploading",
-        facesDetected: Math.floor(Math.random() * 3) + 1,
-        sharpness: Math.floor(Math.random() * 25) + 75,
-        rawFile: file,
-      };
+    Array.from(files).forEach((file) => {
+      const ext = "." + file.name.split(".").pop()?.toLowerCase();
+      const isMimeValid = ALLOWED_MIME_TYPES.includes(file.type);
+      const isExtValid = ALLOWED_EXTENSIONS.includes(ext);
 
-      newItems.push(item);
+      if (!isExtValid || (file.type && !isMimeValid)) {
+        errors.push(`${file.name}: Invalid image format (JPG, PNG, WebP, HEIC supported).`);
+        return;
+      }
+      if (file.size === 0) {
+        errors.push(`${file.name}: File is empty.`);
+        return;
+      }
+      if (file.size > MAX_UPLOAD_SIZE) {
+        errors.push(`${file.name}: Exceeds 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+        return;
+      }
+      validFiles.push(file);
     });
+
+    if (errors.length > 0) {
+      setUploadErrors(errors);
+    } else {
+      setUploadErrors([]);
+    }
+
+    if (validFiles.length === 0) return;
+
+    const newItems: UploadFileItem[] = validFiles.map((f) => ({
+      id: `up_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: f.name,
+      size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+      previewUrl: URL.createObjectURL(f),
+      progress: 0,
+      status: "pending",
+      facesDetected: Math.floor(Math.random() * 3) + 1,
+      sharpness: Math.floor(Math.random() * 15) + 85,
+      rawFile: f,
+    }));
 
     setUploadFiles((prev) => [...newItems, ...prev]);
-
-    // Automatically begin uploading to Google Drive immediately!
-    newItems.forEach((item) => {
-      uploadSingleItem(item);
-    });
+    newItems.forEach((item) => uploadSingleItem(item));
   };
 
-  // Manual batch retry for any pending/error items
   const startBatchUpload = async () => {
     setIsBatchUploading(true);
     for (const item of uploadFiles) {
@@ -170,462 +205,665 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     setUploadFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const filteredGalleryPhotos =
+    galleryCeremony === "All"
+      ? liveStreamPhotos
+      : liveStreamPhotos.filter((p) => p.ceremony === galleryCeremony);
+
+  const favoritePhotosList = liveStreamPhotos.filter((p) => favorites.includes(p.id));
+
   return (
-    <div className="min-h-screen bg-[#F8F5EF] flex">
+    <div className="min-h-screen bg-[#FFF8F3] text-[#765D62] flex flex-col md:flex-row">
       
       {/* --- Left Sidebar (Dashboard) --- */}
-      <aside className="w-64 bg-white border-r border-[#DED5C8] hidden md:flex flex-col justify-between p-6">
-        <div className="space-y-8">
+      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-[#EADDE0] flex flex-col justify-between p-6">
+        <div className="space-y-7">
           
           {/* Sidebar Event Badge */}
-          <div className="space-y-1 pb-4 border-b border-[#DED5C8]">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#C6A76A]">
+          <div className="space-y-1 pb-4 border-b border-[#EADDE0]">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-[#A85D70]">
               Active Event Gallery
             </span>
-            <h2 className="font-serif text-lg font-bold text-[#242321] truncate">
+            <h2 className="font-serif text-lg font-bold text-[#633C49] truncate">
               {WEDDING_EVENT.couple}
             </h2>
-            <p className="text-xs text-[#716B63] truncate">
+            <p className="text-xs text-[#947A80] truncate">
               {WEDDING_EVENT.venue}
             </p>
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1.5">
+          <nav className="space-y-1.5" aria-label="Sidebar Menu">
             <button
+              type="button"
               onClick={() => onNavigate("landing")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#716B63] hover:text-[#242321] hover:bg-[#F8F5EF] transition-colors"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors cursor-pointer text-left"
             >
-              <Home className="w-4 h-4 text-[#C6A76A]" />
+              <Home className="w-4 h-4 text-[#A85D70]" />
               <span>Home</span>
             </button>
 
             <button
+              type="button"
               onClick={() => onNavigate("search")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#716B63] hover:text-[#242321] hover:bg-[#F8F5EF] transition-colors"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors cursor-pointer text-left"
             >
-              <Search className="w-4 h-4 text-[#C6A76A]" />
+              <Search className="w-4 h-4 text-[#A85D70]" />
               <span>Find My Photos</span>
             </button>
 
             <button
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold text-[#873F50] bg-[#E8DDD0]/50 border border-[#C6A76A]/30 transition-colors"
+              type="button"
+              onClick={() => setActiveSidebarItem("upload")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+                activeSidebarItem === "upload"
+                  ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
+                  : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
+              }`}
             >
-              <UploadCloud className="w-4 h-4 text-[#873F50]" />
+              <UploadCloud className="w-4 h-4 text-[#A85D70]" />
               <span>Upload Photos</span>
             </button>
 
             <button
-              onClick={() => onNavigate("landing")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#716B63] hover:text-[#242321] hover:bg-[#F8F5EF] transition-colors"
+              type="button"
+              onClick={() => setActiveSidebarItem("gallery")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+                activeSidebarItem === "gallery"
+                  ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
+                  : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
+              }`}
             >
-              <ImageIcon className="w-4 h-4 text-[#C6A76A]" />
+              <ImageIcon className="w-4 h-4 text-[#A85D70]" />
               <span>My Gallery</span>
+              <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-[#A85D70] border border-[#EADDE0]">
+                {liveStreamPhotos.length}
+              </span>
             </button>
 
             <button
-              onClick={() => onNavigate("landing")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#716B63] hover:text-[#242321] hover:bg-[#F8F5EF] transition-colors"
+              type="button"
+              onClick={() => setActiveSidebarItem("favorites")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+                activeSidebarItem === "favorites"
+                  ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
+                  : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
+              }`}
             >
-              <Heart className="w-4 h-4 text-[#C6A76A]" />
+              <Heart className={`w-4 h-4 ${favorites.length > 0 ? "text-[#A85D70] fill-[#A85D70]" : "text-[#A85D70]"}`} />
               <span>Favorites</span>
+              {favorites.length > 0 && (
+                <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#A85D70] text-white">
+                  {favorites.length}
+                </span>
+              )}
             </button>
 
             <button
-              onClick={() => onNavigate("landing")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#716B63] hover:text-[#242321] hover:bg-[#F8F5EF] transition-colors"
+              type="button"
+              onClick={() => setActiveSidebarItem("details")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+                activeSidebarItem === "details"
+                  ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
+                  : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
+              }`}
             >
-              <Calendar className="w-4 h-4 text-[#C6A76A]" />
+              <Calendar className="w-4 h-4 text-[#A85D70]" />
               <span>Event Details</span>
             </button>
           </nav>
         </div>
 
         {/* Guest Profile Section at bottom of sidebar */}
-        <div className="pt-4 border-t border-[#DED5C8] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#E8DDD0] border border-[#C6A76A]/40 flex items-center justify-center font-bold text-[#873F50] text-sm">
-            AS
+        <div className="pt-4 mt-6 border-t border-[#EADDE0] flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#F1D5D5] border border-[#A85D70]/30 flex items-center justify-center font-bold text-[#633C49] text-sm">
+            DG
           </div>
-          <div className="truncate">
-            <p className="text-xs font-bold text-[#242321] truncate">Ananya Sharma</p>
-            <p className="text-[11px] text-[#716B63] truncate">Guest • Sister of Bride</p>
+          <div className="truncate text-left">
+            <p className="text-xs font-bold text-[#633C49] truncate">Dhairya Gulati</p>
+            <p className="text-[11px] text-[#947A80] truncate">Mahine & Anand Wedding Celebration</p>
           </div>
         </div>
       </aside>
 
       {/* --- Main Content Area --- */}
       <main className="flex-1 p-6 sm:p-10 lg:p-12 overflow-y-auto">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8 text-left">
           
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#242321] tracking-tight">
-                Upload Wedding Photos
-              </h1>
-              <p className="text-sm sm:text-base text-[#716B63] mt-1">
-                Share your candid memories with the couple. Our AI automatically tags and sorts faces.
-              </p>
-            </div>
-
-            {/* Event Access Code Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#DED5C8] text-xs font-semibold text-[#242321] shadow-xs self-start sm:self-auto">
-              <span className="text-[#C6A76A]">Access Code:</span>
-              <span className="font-mono text-[#873F50] font-bold">{WEDDING_EVENT.accessCode}</span>
-            </div>
-          </div>
-
-          {/* Ceremony Selector Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-[#DED5C8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#242321]">
-              <Sliders className="w-4 h-4 text-[#C6A76A]" />
-              <span>Tag Ceremony:</span>
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto">
-              {["Mehendi", "Haldi", "Sangeet", "Phere", "Reception"].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setSelectedCeremony(c)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                    selectedCeremony === c
-                      ? "bg-[#873F50] text-white"
-                      : "bg-[#F8F5EF] text-[#716B63] hover:text-[#242321] border border-[#DED5C8]"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Drag & Drop Upload Zone */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              handleFiles(e.dataTransfer.files);
-            }}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-3xl p-10 sm:p-14 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[280px] ${
-              isDragging
-                ? "border-[#873F50] bg-[#E8DDD0]/50 scale-[1.01]"
-                : "border-[#DED5C8] hover:border-[#C6A76A] bg-white hover:bg-[#F8F5EF]"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp,image/heic"
-              className="hidden"
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-
-            {/* Direct Camera capture for mobile/event guests */}
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-
-            <div className="w-18 h-18 rounded-full bg-[#E8DDD0] flex items-center justify-center mb-5 border border-[#C6A76A]/40 shadow-xs">
-              <UploadCloud className="w-9 h-9 text-[#873F50]" />
-            </div>
-
-            <h3 className="font-serif text-2xl font-bold text-[#242321] mb-2">
-              Add Wedding Photos
-            </h3>
-            <p className="text-sm text-[#716B63] mb-6 max-w-md">
-              Snap new candid photos on your camera or select high-resolution images from your device gallery.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  cameraInputRef.current?.click();
-                }}
-                className="px-6 py-3 rounded-full text-sm font-semibold text-white bg-[#873F50] hover:bg-[#733443] shadow-md transition-all active:scale-98 flex items-center gap-2"
-              >
-                <Camera className="w-4 h-4 text-[#E8DDD0]" />
-                <span>Take Photo with Camera</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
-                className="px-6 py-3 rounded-full text-sm font-semibold text-[#242321] bg-white hover:bg-[#F8F5EF] border border-[#DED5C8] hover:border-[#C6A76A] shadow-xs transition-all active:scale-98 flex items-center gap-2"
-              >
-                <UploadCloud className="w-4 h-4 text-[#C6A76A]" />
-                <span>Browse Gallery</span>
-              </button>
-            </div>
-
-            <span className="text-xs text-[#716B63] mt-4">
-              Supported formats: JPG, PNG, WebP, HEIC (Up to 50MB per photo)
-            </span>
-          </div>
-
-          {/* Active Upload Files List */}
-          {uploadFiles.length > 0 && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DED5C8] space-y-6">
-              
-              <div className="flex items-center justify-between pb-4 border-b border-[#DED5C8]">
-                <div className="flex items-center gap-2">
-                  <FileCheck className="w-5 h-5 text-[#C6A76A]" />
-                  <h3 className="font-serif text-lg font-bold text-[#242321]">
-                    Selected Photos ({uploadFiles.length})
-                  </h3>
+          {/* VIEW 1: UPLOAD PHOTOS */}
+          {activeSidebarItem === "upload" && (
+            <>
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#633C49] tracking-tight">
+                    Upload Wedding Photos
+                  </h1>
+                  <p className="text-sm sm:text-base text-[#765D62] mt-1">
+                    Share your candid memories with the couple. Our facial engine automatically indexes guests.
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setUploadFiles([])}
-                    className="text-xs font-semibold text-[#716B63] hover:text-red-700"
-                  >
-                    Clear All
-                  </button>
-                  <button
-                    disabled={isBatchUploading || uploadFiles.every((f) => f.status === "completed")}
-                    onClick={startBatchUpload}
-                    className="px-5 py-2 rounded-full text-xs font-semibold text-white bg-[#873F50] hover:bg-[#733443] disabled:opacity-50 transition-all flex items-center gap-1.5 shadow-sm"
-                  >
-                    {isBatchUploading ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UploadCloud className="w-3.5 h-3.5" />
-                        <span>Upload All Photos</span>
-                      </>
-                    )}
-                  </button>
+                {/* Event Access Code Badge */}
+                <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#EADDE0] text-xs font-semibold text-[#633C49] shadow-xs self-start sm:self-auto">
+                  <span className="text-[#A85D70]">Access Code:</span>
+                  <span className="font-mono text-[#633C49] font-bold">{WEDDING_EVENT.accessCode}</span>
                 </div>
               </div>
 
-              {/* Items List */}
-              <div className="space-y-4">
-                {uploadFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-2xl bg-[#F8F5EF] border border-[#DED5C8]"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <img
-                        src={file.previewUrl}
-                        alt="Preview"
-                        className="w-14 h-14 rounded-xl object-cover border border-[#DED5C8]"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-[#242321] truncate max-w-xs sm:max-w-sm">
-                          {file.name}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-[#716B63] mt-0.5">
-                          <span>{file.size}</span>
-                          <span>•</span>
-                          <span className="text-[#C6A76A] font-semibold">{selectedCeremony}</span>
-                          <span>•</span>
-                          <span className="text-emerald-700 flex items-center gap-1 font-medium">
-                            <Sparkles className="w-3 h-3" />
-                            {file.facesDetected} Faces Detected
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar & Status Controls */}
-                    <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
-                      {file.status === "uploading" && (
-                        <div className="w-32 bg-[#DED5C8] rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-[#873F50] h-full transition-all duration-300"
-                            style={{ width: `${file.progress}%` }}
-                          />
-                        </div>
-                      )}
-
-                      {file.status === "completed" && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Indexed
-                        </span>
-                      )}
-
-                      {file.status === "error" && (
-                        <button
-                          onClick={() => uploadSingleItem(file)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-200 hover:bg-red-100"
-                        >
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          Retry Upload
-                        </button>
-                      )}
-
-                      {file.status === "pending" && (
-                        <span className="text-xs font-medium text-[#716B63]">
-                          Ready
-                        </span>
-                      )}
-
-                      <button
-                        onClick={() => removeFile(file.id)}
-                        className="p-1.5 rounded-lg text-[#716B63] hover:text-red-700 hover:bg-white transition-colors"
-                        title="Remove photo"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+              {/* Upload Validation Error Notice Banner */}
+              {uploadErrors.length > 0 && (
+                <div className="p-4 rounded-2xl bg-[#F1D5D5]/60 border border-[#A85D70]/40 text-[#633C49] flex items-start justify-between gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-[#A85D70] shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold">Upload Validation Notice</p>
+                      <ul className="text-xs space-y-0.5 text-[#765D62]">
+                        {uploadErrors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setUploadErrors([])}
+                    className="p-1 rounded-lg hover:bg-black/5 text-[#765D62] hover:text-[#633C49] transition-colors"
+                    title="Dismiss notice"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Ceremony Selector Bar */}
+              <div className="bg-white p-4 rounded-2xl border border-[#EADDE0] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-rose-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#633C49]">
+                  <Sliders className="w-4 h-4 text-[#A85D70]" />
+                  <span>Tag Ceremony:</span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {["Mehendi", "Haldi", "Sangeet", "Phere", "Reception"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setSelectedCeremony(c)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                        selectedCeremony === c
+                          ? "bg-[#A85D70] text-white shadow-xs"
+                          : "bg-[#FFF8F3] text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-            </div>
+              {/* Drag & Drop Upload Zone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  handleFiles(e.dataTransfer.files);
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-[24px] p-10 sm:p-14 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[280px] ${
+                  isDragging
+                    ? "border-[#A85D70] bg-[#F1D5D5]/30 scale-[1.01]"
+                    : "border-[#EADDE0] hover:border-[#A85D70] bg-white hover:bg-[#FFF8F3]"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/heic"
+                  className="hidden"
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+
+                <div className="w-16 h-16 rounded-full bg-[#F1D5D5]/50 flex items-center justify-center mb-4 border border-[#EADDE0] shadow-xs">
+                  <UploadCloud className="w-8 h-8 text-[#A85D70]" />
+                </div>
+
+                <h3 className="font-serif text-2xl font-bold text-[#633C49] mb-1.5">
+                  Add Wedding Photos
+                </h3>
+                <p className="text-sm text-[#947A80] mb-6 max-w-md">
+                  Snap new candid photos on your camera or select high-resolution images from your device gallery.
+                </p>
+
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cameraInputRef.current?.click();
+                    }}
+                    className="px-6 py-3 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Open Camera</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="px-6 py-3 rounded-full text-sm font-semibold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                  >
+                    <ImageIcon className="w-4 h-4 text-[#A85D70]" />
+                    <span>Choose From Gallery</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Upload Queue */}
+              {uploadFiles.length > 0 && (
+                <div className="bg-white rounded-[24px] p-6 sm:p-8 border border-[#EADDE0] space-y-4 shadow-rose-sm">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#EADDE0]">
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-[#633C49]">
+                        Upload Queue ({uploadFiles.length})
+                      </h3>
+                      <p className="text-xs text-[#947A80]">
+                        Photos are securely indexed and placed in the wedding album.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isBatchUploading || uploadFiles.every((f) => f.status === "completed")}
+                      onClick={startBatchUpload}
+                      className="px-4 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] disabled:opacity-50 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      {isBatchUploading ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-3.5 h-3.5" />
+                          <span>Upload All</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {uploadFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[#FFF8F3] border border-[#EADDE0]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={file.previewUrl}
+                            alt="Preview"
+                            className="w-12 h-12 rounded-lg object-cover border border-[#EADDE0]"
+                          />
+                          <div>
+                            <p className="text-sm font-bold text-[#633C49] truncate max-w-xs">
+                              {file.name}
+                            </p>
+                            <span className="text-xs text-[#947A80] flex items-center gap-1.5 flex-wrap">
+                              <span>{file.size}</span>
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#A85D70] bg-[#F1D5D5]/50 px-1.5 py-0.5 rounded border border-[#A85D70]/20">
+                                Original HD
+                              </span>
+                              <span>•</span>
+                              <span>{selectedCeremony}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {file.status === "uploading" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#633C49] bg-white px-2.5 py-1 rounded-full border border-[#EADDE0]">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#A85D70]" />
+                              Uploading...
+                            </span>
+                          )}
+                          {file.status === "completed" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Original HD Indexed
+                            </span>
+                          )}
+                          {file.status === "error" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+                              <X className="w-3.5 h-3.5" />
+                              Upload Failed
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeFile(file.id)}
+                            className="p-1 rounded text-[#947A80] hover:text-red-700 hover:bg-white transition-colors cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Live Wedding Gallery Stream connected to Google Drive */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DED5C8] space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#DED5C8]">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#E8DDD0] text-[10px] font-bold text-[#873F50] uppercase tracking-wider">
-                  <Sparkles className="w-3 h-3 text-[#C6A76A]" />
-                  Live Google Drive Album
+          {/* VIEW 2: MY GALLERY */}
+          {activeSidebarItem === "gallery" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#633C49] tracking-tight">
+                    Wedding Photo Gallery
+                  </h1>
+                  <p className="text-sm text-[#765D62] mt-1">
+                    All candid and official photographs from Mahine & Anand&apos;s celebration ({liveStreamPhotos.length} photos).
+                  </p>
                 </div>
-                <h3 className="font-serif text-xl font-bold text-[#242321]">
-                  Live Wedding Photo Stream ({liveStreamPhotos.length})
-                </h3>
-              </div>
 
-              <div className="flex items-center gap-2">
                 {liveStreamPhotos.length > 0 && (
                   <button
+                    type="button"
                     onClick={() => {
-                      if (confirm("Are you sure you want to clear locally cached uploaded photos?")) {
+                      if (confirm("Are you sure you want to clear cached photos?")) {
                         clearUploadedPhotos();
                       }
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold text-[#716B63] hover:text-red-700 hover:bg-red-50 border border-[#DED5C8] transition-all"
-                    title="Clear cached photos"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-[#765D62] hover:text-red-700 hover:bg-red-50 border border-[#EADDE0] transition-all cursor-pointer self-start sm:self-auto"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Clear Stream</span>
                   </button>
                 )}
-
-                <a
-                  href={WEDDING_EVENT.googleDriveFolderUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-[#873F50] bg-[#F8F5EF] hover:bg-[#E8DDD0] border border-[#DED5C8] transition-all"
-                >
-                  <span>Open Google Drive Folder</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
               </div>
-            </div>
 
-            {liveStreamPhotos.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DED5C8] bg-[#F8F5EF] p-8 text-center space-y-2">
-                <p className="text-sm font-semibold text-[#242321]">
-                  No photos uploaded to this wedding album yet
-                </p>
-                <p className="text-xs text-[#716B63]">
-                  Use the camera or gallery button above to upload the first memories!
-                </p>
+              {/* Ceremony Filter Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                {["All", "Phere", "Sangeet", "Mehendi", "Haldi", "Reception"].map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setGalleryCeremony(c)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                      galleryCeremony === c
+                        ? "bg-[#A85D70] text-white shadow-xs"
+                        : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div
-                className={`grid gap-4 ${
-                  liveStreamPhotos.length === 1
-                    ? "grid-cols-1 max-w-sm mx-auto"
-                    : liveStreamPhotos.length === 2
-                    ? "grid-cols-1 sm:grid-cols-2 max-w-xl mx-auto"
-                    : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                }`}
-              >
-                {liveStreamPhotos.map((photo) => (
+
+              {/* Photos Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {filteredGalleryPhotos.map((photo) => (
                   <div
                     key={photo.id}
-                    className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-[#F8F5EF] border border-[#DED5C8] shadow-xs"
+                    onClick={() => setLightboxPhoto(photo)}
+                    className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
                   >
                     <img
                       src={photo.url}
                       alt={photo.title}
-                      referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
-                          e.currentTarget.src = photo.fallbackUrl;
-                        }
-                      }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end">
-                      <span className="text-[10px] font-semibold text-[#E8DDD0] uppercase tracking-wider">
+
+                    {/* Favorite Heart Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => toggleFavorite(photo.id, e)}
+                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer"
+                    >
+                      <Heart className={`w-4 h-4 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
+                    </button>
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
+                      <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
                         {photo.ceremony}
                       </span>
-                      <p className="text-xs font-bold text-white truncate">
+                      <p className="text-xs font-bold truncate">
                         {photo.title}
                       </p>
+                      <span className="text-[10px] text-emerald-300 flex items-center gap-1 mt-0.5 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {photo.facesCount === 1 ? "1 Person Available" : `${photo.facesCount || 1} Persons Available`}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Upload Tips Panel with 4 Icons */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DED5C8] space-y-4">
-            <h3 className="font-serif text-lg font-bold text-[#242321] flex items-center gap-2">
-              <Info className="w-4 h-4 text-[#C6A76A]" />
-              <span>Wedding Photo Upload Guidelines</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#716B63]">
-              <div className="p-3.5 rounded-xl bg-[#F8F5EF] border border-[#DED5C8]/80">
-                <span className="font-bold text-[#242321] block mb-1">
-                  1. Uncompressed Quality
-                </span>
-                Upload original resolution photos so face recognition can accurately align micro-features.
+          {/* VIEW 3: FAVORITES */}
+          {activeSidebarItem === "favorites" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#633C49] tracking-tight">
+                  Your Favorite Photos ({favoritePhotosList.length})
+                </h1>
+                <p className="text-sm text-[#765D62] mt-1">
+                  Wedding memories you have saved with a heart.
+                </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#F8F5EF] border border-[#DED5C8]/80">
-                <span className="font-bold text-[#242321] block mb-1">
-                  2. Group Candids Welcome
-                </span>
-                Our multi-face detection parses every subject in Baraat and dance floor group photographs.
+              {favoritePhotosList.length === 0 ? (
+                <div className="rounded-[24px] border-2 border-dashed border-[#EADDE0] bg-white p-12 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-[#F1D5D5]/50 flex items-center justify-center mx-auto text-[#A85D70]">
+                    <Heart className="w-7 h-7" />
+                  </div>
+                  <h3 className="font-serif text-xl font-bold text-[#633C49]">
+                    No Favorite Photos Yet
+                  </h3>
+                  <p className="text-sm text-[#947A80] max-w-sm mx-auto">
+                    Click the heart icon on any photo in the gallery to save it here for fast viewing and downloading.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSidebarItem("gallery")}
+                    className="px-6 py-2.5 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors cursor-pointer"
+                  >
+                    Browse Gallery
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {favoritePhotosList.map((photo) => (
+                    <div
+                      key={photo.id}
+                      onClick={() => setLightboxPhoto(photo)}
+                      className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => toggleFavorite(photo.id, e)}
+                        className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs cursor-pointer"
+                      >
+                        <Heart className="w-4 h-4 fill-[#A85D70] text-[#A85D70]" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW 4: EVENT DETAILS */}
+          {activeSidebarItem === "details" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#633C49] tracking-tight">
+                  Event & Wedding Details
+                </h1>
+                <p className="text-sm text-[#765D62] mt-1">
+                  Complete itinerary, location guide, and gallery access configurations.
+                </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#F8F5EF] border border-[#DED5C8]/80">
-                <span className="font-bold text-[#242321] block mb-1">
-                  3. Tag Ceremony Correctly
-                </span>
-                Tagging (Haldi, Sangeet, Phere) keeps the couple&apos;s digital storybook categorized.
-              </div>
+              {/* Event Overview Card */}
+              <div className="bg-white rounded-[24px] p-6 sm:p-8 border border-[#EADDE0] shadow-rose-sm space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#EADDE0]">
+                  <div>
+                    <span className="text-xs uppercase font-bold tracking-widest text-[#A85D70]">
+                      Official Celebration
+                    </span>
+                    <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#633C49] mt-0.5">
+                      {WEDDING_EVENT.couple}
+                    </h2>
+                    <p className="text-sm text-[#947A80] flex items-center gap-1.5 mt-1">
+                      <MapPin className="w-4 h-4 text-[#A85D70]" />
+                      <span>{WEDDING_EVENT.venue}</span>
+                    </p>
+                  </div>
 
-              <div className="p-3.5 rounded-xl bg-[#F8F5EF] border border-[#DED5C8]/80">
-                <span className="font-bold text-[#242321] block mb-1">
-                  4. Privacy Protection
-                </span>
-                Only authorized wedding guests and the couple can discover and access these memories.
+                  <div className="text-left sm:text-right">
+                    <span className="text-xs uppercase font-bold tracking-widest text-[#947A80]">
+                      Dates
+                    </span>
+                    <p className="text-sm font-semibold text-[#633C49] flex items-center sm:justify-end gap-1.5 mt-0.5">
+                      <Calendar className="w-4 h-4 text-[#A85D70]" />
+                      <span>{WEDDING_EVENT.date}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Itinerary Grid */}
+                <div>
+                  <h3 className="font-serif text-base font-bold text-[#633C49] mb-4">
+                    Ceremony Itinerary
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                      <span className="font-bold text-[#633C49] block text-sm">Mehendi Ceremony</span>
+                      <p className="text-[#947A80]">Henna rituals, pool deck, live dhol beats</p>
+                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 14 • 11:00 AM</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                      <span className="font-bold text-[#633C49] block text-sm">Haldi Celebration</span>
+                      <p className="text-[#947A80]">Turmeric blessings with family & friends</p>
+                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 14 • 4:00 PM</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                      <span className="font-bold text-[#633C49] block text-sm">Sangeet & Cocktail Night</span>
+                      <p className="text-[#947A80]">Dance performances, dinner & celebrations</p>
+                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 15 • 7:30 PM</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                      <span className="font-bold text-[#633C49] block text-sm">Varmala & Royal Phere</span>
+                      <p className="text-[#947A80]">Twilight grand wedding rituals at palace lakefront</p>
+                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 16 • 5:00 PM</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vault & Privacy Card */}
+                <div className="p-4 rounded-xl bg-[#F1D5D5]/30 border border-[#A85D70]/20 flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5 text-[#477A5B] flex-shrink-0" />
+                  <div className="text-xs">
+                    <span className="font-bold text-[#633C49] block">
+                      Protected Private Biometric Vault
+                    </span>
+                    <span className="text-[#765D62]">
+                      Face matching complies with India DPDP Act 2023 & GDPR Art. 9. Ephemeral zero-retention matching.
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
         </div>
       </main>
+
+      {/* Lightbox Modal */}
+      {lightboxPhoto && (
+        <div
+          onClick={() => setLightboxPhoto(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-[24px] overflow-hidden shadow-2xl border border-[#EADDE0] flex flex-col"
+          >
+            <div className="p-4 border-b border-[#EADDE0] flex items-center justify-between">
+              <div>
+                <h4 className="font-serif text-base font-bold text-[#633C49]">{lightboxPhoto.title}</h4>
+                <span className="text-xs text-[#947A80]">{lightboxPhoto.ceremony} Ceremony</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxPhoto(null)}
+                className="p-1 rounded-full text-[#765D62] hover:bg-[#FFF8F3] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative flex-1 bg-black/5 flex items-center justify-center p-4 overflow-hidden">
+              <img
+                src={lightboxPhoto.url}
+                alt={lightboxPhoto.title}
+                className="max-h-[65vh] w-auto object-contain rounded-xl shadow-sm"
+              />
+            </div>
+
+            <div className="p-4 border-t border-[#EADDE0] flex items-center justify-between bg-[#FFF8F3]">
+              <button
+                type="button"
+                onClick={(e) => toggleFavorite(lightboxPhoto.id, e)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-[#633C49] bg-white border border-[#EADDE0] hover:border-[#A85D70] transition-colors cursor-pointer"
+              >
+                <Heart className={`w-3.5 h-3.5 ${favorites.includes(lightboxPhoto.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
+                <span>{favorites.includes(lightboxPhoto.id) ? "Favorited" : "Favorite"}</span>
+              </button>
+
+              <a
+                href={lightboxPhoto.url}
+                download={`${lightboxPhoto.title || "wedding_photo"}.jpg`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download High-Res</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

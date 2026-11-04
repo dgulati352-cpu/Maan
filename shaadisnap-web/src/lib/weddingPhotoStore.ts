@@ -2,30 +2,59 @@ import { WeddingPhoto } from "@/data/mockWeddingData";
 
 const STORAGE_KEY = "shaadisnap_live_wedding_photos";
 
+const DEFAULT_COUPLE_PHOTO: WeddingPhoto = {
+  id: "hero_couple_photo",
+  url: "/hero-couple.jpg",
+  title: "Mahine Weds Anand — Royal Celebration",
+  ceremony: "Reception",
+  facesCount: 2,
+  photographer: "JMD Studio",
+  confidenceTier: "high",
+  aspectRatio: "portrait",
+};
+
 /**
  * Returns ONLY real uploaded wedding photos (strictly no demo / mock photos).
  * Sorted with latest uploads first.
  */
 export function getWeddingPhotos(): WeddingPhoto[] {
   if (typeof window === "undefined") {
-    return [];
+    return [DEFAULT_COUPLE_PHOTO];
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return [DEFAULT_COUPLE_PHOTO];
     const uploaded: WeddingPhoto[] = JSON.parse(raw);
     // Filter out any mock/demo IDs and return only real uploads
-    return uploaded.filter(
-      (p) =>
-        p &&
-        p.id &&
-        !p.id.startsWith("photo_") &&
-        !p.id.startsWith("demo_") &&
-        p.url &&
-        !p.url.includes("unsplash.com")
-    );
+    const realUploads = uploaded
+      .filter(
+        (p) =>
+          p &&
+          p.id &&
+          !p.id.startsWith("photo_") &&
+          !p.id.startsWith("demo_") &&
+          p.url &&
+          !p.url.includes("unsplash.com")
+      )
+      .map((p) => {
+        // Accurately calibrate facesCount:
+        // Windows camera captures (WIN_...) and single selfies are 1 person
+        const isSinglePerson =
+          p.title?.startsWith("WIN_") ||
+          p.title?.toLowerCase().includes("selfie") ||
+          p.photographer === "Guest Live Upload";
+        return {
+          ...p,
+          facesCount: isSinglePerson ? 1 : p.facesCount || 1,
+        };
+      });
+    // Always include the real couple photo in the list (newest live uploads at top)
+    if (!realUploads.some((p) => p.url === "/hero-couple.jpg")) {
+      return [...realUploads, DEFAULT_COUPLE_PHOTO];
+    }
+    return realUploads;
   } catch {
-    return [];
+    return [DEFAULT_COUPLE_PHOTO];
   }
 }
 
@@ -47,7 +76,7 @@ export function addUploadedPhoto(photo: {
 
     // Use direct high-speed Google Usercontent CDN link if Drive ID is available
     const directCdnUrl = photo.driveFileId
-      ? `https://lh3.googleusercontent.com/d/${photo.driveFileId}=w1200`
+      ? `https://lh3.googleusercontent.com/d/${photo.driveFileId}=s0`
       : photo.url;
 
     const newPhoto: WeddingPhoto = {
@@ -56,8 +85,8 @@ export function addUploadedPhoto(photo: {
       fallbackUrl: photo.fallbackUrl,
       driveFileId: photo.driveFileId,
       title: photo.title || "Wedding Memory",
-      ceremony: (photo.ceremony as any) || "Sangeet",
-      facesCount: Math.floor(Math.random() * 2) + 1,
+      ceremony: (photo.ceremony as WeddingPhoto["ceremony"]) || "Sangeet",
+      facesCount: 1,
       photographer: photo.photographer || "Guest Live Upload",
       similarity: 0.96,
       confidenceTier: "high",

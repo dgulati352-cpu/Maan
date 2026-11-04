@@ -7,15 +7,16 @@ import { FeatureStrip } from "@/components/FeatureStrip";
 import { HowItWorks } from "@/components/HowItWorks";
 import { StatsSection } from "@/components/StatsSection";
 import { LuxuryGalleryPreview } from "@/components/LuxuryGalleryPreview";
+import { FullWeddingGallery } from "@/components/FullWeddingGallery";
 import { GuestSelfieSearch } from "@/components/GuestSelfieSearch";
 import { GuestPhotoUpload } from "@/components/GuestPhotoUpload";
 import { Footer } from "@/components/Footer";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"landing" | "search" | "upload">("landing");
+  const [activeTab, setActiveTab] = useState<"landing" | "gallery" | "search" | "upload">("landing");
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F5EF] text-[#242321]">
+    <div className="min-h-screen flex flex-col bg-[#FFF8F3] text-[#633C49]">
       {/* Refined Navigation Bar */}
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -27,9 +28,21 @@ export default function Home() {
             onUploadPhotos={() => setActiveTab("upload")}
           />
           <FeatureStrip />
-          <LuxuryGalleryPreview onFindYourFace={() => setActiveTab("search")} />
+          <LuxuryGalleryPreview
+            onFindYourFace={() => setActiveTab("search")}
+            onViewAllGallery={() => setActiveTab("gallery")}
+          />
           <HowItWorks onGetStarted={() => setActiveTab("search")} />
           <StatsSection />
+        </main>
+      )}
+
+      {activeTab === "gallery" && (
+        <main className="flex-1">
+          <FullWeddingGallery
+            onFindPhotos={() => setActiveTab("search")}
+            onUploadPhotos={() => setActiveTab("upload")}
+          />
         </main>
       )}
 
@@ -45,7 +58,7 @@ export default function Home() {
         </main>
       )}
 
-      {/* Luxury Footer (visible on landing and search screens) */}
+      {/* Luxury Footer (visible on landing, gallery and search screens) */}
       {activeTab !== "upload" && <Footer />}
     </div>
   );

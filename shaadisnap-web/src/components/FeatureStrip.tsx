@@ -28,27 +28,27 @@ export const FeatureStrip: React.FC = () => {
   ];
 
   return (
-    <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-6">
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-[#DED5C8] shadow-sm hover:shadow-md transition-shadow">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 lg:divide-x divide-[#DED5C8]">
+    <section id="features" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4 scroll-mt-24">
+      <div className="glass-panel rounded-[24px] p-5 sm:p-7 hover:shadow-[0_24px_60px_rgba(99,60,73,0.12)] transition-shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-7 divide-y sm:divide-y-0 lg:divide-x divide-[#EADDE0]">
           {features.map((feat, idx) => {
             const Icon = feat.icon;
             return (
               <div
                 key={idx}
-                className={`flex items-center gap-4 ${
+                className={`flex items-center gap-3.5 ${
                   idx !== 0 ? "pt-6 sm:pt-0 lg:pl-8" : ""
                 }`}
               >
-                {/* Circular Gold Icon Container */}
-                <div className="w-12 h-12 rounded-full bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center border border-[#C6A76A]/40 shadow-xs">
-                  <Icon className="w-5 h-5 text-[#C6A76A]" />
+                <div className="w-11 h-11 rounded-2xl bg-[#F1D5D5]/60 flex-shrink-0 flex items-center justify-center border border-[#A85D70]/30 shadow-xs rotate-[-3deg]">
+                  <Icon className="w-5 h-5 text-[#A85D70]" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-base font-bold text-[#242321]">
+                  <p className="text-[9px] uppercase tracking-[0.18em] font-bold text-[#A85D70] mb-1">0{idx + 1} / promise</p>
+                  <h3 className="font-serif text-[15px] font-bold text-[#633C49]">
                     {feat.title}
                   </h3>
-                  <p className="text-xs text-[#716B63] mt-0.5 leading-relaxed">
+                  <p className="text-[11px] text-[#765D62] mt-0.5 leading-relaxed">
                     {feat.description}
                   </p>
                 </div>

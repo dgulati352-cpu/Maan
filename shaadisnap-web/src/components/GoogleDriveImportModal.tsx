@@ -71,13 +71,13 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div
-        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#DED5C8] overflow-hidden"
+        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#EADDE0] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 sm:p-7 border-b border-[#DED5C8] flex items-center justify-between bg-[#F8F5EF]/70">
+        <div className="p-6 sm:p-7 border-b border-[#EADDE0] flex items-center justify-between bg-[#FFF8F3]/70">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white border border-[#DED5C8] flex items-center justify-center shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-white border border-[#EADDE0] flex items-center justify-center shadow-xs">
               <svg className="w-6 h-6" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
                 <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
                 <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
@@ -88,10 +88,10 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
               </svg>
             </div>
             <div>
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#242321]">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#633C49]">
                 Import from Google Drive
               </h2>
-              <p className="text-xs text-[#716B63]">
+              <p className="text-xs text-[#765D62]">
                 Photos stay stored in Google Drive; high-speed previews display on ShaadiSnap.
               </p>
             </div>
@@ -99,7 +99,7 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#716B63] hover:text-[#242321] hover:bg-[#E8DDD0] transition-colors"
+            className="p-2 rounded-full text-[#765D62] hover:text-[#633C49] hover:bg-[#F1D5D5]/50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -108,23 +108,23 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
         {/* Scrollable Body */}
         <div className="p-6 sm:p-7 space-y-6 overflow-y-auto flex-1">
           {/* Quick Step Guide Toggle */}
-          <div className="bg-[#F8F5EF] p-4 rounded-2xl border border-[#DED5C8]/80 space-y-2">
+          <div className="bg-[#FFF8F3] p-4 rounded-2xl border border-[#EADDE0]/80 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#242321] flex items-center gap-1.5">
-                <HelpCircle className="w-4 h-4 text-[#C6A76A]" />
+              <span className="text-xs font-bold text-[#633C49] flex items-center gap-1.5">
+                <HelpCircle className="w-4 h-4 text-[#D9B7A0]" />
                 How to get Google Drive Share links:
               </span>
               <button
                 type="button"
                 onClick={() => setShowHelpGuide(!showHelpGuide)}
-                className="text-xs font-semibold text-[#873F50] hover:underline"
+                className="text-xs font-semibold text-[#A85D70] hover:underline"
               >
                 {showHelpGuide ? "Hide instructions" : "Show step-by-step"}
               </button>
             </div>
 
             {showHelpGuide && (
-              <ol className="text-xs text-[#716B63] list-decimal list-inside space-y-1.5 pt-2 border-t border-[#DED5C8]/60">
+              <ol className="text-xs text-[#765D62] list-decimal list-inside space-y-1.5 pt-2 border-t border-[#EADDE0]/60">
                 <li>
                   Open your <strong>Google Drive</strong> folder with wedding photos.
                 </li>
@@ -144,7 +144,7 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
 
           {/* Ceremony Selector */}
           <div>
-            <label className="block text-xs font-bold text-[#242321] uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-[#633C49] uppercase tracking-wider mb-2">
               Assign Ceremony Tag
             </label>
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -155,8 +155,8 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
                   onClick={() => setSelectedCeremony(ceremony)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
                     selectedCeremony === ceremony
-                      ? "bg-[#873F50] text-white shadow-xs"
-                      : "bg-[#F8F5EF] text-[#716B63] hover:text-[#242321] border border-[#DED5C8]"
+                      ? "bg-[#A85D70] text-white shadow-xs"
+                      : "bg-[#FFF8F3] text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
                   }`}
                 >
                   {ceremony}
@@ -168,13 +168,13 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
           {/* Textarea Input */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-[#242321] uppercase tracking-wider">
+              <label className="text-xs font-bold text-[#633C49] uppercase tracking-wider">
                 Paste Google Drive Links
               </label>
               <button
                 type="button"
                 onClick={handleUseSample}
-                className="text-xs font-semibold text-[#873F50] hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-[#A85D70] hover:underline flex items-center gap-1"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Fill Demo Drive Links</span>
@@ -186,9 +186,9 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Paste one or multiple Google Drive links (one per line):&#10;https://drive.google.com/file/d/1AbCdEfG.../view?usp=sharing&#10;https://drive.google.com/file/d/1XyZaBcD.../view?usp=sharing"
               rows={4}
-              className="w-full p-4 rounded-2xl bg-white border border-[#DED5C8] focus:outline-none focus:ring-2 focus:ring-[#C6A76A] text-xs font-mono text-[#242321] placeholder-[#716B63]/60 resize-none shadow-xs"
+              className="w-full p-4 rounded-2xl bg-white border border-[#EADDE0] focus:outline-none focus:ring-2 focus:ring-[#D9B7A0] text-xs font-mono text-[#633C49] placeholder-[#765D62]/60 resize-none shadow-xs"
             />
-            <p className="text-[11px] text-[#716B63] mt-1.5">
+            <p className="text-[11px] text-[#765D62] mt-1.5">
               Supports standard share links, direct file IDs, or folder URLs. Multiple links can be separated by newlines or commas.
             </p>
           </div>
@@ -197,7 +197,7 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
           {parsedItems.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#242321]">
+                <span className="font-bold text-[#633C49]">
                   Detected Links ({validItems.length} valid / {parsedItems.length} total)
                 </span>
                 {validItems.length > 0 && (
@@ -214,12 +214,12 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
                     key={item.id}
                     className={`p-3 rounded-xl border flex items-center gap-3 transition-colors ${
                       item.isValid
-                        ? "bg-[#F8F5EF]/60 border-[#DED5C8]"
+                        ? "bg-[#FFF8F3]/60 border-[#EADDE0]"
                         : "bg-red-50/50 border-red-200"
                     }`}
                   >
                     {item.isValid ? (
-                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-stone-200 flex-shrink-0 border border-[#DED5C8] relative">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#F1D5D5]/50 flex-shrink-0 border border-[#EADDE0] relative">
                         <img
                           src={item.directUrl}
                           alt="Drive preview"
@@ -242,12 +242,12 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-[#242321] truncate">
+                      <p className="text-xs font-bold text-[#633C49] truncate">
                         {item.name}
                       </p>
                       {item.isValid ? (
                         <>
-                          <p className="text-[10px] font-mono text-[#716B63] truncate">
+                          <p className="text-[10px] font-mono text-[#765D62] truncate">
                             ID: {item.fileId}
                           </p>
                           <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800">
@@ -268,11 +268,11 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 sm:p-6 border-t border-[#DED5C8] bg-[#F8F5EF]/50 flex items-center justify-between gap-3">
+        <div className="p-5 sm:p-6 border-t border-[#EADDE0] bg-[#FFF8F3]/50 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-full text-xs font-semibold text-[#716B63] hover:text-[#242321] hover:bg-[#E8DDD0] transition-colors"
+            className="px-5 py-2.5 rounded-full text-xs font-semibold text-[#765D62] hover:text-[#633C49] hover:bg-[#F1D5D5]/50 transition-colors"
           >
             Cancel
           </button>
@@ -281,7 +281,7 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
             type="button"
             disabled={validItems.length === 0}
             onClick={handleConfirmImport}
-            className="px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#873F50] hover:bg-[#733443] disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-all flex items-center gap-2"
+            className="px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>

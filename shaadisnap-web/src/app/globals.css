@@ -1,78 +1,408 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   ShaadiSnap AI — Rose Champagne Luxury Design System
+   Milestone 1: Design Tokens, CSS Variables & Tailwind Theme Foundation
+   Theme: Light Mode ONLY
+   ========================================================================== */
+
+@theme {
+  /* --- Primary Brand Palette --- */
+  --color-rose-primary: #A85D70;
+  --color-rose-hover: #914C60;
+  --color-rose-soft: #F1D5D5;
+  --color-ivory-warm: #FFF8F3;
+  --color-burgundy-deep: #633C49;
+  --color-champagne: #D9B7A0;
+  --color-white-pure: #FFFFFF;
+
+  /* --- Text & Surface Neutrals --- */
+  --color-text-body: #765D62;
+  --color-text-muted: #947A80;
+  --color-border-subtle: #EADDE0;
+
+  /* --- Functional Status Colors --- */
+  --color-success: #3D7A5A;
+  --color-warning: #B87B2E;
+  --color-error: #A63B48;
+  --color-info: #4A6B82;
+
+  /* --- Developer Shorthand Aliases --- */
+  --color-rose: #A85D70;
+  --color-burgundy: #633C49;
+  --color-ivory: #FFF8F3;
+  --color-blush: #F1D5D5;
+  --color-body: #765D62;
+  --color-muted: #947A80;
+  --color-subtle: #EADDE0;
+
+  /* --- Typography Font Families --- */
+  --font-serif: var(--font-serif), "Playfair Display", Georgia, serif;
+  --font-sans: var(--font-body), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: var(--font-body), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* --- Strict Card Radii (16px & 24px) --- */
+  --radius-card-sm: 16px;
+  --radius-card-lg: 24px;
+
+  /* --- Warm Subtle Luxury Shadows (Deep Burgundy Tint) --- */
+  --shadow-warm-xs: 0 1px 2px 0 rgba(99, 60, 73, 0.04), 0 1px 3px 0 rgba(99, 60, 73, 0.05);
+  --shadow-warm-sm: 0 2px 6px -1px rgba(99, 60, 73, 0.06), 0 1px 4px -1px rgba(99, 60, 73, 0.04);
+  --shadow-warm-md: 0 6px 16px -2px rgba(99, 60, 73, 0.08), 0 2px 6px -1px rgba(99, 60, 73, 0.04);
+  --shadow-warm-lg: 0 12px 28px -4px rgba(99, 60, 73, 0.10), 0 4px 10px -2px rgba(99, 60, 73, 0.05);
+  --shadow-warm-xl: 0 20px 40px -6px rgba(99, 60, 73, 0.12), 0 8px 16px -4px rgba(99, 60, 73, 0.06);
+  --shadow-rose-glow: 0 0 20px -2px rgba(168, 93, 112, 0.25);
+}
+
+/* ==========================================================================
+   Centralized CSS Custom Properties (Interface Contract Compliance)
+   ========================================================================== */
 :root {
-  --bg-ivory: #F8F5EF;
-  --accent-gold: #C6A76A;
-  --accent-gold-light: #E0C794;
-  --accent-gold-hover: #B39355;
-  --text-charcoal: #242321;
-  --text-charcoal-deep: #1A1918;
-  --surface-champagne: #E8DDD0;
-  --surface-champagne-light: #F2EBE1;
-  --cta-burgundy: #873F50;
-  --cta-burgundy-hover: #733443;
-  --text-muted: #716B63;
-  --border-champagne: #DED5C8;
-  --border-gold-subtle: rgba(198, 167, 106, 0.4);
-  --surface-white: #FFFFFF;
+  /* Enforce Light Mode ONLY */
+  color-scheme: light only;
+
+  /* Contract Palette Tokens */
+  --color-rose-primary: #A85D70;
+  --color-rose-hover: #914C60;
+  --color-rose-soft: #F1D5D5;
+  --color-ivory-warm: #FFF8F3;
+  --color-burgundy-deep: #633C49;
+  --color-champagne: #D9B7A0;
+  --color-white-pure: #FFFFFF;
+  --color-text-body: #765D62;
+  --color-text-muted: #947A80;
+  --color-border-subtle: #EADDE0;
+  --color-success: #3D7A5A;
+  --color-warning: #B87B2E;
+  --color-error: #A63B48;
+  --color-info: #4A6B82;
+
+  /* Layout & Width Constraints */
+  --max-width-content: 1280px;
+  --sidebar-width-admin: 250px;
+  --radius-card-sm: 16px;
+  --radius-card-lg: 24px;
+
+  /* Fluid Typography Scale (Scales smoothly from 360px mobile to 1440px desktop) */
+  --text-display: clamp(2.25rem, 1.667rem + 2.593vw, 4.0rem);    /* 36px - 64px */
+  --text-h1: clamp(1.875rem, 1.583rem + 1.296vw, 2.75rem);       /* 30px - 44px */
+  --text-h2: clamp(1.5rem, 1.292rem + 0.926vw, 2.125rem);        /* 24px - 34px */
+  --text-h3: clamp(1.25rem, 1.125rem + 0.556vw, 1.625rem);       /* 20px - 26px */
+  --text-h4: clamp(1.125rem, 1.083rem + 0.185vw, 1.25rem);       /* 18px - 20px */
+  --text-body-lg: clamp(1.0rem, 0.958rem + 0.185vw, 1.125rem);   /* 16px - 18px */
+  --text-body: clamp(0.9375rem, 0.917rem + 0.093vw, 1.0rem);     /* 15px - 16px */
+  --text-body-sm: clamp(0.8125rem, 0.792rem + 0.093vw, 0.875rem);/* 13px - 14px */
+  --text-micro: 0.75rem;                                         /* 12px */
+
+  /* Line Heights */
+  --line-display: 1.12;
+  --line-h1: 1.18;
+  --line-h2: 1.24;
+  --line-h3: 1.32;
+  --line-h4: 1.38;
+  --line-body: 1.6;
+  --line-body-sm: 1.5;
+
+  /* Restrained Micro-Interaction Transitions (180ms - 300ms) */
+  --duration-fast: 180ms;
+  --duration-normal: 240ms;
+  --duration-slow: 300ms;
+  --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Base Styles & Light-Mode Enforcement
+   ========================================================================== */
+html {
+  color-scheme: light;
+  background-color: var(--color-ivory-warm);
 }
 
 body {
-  background-color: var(--bg-ivory);
-  color: var(--text-charcoal);
-  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--color-ivory-warm);
+  background-image:
+    radial-gradient(circle at 8% 8%, rgba(241, 213, 213, 0.36), transparent 24rem),
+    radial-gradient(circle at 92% 18%, rgba(217, 183, 160, 0.18), transparent 28rem);
+  color: var(--color-text-body);
+  font-family: var(--font-body), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.font-serif {
+/* Editorial Serif Headings */
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif), Georgia, serif;
+  color: var(--color-burgundy-deep);
+  letter-spacing: -0.015em;
 }
 
-.font-sans {
-  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+/* ==========================================================================
+   Fluid Typography Utility Classes
+   ========================================================================== */
+.text-fluid-display {
+  font-size: var(--text-display);
+  line-height: var(--line-display);
+  letter-spacing: -0.02em;
 }
 
-/* Custom Luxury Scrollbars */
+.text-fluid-h1 {
+  font-size: var(--text-h1);
+  line-height: var(--line-h1);
+  letter-spacing: -0.015em;
+}
+
+.text-fluid-h2 {
+  font-size: var(--text-h2);
+  line-height: var(--line-h2);
+  letter-spacing: -0.01em;
+}
+
+.text-fluid-h3 {
+  font-size: var(--text-h3);
+  line-height: var(--line-h3);
+}
+
+.text-fluid-h4 {
+  font-size: var(--text-h4);
+  line-height: var(--line-h4);
+}
+
+.text-fluid-lg {
+  font-size: var(--text-body-lg);
+  line-height: var(--line-body);
+}
+
+.text-fluid-body {
+  font-size: var(--text-body);
+  line-height: var(--line-body);
+}
+
+.text-fluid-sm {
+  font-size: var(--text-body-sm);
+  line-height: var(--line-body-sm);
+}
+
+.text-fluid-xs {
+  font-size: var(--text-micro);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Card Radii & Layout Container Tokens
+   ========================================================================== */
+.rounded-card-sm {
+  border-radius: var(--radius-card-sm) !important; /* 16px */
+}
+
+.rounded-card-lg {
+  border-radius: var(--radius-card-lg) !important; /* 24px */
+}
+
+.container-luxury {
+  width: 100%;
+  max-width: var(--max-width-content); /* Strictly 1280px */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-luxury {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-luxury {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Standardized Luxury Cards */
+.card-luxury {
+  background-color: var(--color-white-pure);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card-sm);
+  box-shadow: 0 2px 6px -1px rgba(99, 60, 73, 0.06), 0 1px 4px -1px rgba(99, 60, 73, 0.04);
+  transition: box-shadow var(--duration-normal) var(--ease-luxury), transform var(--duration-normal) var(--ease-luxury);
+}
+
+.card-luxury:hover {
+  box-shadow: 0 6px 16px -2px rgba(99, 60, 73, 0.08), 0 2px 6px -1px rgba(99, 60, 73, 0.04);
+}
+
+.card-luxury-hero {
+  background-color: var(--color-white-pure);
+  border: 1px solid rgba(217, 183, 160, 0.6); /* Soft Champagne border */
+  border-radius: var(--radius-card-lg);
+  box-shadow: 0 6px 16px -2px rgba(99, 60, 73, 0.08), 0 2px 6px -1px rgba(99, 60, 73, 0.04);
+}
+
+/* ==========================================================================
+   Warm Subtle Shadows & Shimmers (No Harsh Gold / No Cartoon Halos)
+   ========================================================================== */
+.shadow-warm-xs {
+  box-shadow: 0 1px 2px 0 rgba(99, 60, 73, 0.04), 0 1px 3px 0 rgba(99, 60, 73, 0.05);
+}
+
+.shadow-warm-sm {
+  box-shadow: 0 2px 6px -1px rgba(99, 60, 73, 0.06), 0 1px 4px -1px rgba(99, 60, 73, 0.04);
+}
+
+.shadow-warm-md {
+  box-shadow: 0 6px 16px -2px rgba(99, 60, 73, 0.08), 0 2px 6px -1px rgba(99, 60, 73, 0.04);
+}
+
+.shadow-warm-lg {
+  box-shadow: 0 12px 28px -4px rgba(99, 60, 73, 0.10), 0 4px 10px -2px rgba(99, 60, 73, 0.05);
+}
+
+.shadow-warm-xl {
+  box-shadow: 0 20px 40px -6px rgba(99, 60, 73, 0.12), 0 8px 16px -4px rgba(99, 60, 73, 0.06);
+}
+
+.shadow-rose-glow {
+  box-shadow: 0 0 20px -2px rgba(168, 93, 112, 0.25);
+}
+
+/* ==========================================================================
+   Interactive Accessibility & Focus Rings (WCAG 2.2 AA)
+   ========================================================================== */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-rose-primary);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Custom Luxury Scrollbars
+   ========================================================================== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #F8F5EF;
+  background: var(--color-ivory-warm);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #DED5C8;
+  background: var(--color-border-subtle);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #C6A76A;
+  background: var(--color-champagne);
 }
 
-/* Luxury Card & Border Shimmers */
-.gold-border-glow {
-  box-shadow: 0 0 25px -5px rgba(198, 167, 106, 0.25);
-}
-
-.burgundy-glow {
-  box-shadow: 0 10px 30px -10px rgba(135, 63, 80, 0.4);
-}
-
-/* Face Scan Scanner Line Animation */
-@keyframes scanline {
+/* ==========================================================================
+   Face Scan Biometric Animation (Rose Champagne Scanner)
+   ========================================================================== */
+@keyframes scanline-rose {
   0% {
     top: 0%;
-    opacity: 0.8;
+    opacity: 0.85;
   }
   50% {
     opacity: 1;
   }
   100% {
     top: 100%;
-    opacity: 0.8;
+    opacity: 0.85;
   }
 }
 
 .animate-scan {
-  animation: scanline 2.2s ease-in-out infinite alternate;
+  animation: scanline-rose 2.4s ease-in-out infinite alternate;
+}
+
+.scan-laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #A85D70 50%, transparent 100%);
+  box-shadow: 0 0 12px rgba(168, 93, 112, 0.6);
+}
+
+/* ============================================================================
+   Editorial polish utilities
+   ============================================================================ */
+.editorial-grid {
+  background-image: linear-gradient(rgba(168, 93, 112, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 93, 112, 0.055) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+
+.editorial-kicker {
+  color: var(--color-rose-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 18px 50px rgba(99, 60, 73, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.photo-card-sheen {
+  position: relative;
+  isolation: isolate;
+}
+
+.photo-card-sheen::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(115deg, transparent 28%, rgba(255, 255, 255, 0.2) 48%, transparent 68%);
+  transform: translateX(-120%);
+  transition: transform 700ms var(--ease-luxury);
+}
+
+.photo-card-sheen:hover::after {
+  transform: translateX(120%);
+}
+
+.luxury-rule {
+  width: 3.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-rose-primary), transparent);
+}
+
+/* ==========================================================================
+   Prefers Reduced Motion (Strict Accessibility Compliance)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan {
+    animation: none !important;
+    animation-iteration-count: 1 !important;
+    opacity: 0.5;
+    top: 50% !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
