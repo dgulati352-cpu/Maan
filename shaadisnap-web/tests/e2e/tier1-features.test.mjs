@@ -1062,7 +1062,7 @@ export function runTier1Tests() {
   test('F33-T1-05', 'F33: Enforces JSON content-type on API mutation endpoints', () => {
     const validateContentType = (headers) => {
       const ct = headers['content-type'] || headers['Content-Type'];
-      return ct && ct.toLowerCase().includes('application/json');
+      return Boolean(ct && ct.toLowerCase().includes('application/json'));
     };
     assertEqual(validateContentType({ 'content-type': 'application/json; charset=utf-8' }), true);
     assertEqual(validateContentType({ 'content-type': 'text/html' }), false);

@@ -1,0 +1,69 @@
+mutation SeedData @transaction {
+  couple_insertMany(data: [
+    {
+      id: "00000000-0000-0000-0000-000000000001",
+      partnerName1: "Alice",
+      partnerName2: "Bob",
+      weddingDate: "2025-06-15",
+      weddingLocation: "Sunny Beach Resort",
+      registryLink: "https://registry.example.com/alice-bob"
+    },
+    {
+      id: "00000000-0000-0000-0000-000000000002",
+      partnerName1: "Charlie",
+      partnerName2: "Diana",
+      weddingDate: "2025-09-20",
+      weddingLocation: "City Hall",
+      registryLink: "https://registry.example.com/charlie-diana"
+    }
+  ])
+  
+  event_insertMany(data: [
+    {
+      title: "Wedding Ceremony",
+      eventDate: "2025-06-15T14:00:00Z",
+      location: "Main Hall",
+      coupleId: "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      title: "Reception",
+      eventDate: "2025-06-15T18:00:00Z",
+      location: "Garden Pavilion",
+      coupleId: "00000000-0000-0000-0000-000000000001"
+    }
+  ])
+
+  guest_insertMany(data: [
+    {
+      name: "Eve",
+      email: "eve@example.com",
+      coupleId: "00000000-0000-0000-0000-000000000001",
+      plusOneCount: 1
+    },
+    {
+      name: "Frank",
+      email: "frank@example.com",
+      coupleId: "00000000-0000-0000-0000-000000000001",
+      plusOneCount: 0
+    },
+    {
+      name: "Grace",
+      email: "grace@example.com",
+      coupleId: "00000000-0000-0000-0000-000000000002",
+      plusOneCount: 1
+    }
+  ])
+
+  document_insertMany(data: [
+    {
+      title: "Seating Chart",
+      url: "https://storage.example.com/seating-01.pdf",
+      coupleId: "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      title: "Venue Map",
+      url: "https://storage.example.com/map-01.pdf",
+      coupleId: "00000000-0000-0000-0000-000000000001"
+    }
+  ])
+}

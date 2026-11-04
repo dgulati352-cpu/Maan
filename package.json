@@ -11,6 +11,8 @@
     "start": "npm run start --workspace=shaadisnap-web"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
+    "firebase": "^13.2.0",
     "googleapis": "^188.0.0"
   }
 }

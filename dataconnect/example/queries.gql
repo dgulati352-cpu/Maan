@@ -1,0 +1,99 @@
+mutation CreateCouple($partner1: String!, $partner2: String!, $date: Date!) @auth(level: USER) {
+  couple_insert(data: { partnerName1: $partner1, partnerName2: $partner2, weddingDate: $date })
+}
+
+mutation UpdateCouple($id: UUID!, $location: String) @auth(level: USER) {
+  couple_update(id: $id, data: { weddingLocation: $location })
+}
+
+mutation DeleteCouple($id: UUID!) @auth(level: USER) {
+  couple_delete(id: $id)
+}
+
+query GetCouple($id: UUID!) @auth(level: USER) {
+  couple(id: $id) { partnerName1 partnerName2 weddingDate }
+}
+
+query ListCouples @auth(level: USER) {
+  couples { partnerName1 partnerName2 }
+}
+
+mutation CreateGuest($name: String!, $email: String!, $coupleId: UUID!) @auth(level: USER) {
+  guest_insert(data: { name: $name, email: $email, coupleId: $coupleId })
+}
+
+mutation UpdateGuest($id: UUID!, $diet: String) @auth(level: USER) {
+  guest_update(id: $id, data: { dietaryRestrictions: $diet })
+}
+
+mutation DeleteGuest($id: UUID!) @auth(level: USER) {
+  guest_delete(id: $id)
+}
+
+query GetGuest($id: UUID!) @auth(level: USER) {
+  guest(id: $id) { name email }
+}
+
+query ListGuests @auth(level: USER) {
+  guests { name email }
+}
+
+mutation CreateEvent($title: String!, $date: Timestamp!, $loc: String!, $coupleId: UUID!) @auth(level: USER) {
+  event_insert(data: { title: $title, eventDate: $date, location: $loc, coupleId: $coupleId })
+}
+
+mutation UpdateEvent($id: UUID!, $desc: String) @auth(level: USER) {
+  event_update(id: $id, data: { description: $desc })
+}
+
+mutation DeleteEvent($id: UUID!) @auth(level: USER) {
+  event_delete(id: $id)
+}
+
+query GetEvent($id: UUID!) @auth(level: USER) {
+  event(id: $id) { title eventDate location }
+}
+
+query ListEvents @auth(level: USER) {
+  events { title eventDate }
+}
+
+mutation CreateRSVP($status: String!, $eventId: UUID!, $guestId: UUID!) @auth(level: USER) {
+  rSVP_insert(data: { status: $status, eventId: $eventId, guestId: $guestId })
+}
+
+mutation UpdateRSVP($id: UUID!, $note: String) @auth(level: USER) {
+  rSVP_update(id: $id, data: { note: $note })
+}
+
+mutation DeleteRSVP($id: UUID!) @auth(level: USER) {
+  rSVP_delete(id: $id)
+}
+
+query GetRSVP($id: UUID!) @auth(level: USER) {
+  rSVP(id: $id) { status note }
+}
+
+query ListRSVPs @auth(level: USER) {
+  rSVPS { status note }
+}
+
+mutation CreateDocument($title: String!, $url: String!, $coupleId: UUID!) @auth(level: USER) {
+  document_insert(data: { title: $title, url: $url, coupleId: $coupleId })
+}
+
+mutation UpdateDocument($id: UUID!, $desc: String) @auth(level: USER) {
+  document_update(id: $id, data: { description: $desc })
+}
+
+mutation DeleteDocument($id: UUID!) @auth(level: USER) {
+  document_delete(id: $id)
+}
+
+query GetDocument($id: UUID!) @auth(level: USER) {
+  document(id: $id) { title url }
+}
+
+query ListDocuments @auth(level: USER) {
+  documents { title url }
+}

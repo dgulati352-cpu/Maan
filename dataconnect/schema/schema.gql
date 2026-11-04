@@ -1,0 +1,37 @@
+type Couple @table {
+  partnerName1: String!
+  partnerName2: String!
+  weddingDate: Date!
+  weddingLocation: String
+  registryLink: String
+}
+
+type Guest @table {
+  name: String!
+  email: String!
+  dietaryRestrictions: String
+  plusOneCount: Int
+  couple: Couple!
+}
+
+type Event @table {
+  title: String!
+  eventDate: Timestamp!
+  location: String!
+  description: String
+  couple: Couple!
+}
+
+type RSVP @table {
+  status: String!
+  note: String
+  guest: Guest!
+  event: Event!
+}
+
+type Document @table {
+  title: String!
+  url: String!
+  description: String
+  couple: Couple!
+}
