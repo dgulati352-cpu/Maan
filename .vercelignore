@@ -4,3 +4,5 @@ compreface/
 .agents/
 .venv/
 node_modules/
+.next/
+**/.next/
