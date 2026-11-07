@@ -1,4 +1,4 @@
-import { WeddingPhoto, MOCK_WEDDING_PHOTOS } from "@/data/mockWeddingData";
+import { WeddingPhoto } from "@/data/mockWeddingData";
 
 const STORAGE_KEY = "shaadisnap_live_wedding_photos";
 const STORAGE_KEY_GUEST_LINK = "shaadisnap_ceo_guest_link_approved";
@@ -17,16 +17,53 @@ const DEFAULT_COUPLE_PHOTO: WeddingPhoto = {
   approvedAt: "2026-11-06T12:00:00Z",
 };
 
-// Base curated celebration photos for Marwaha & Gulati wedding
+// Base curated celebration photos for Marwaha & Gulati wedding (strictly authentic couple photo)
 const BASE_APPROVED_PHOTOS: WeddingPhoto[] = [
   DEFAULT_COUPLE_PHOTO,
-  ...MOCK_WEDDING_PHOTOS.map((p) => ({
-    ...p,
-    approvalStatus: "approved" as const,
-    approvedBy: "Kabir Marwaha (Chief Executive Officer)",
-    approvedAt: "2026-11-06T12:00:00Z",
-  })),
 ];
+
+/**
+ * Detects legacy mock or stock photos from prior localStorage cache.
+ * Protects the store from rehydrating stale mock data (photo_01-photo_08, Unsplash stock photos, etc.).
+ */
+export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefined): boolean {
+  if (!photo || !photo.id || !photo.url) return true;
+
+  // The authentic couple portrait is always preserved
+  if (photo.id === "hero_couple_photo") return false;
+
+  const id = photo.id.toLowerCase();
+  const url = photo.url.toLowerCase();
+  const fallback = (photo.fallbackUrl || "").toLowerCase();
+  const title = (photo.title || "").toLowerCase();
+
+  // Legacy mock IDs (photo_01 to photo_08, mock_*)
+  if (/^photo_\d+$/i.test(photo.id) || id.startsWith("mock_")) {
+    return true;
+  }
+
+  // Any Unsplash or stock image URLs
+  if (url.includes("unsplash.com") || fallback.includes("unsplash.com")) {
+    return true;
+  }
+
+  // Legacy mock photo titles
+  const legacyTitles = [
+    "regal royal portrait",
+    "the golden vows",
+    "bridal mehendi & henna intricacies",
+    "reception grand entrance",
+    "sangeet dance floor candids",
+    "bridesmaids laughter at haldi",
+    "baraat celebration & dhol beats",
+    "evening cocktail toasts",
+  ];
+  if (legacyTitles.some((t) => title.includes(t))) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Returns all uploaded wedding photos for moderation / administrative oversight.
@@ -41,7 +78,7 @@ export function getWeddingPhotos(): WeddingPhoto[] {
     const uploaded: WeddingPhoto[] = raw ? JSON.parse(raw) : [];
 
     const realUploads: WeddingPhoto[] = uploaded
-      .filter((p) => p && p.id && p.url)
+      .filter((p) => p && p.id && p.url && !isLegacyMockPhoto(p))
       .map((p): WeddingPhoto => {
         // Accurately calibrate facesCount:
         // Windows camera captures (WIN_...) and single selfies are 1 person
@@ -56,7 +93,12 @@ export function getWeddingPhotos(): WeddingPhoto[] {
         };
       });
 
-    // Merge uploaded photos with base celebration photos
+    // Clean up localStorage cache if legacy mock photos were detected and pruned
+    if (uploaded.length !== realUploads.length) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(realUploads));
+    }
+
+    // Merge uploaded photos with base celebration photos (strictly DEFAULT_COUPLE_PHOTO)
     const combined: WeddingPhoto[] = [...realUploads];
     for (const base of BASE_APPROVED_PHOTOS) {
       if (!combined.some((p) => p.id === base.id || p.url === base.url)) {
@@ -71,12 +113,14 @@ export function getWeddingPhotos(): WeddingPhoto[] {
 
 /**
  * Returns ONLY CEO-approved wedding photos for public display in guest galleries.
- * Photos awaiting CEO review stay private until approved.
+ * Photos awaiting CEO review stay private until approved. Strictly excludes any legacy mock photos.
  */
 export function getApprovedWeddingPhotos(): WeddingPhoto[] {
   const allPhotos = getWeddingPhotos();
   return allPhotos.filter(
-    (photo) => photo.approvalStatus === "approved" || (!photo.approvalStatus && photo.id === "hero_couple_photo")
+    (photo) =>
+      !isLegacyMockPhoto(photo) &&
+      (photo.approvalStatus === "approved" || (!photo.approvalStatus && photo.id === "hero_couple_photo"))
   );
 }
 
@@ -95,7 +139,7 @@ export function addUploadedPhoto(photo: {
 }) {
   if (typeof window === "undefined") return;
   try {
-    const current = getWeddingPhotos();
+    const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
 
     // Use direct high-speed Google Usercontent CDN link if Drive ID is available
     const directCdnUrl = photo.driveFileId
@@ -138,7 +182,7 @@ export function approvePhoto(
 ) {
   if (typeof window === "undefined") return;
   try {
-    const current = getWeddingPhotos();
+    const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
     const updated = current.map((p) => {
       if (p.id === id) {
         return {
@@ -166,7 +210,7 @@ export function batchApprovePhotos(
 ) {
   if (typeof window === "undefined" || ids.length === 0) return;
   try {
-    const current = getWeddingPhotos();
+    const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
     const idSet = new Set(ids);
     const now = new Date().toISOString();
     const updated = current.map((p) => {
@@ -193,7 +237,7 @@ export function batchApprovePhotos(
 export function rejectPhoto(id: string) {
   if (typeof window === "undefined") return;
   try {
-    const current = getWeddingPhotos();
+    const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
     const updated = current.map((p) => {
       if (p.id === id) {
         return {
@@ -239,7 +283,7 @@ export function setGuestLinkApprovalStatus(approved: boolean): void {
 export function deleteUploadedPhoto(id: string) {
   if (typeof window === "undefined") return;
   try {
-    const current = getWeddingPhotos();
+    const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
     const updated = current.filter((p) => p.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("shaadisnap_photos_updated"));
