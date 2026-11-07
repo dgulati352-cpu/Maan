@@ -151,10 +151,10 @@ export const CeoApprovalModal: React.FC<CeoApprovalModalProps> = ({
         ref={modalRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-[#FFF8F3] border border-[#EADDE0] rounded-3xl shadow-[0_24px_60px_rgba(99,60,73,0.22)] overflow-hidden transition-all text-[#633C49] focus:outline-none"
+        className="w-full max-w-lg bg-[#FFF8F3] border border-[#EADDE0] rounded-2xl sm:rounded-3xl shadow-[0_24px_60px_rgba(99,60,73,0.22)] max-h-[92vh] flex flex-col overflow-hidden transition-all text-[#633C49] focus:outline-none"
       >
         {/* Header */}
-        <div className="relative p-6 pb-4 border-b border-[#EADDE0]/70 bg-gradient-to-b from-[#F1D5D5]/40 to-transparent">
+        <div className="relative p-4 sm:p-6 pb-3 sm:pb-4 border-b border-[#EADDE0]/70 bg-gradient-to-b from-[#F1D5D5]/40 to-transparent shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="p-2.5 rounded-2xl bg-[#633C49] text-white shadow-xs">
@@ -189,7 +189,7 @@ export const CeoApprovalModal: React.FC<CeoApprovalModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {reviewStep === "form" && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

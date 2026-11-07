@@ -116,6 +116,9 @@
 html {
   color-scheme: light;
   background-color: var(--color-ivory-warm);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
@@ -126,6 +129,8 @@ body {
   color: var(--color-text-body);
   font-family: var(--font-body), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

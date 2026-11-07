@@ -138,10 +138,10 @@ export const ShareGuestLinkModal: React.FC<ShareGuestLinkModalProps> = ({
         ref={modalRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-[#FFF8F3] border border-[#EADDE0] rounded-3xl shadow-[0_20px_50px_rgba(99,60,73,0.18)] overflow-hidden transition-all text-[#633C49] focus:outline-none"
+        className="w-full max-w-lg bg-[#FFF8F3] border border-[#EADDE0] rounded-2xl sm:rounded-3xl shadow-[0_20px_50px_rgba(99,60,73,0.18)] max-h-[92vh] flex flex-col overflow-hidden transition-all text-[#633C49] focus:outline-none"
       >
         {/* Modal Header */}
-        <div className="relative p-6 pb-4 border-b border-[#EADDE0]/60 bg-gradient-to-b from-[#F1D5D5]/35 to-transparent">
+        <div className="relative p-4 sm:p-6 pb-3 sm:pb-4 border-b border-[#EADDE0]/60 bg-gradient-to-b from-[#F1D5D5]/35 to-transparent shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="p-2 rounded-xl bg-[#F1D5D5] text-[#633C49]">
@@ -204,7 +204,7 @@ export const ShareGuestLinkModal: React.FC<ShareGuestLinkModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {activeTab === "link" ? (
             <div className="space-y-4">
               {/* Copy URL Row */}

@@ -474,7 +474,7 @@ export const GuestSelfieSearch: React.FC = () => {
             {/* 1. LIVE CAMERA ACTIVE VIEW */}
             {isCameraOpen ? (
               <div className="space-y-4">
-                <div className="relative rounded-[24px] overflow-hidden aspect-[4/3] bg-black border-2 border-[#A85D70]/40 shadow-[0_0_24px_-2px_rgba(168,93,112,0.25),0_12px_28px_-4px_rgba(99,60,73,0.15)] flex items-center justify-center">
+                <div className="relative rounded-[24px] overflow-hidden aspect-[3/4] sm:aspect-[4/3] bg-black border-2 border-[#A85D70]/40 shadow-[0_0_24px_-2px_rgba(168,93,112,0.25),0_12px_28px_-4px_rgba(99,60,73,0.15)] flex items-center justify-center">
                   
                   {/* Camera Video Stream */}
                   <video
@@ -488,11 +488,11 @@ export const GuestSelfieSearch: React.FC = () => {
                   />
 
                   {/* Four Architectural Corner Reticles */}
-                  <div className="pointer-events-none absolute inset-0 p-4 z-20">
-                    <span className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
-                    <span className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
-                    <span className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
-                    <span className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
+                  <div className="pointer-events-none absolute inset-0 p-3 sm:p-4 z-20">
+                    <span className="absolute top-3 left-3 sm:top-4 sm:left-4 w-5 h-5 sm:w-6 sm:h-6 border-t-2 border-l-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
+                    <span className="absolute top-3 right-3 sm:top-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 border-t-2 border-r-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
+                    <span className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 w-5 h-5 sm:w-6 sm:h-6 border-b-2 border-l-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
+                    <span className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 border-b-2 border-r-2 border-[#D9B7A0] sm:border-[#A85D70] transition-opacity duration-300 opacity-80" />
                   </div>
 
                   {/* Shutter Flash Animation */}
@@ -504,7 +504,7 @@ export const GuestSelfieSearch: React.FC = () => {
 
                   {/* Biometric Oval Face Alignment Guide */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4 z-10">
-                    <div className="w-48 h-64 sm:w-56 sm:h-72 border-2 border-dashed border-[#A85D70] rounded-[50%] relative flex items-center justify-center shadow-[0_0_24px_rgba(168,93,112,0.35)] overflow-hidden">
+                    <div className="w-44 h-56 sm:w-56 sm:h-72 border-2 border-dashed border-[#A85D70] rounded-[50%] relative flex items-center justify-center shadow-[0_0_24px_rgba(168,93,112,0.35)] overflow-hidden">
                       {/* Vertical Biometric Laser Scanning Line */}
                       <div className="scan-laser-line w-full h-0.5 bg-gradient-to-r from-transparent via-[#A85D70] to-transparent absolute animate-scan pointer-events-none" />
 
@@ -514,7 +514,7 @@ export const GuestSelfieSearch: React.FC = () => {
                       <div className="absolute left-0 h-3 w-0.5 bg-[#A85D70]" />
                       <div className="absolute right-0 h-3 w-0.5 bg-[#A85D70]" />
                     </div>
-                    <span className="mt-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-[#FFF8F3] text-[11px] font-medium tracking-wide">
+                    <span className="mt-2.5 sm:mt-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-[#FFF8F3] text-[10px] sm:text-[11px] font-medium tracking-wide">
                       Align your face inside the oval guide
                     </span>
                   </div>
@@ -1029,7 +1029,7 @@ export const GuestSelfieSearch: React.FC = () => {
 
                 {/* Gallery Grid */}
                 {filteredPhotos.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                     {filteredPhotos.map((photo) => (
                       <div
                         key={photo.id}
@@ -1043,18 +1043,18 @@ export const GuestSelfieSearch: React.FC = () => {
                             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                           />
                           {/* Match Badge */}
-                          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3 text-[#D9B7A0]" />
+                          <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[10px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5">
+                            <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#D9B7A0]" />
                             <span>{Math.round((photo.similarity || 0.95) * 100)}% Match</span>
                           </div>
 
                           {/* Ceremony Badge */}
-                          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[#633C49] text-[11px] font-semibold">
+                          <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-white/90 backdrop-blur-md text-[#633C49] text-[10px] sm:text-[11px] font-semibold">
                             {photo.ceremony}
                           </div>
                         </div>
 
-                        <div className="p-4 flex items-center justify-between">
+                        <div className="p-3 sm:p-4 flex items-center justify-between">
                           <div className="min-w-0 pr-2">
                             <h4 className="font-serif text-base font-bold text-[#633C49] truncate">
                               {photo.title}

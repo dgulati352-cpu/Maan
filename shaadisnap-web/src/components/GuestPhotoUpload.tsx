@@ -242,67 +242,67 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     <div className="min-h-screen bg-[#FFF8F3] text-[#765D62] flex flex-col md:flex-row">
       
       {/* --- Left Sidebar (Dashboard) --- */}
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-[#EADDE0] flex flex-col justify-between p-6">
-        <div className="space-y-7">
+      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-[#EADDE0] flex flex-col justify-between p-3.5 sm:p-6 shrink-0">
+        <div className="space-y-3.5 md:space-y-7">
           
           {/* Sidebar Event Badge */}
-          <div className="space-y-1 pb-4 border-b border-[#EADDE0]">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#A85D70]">
+          <div className="space-y-1 pb-3 md:pb-4 border-b border-[#EADDE0]">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-[#A85D70]">
               Active Event Gallery
             </span>
-            <h2 className="font-serif text-lg font-bold text-[#633C49] truncate">
+            <h2 className="font-serif text-base sm:text-lg font-bold text-[#633C49] truncate">
               {WEDDING_EVENT.couple}
             </h2>
-            <p className="text-xs text-[#947A80] truncate">
+            <p className="text-[11px] sm:text-xs text-[#947A80] truncate">
               {WEDDING_EVENT.venue}
             </p>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1.5" aria-label="Sidebar Menu">
+          {/* Navigation Links: Responsive App Bar on Mobile, Vertical Stack on Desktop */}
+          <nav className="flex md:flex-col items-center md:items-stretch gap-1.5 overflow-x-auto pb-1 md:pb-0 whitespace-nowrap" aria-label="Sidebar Menu">
             <button
               type="button"
               onClick={() => onNavigate("landing")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors cursor-pointer text-left"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:px-3.5 md:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors cursor-pointer text-left"
             >
-              <Home className="w-4 h-4 text-[#A85D70]" />
+              <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A85D70]" />
               <span>Home</span>
             </button>
 
             <button
               type="button"
               onClick={() => onNavigate("search")}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors cursor-pointer text-left"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:px-3.5 md:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors cursor-pointer text-left"
             >
-              <Search className="w-4 h-4 text-[#A85D70]" />
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A85D70]" />
               <span>Find My Photos</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveSidebarItem("upload")}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+              className={`shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:px-3.5 md:py-2.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer text-left ${
                 activeSidebarItem === "upload"
                   ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
                   : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
               }`}
             >
-              <UploadCloud className="w-4 h-4 text-[#A85D70]" />
+              <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A85D70]" />
               <span>Upload Photos</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveSidebarItem("gallery")}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+              className={`shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:px-3.5 md:py-2.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer text-left ${
                 activeSidebarItem === "gallery"
                   ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
                   : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
               }`}
             >
-              <ImageIcon className="w-4 h-4 text-[#A85D70]" />
+              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A85D70]" />
               <span>My Gallery</span>
-              <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-[#A85D70] border border-[#EADDE0]">
+              <span className="ml-1 sm:ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-[#A85D70] border border-[#EADDE0]">
                 {liveStreamPhotos.length}
               </span>
             </button>
@@ -310,16 +310,16 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
             <button
               type="button"
               onClick={() => setActiveSidebarItem("favorites")}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+              className={`shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:px-3.5 md:py-2.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer text-left ${
                 activeSidebarItem === "favorites"
                   ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
                   : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"
               }`}
             >
-              <Heart className={`w-4 h-4 ${favorites.length > 0 ? "text-[#A85D70] fill-[#A85D70]" : "text-[#A85D70]"}`} />
+              <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${favorites.length > 0 ? "text-[#A85D70] fill-[#A85D70]" : "text-[#A85D70]"}`} />
               <span>Favorites</span>
               {favorites.length > 0 && (
-                <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#A85D70] text-white">
+                <span className="ml-1 sm:ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#A85D70] text-white">
                   {favorites.length}
                 </span>
               )}
@@ -328,7 +328,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
             <button
               type="button"
               onClick={() => setActiveSidebarItem("details")}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer text-left ${
+              className={`shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 py-2 md:px-3.5 md:py-2.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer text-left ${
                 activeSidebarItem === "details"
                   ? "font-bold text-[#633C49] bg-[#F1D5D5]/50 border border-[#A85D70]/30 shadow-2xs"
                   : "font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3]"

@@ -141,19 +141,19 @@ export const ExecutiveLeadershipSection: React.FC = () => {
         </div>
 
         {/* CEO Banner Callout */}
-        <div className="mb-10 p-6 rounded-3xl bg-gradient-to-r from-white via-[#FFF8F3] to-[#F1D5D5]/40 border-2 border-[#D9B7A0] shadow-[0_12px_36px_rgba(99,60,73,0.08)] flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#633C49] to-[#A85D70] flex items-center justify-center text-white shadow-md shrink-0">
-              <Award className="w-7 h-7 text-[#D9B7A0]" />
+        <div className="mb-10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-white via-[#FFF8F3] to-[#F1D5D5]/40 border-2 border-[#D9B7A0] shadow-[0_12px_36px_rgba(99,60,73,0.08)] flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-3.5 sm:gap-4 text-center sm:text-left">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#633C49] to-[#A85D70] flex items-center justify-center text-white shadow-md shrink-0">
+              <Award className="w-6 h-6 sm:w-7 sm:h-7 text-[#D9B7A0]" />
             </div>
             <div>
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-[#A85D70]">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#A85D70]">
                   Official Executive Authority
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               </div>
-              <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#633C49] mt-0.5">
+              <h3 className="font-serif text-lg sm:text-2xl font-bold text-[#633C49] mt-0.5">
                 CEO Kabir Marwaha Executive Desk
               </h3>
               <p className="text-xs sm:text-sm text-[#765D62] mt-1 max-w-xl">
@@ -165,7 +165,7 @@ export const ExecutiveLeadershipSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsCeoModalOpen(true)}
-            className="shrink-0 inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full text-xs font-bold text-white bg-[#633C49] hover:bg-[#914C60] transition-all shadow-[0_8px_20px_rgba(99,60,73,0.25)] hover:shadow-lg active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full text-xs font-bold text-white bg-[#633C49] hover:bg-[#914C60] transition-all shadow-[0_8px_20px_rgba(99,60,73,0.25)] hover:shadow-lg active:scale-95 cursor-pointer"
           >
             <Award className="w-4 h-4 text-[#D9B7A0]" />
             <span>Ask CEO for Approval</span>
@@ -173,12 +173,12 @@ export const ExecutiveLeadershipSection: React.FC = () => {
         </div>
 
         {/* 8 Leadership Profile Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {LEADERSHIP_TEAM.map((member) => {
             return (
               <div
                 key={member.id}
-                className={`flex flex-col justify-between rounded-3xl p-6 bg-white border transition-all duration-300 hover:-translate-y-1 ${
+                className={`flex flex-col justify-between rounded-2xl sm:rounded-3xl p-5 sm:p-6 bg-white border transition-all duration-300 hover:-translate-y-1 ${
                   member.isCeo
                     ? "border-2 border-[#A85D70] shadow-[0_12px_32px_rgba(168,93,112,0.18)] ring-4 ring-[#F1D5D5]/40"
                     : "border-[#EADDE0] shadow-[0_4px_20px_rgba(99,60,73,0.04)] hover:shadow-[0_12px_30px_rgba(99,60,73,0.10)] hover:border-[#D9B7A0]"

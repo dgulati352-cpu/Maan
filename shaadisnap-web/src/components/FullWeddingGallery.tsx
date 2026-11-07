@@ -285,10 +285,11 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               <button
                 type="button"
                 onClick={handleDownloadAll}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-semibold text-[#633C49] bg-[#F1D5D5]/50 hover:bg-[#F1D5D5] border border-[#A85D70]/30 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full font-semibold text-[#633C49] bg-[#F1D5D5]/50 hover:bg-[#F1D5D5] border border-[#A85D70]/30 transition-all cursor-pointer text-xs"
               >
                 <Download className="w-3.5 h-3.5 text-[#A85D70]" />
-                <span>Download All as ZIP / Batch ({filteredPhotos.length})</span>
+                <span className="hidden sm:inline">Download All as ZIP / Batch ({filteredPhotos.length})</span>
+                <span className="inline sm:hidden">Download All ({filteredPhotos.length})</span>
               </button>
             </div>
           </div>
@@ -304,21 +305,21 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 
         {/* --- 3. BOTTOM: Asymmetric Editorial Magazine Grid --- */}
         {filteredPhotos.length === 0 ? (
-          <div className="rounded-[28px] border-2 border-dashed border-[#EADDE0] bg-white p-12 text-center max-w-lg mx-auto space-y-4">
+          <div className="rounded-[28px] border-2 border-dashed border-[#EADDE0] bg-white p-8 sm:p-12 text-center max-w-lg mx-auto space-y-4">
             <div className="w-14 h-14 rounded-full bg-[#F1D5D5]/50 flex items-center justify-center mx-auto text-[#A85D70]">
               <Camera className="w-7 h-7" />
             </div>
-            <h3 className="font-serif text-2xl font-bold text-[#633C49]">
+            <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#633C49]">
               No Photos Found
             </h3>
-            <p className="text-sm text-[#947A80]">
+            <p className="text-xs sm:text-sm text-[#947A80]">
               {searchQuery
                 ? `No photos matched "${searchQuery}". Try clearing your search.`
                 : "No photos uploaded for this ceremony yet."}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-7">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {filteredPhotos.map((photo, index) => {
               // Asymmetric editorial centerfold feature cards
               const isCenterfold = (index % 6 === 0 && index !== 0) || photo.title.toLowerCase().includes("royal") || photo.title.toLowerCase().includes("grand");
@@ -336,7 +337,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                   }}
                   className={`group photo-card-sheen relative rounded-2xl overflow-hidden bg-white border transition-all duration-300 cursor-pointer text-left shadow-rose-sm hover:shadow-[0_20px_45px_rgba(99,60,73,0.14)] ${
                     isCenterfold
-                      ? "col-span-1 sm:col-span-2 aspect-[16/10] sm:aspect-[16/9]"
+                      ? "col-span-2 aspect-[16/10] sm:aspect-[16/9]"
                       : "aspect-[3/4]"
                   } ${
                     isSelected
