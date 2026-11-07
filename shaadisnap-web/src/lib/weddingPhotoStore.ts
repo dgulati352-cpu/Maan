@@ -1,4 +1,5 @@
 import { WeddingPhoto } from "@/data/mockWeddingData";
+import { getStoredGoogleUser } from "@/lib/googleAuth";
 
 const STORAGE_KEY = "shaadisnap_live_wedding_photos";
 const STORAGE_KEY_GUEST_LINK = "shaadisnap_ceo_guest_link_approved";
@@ -126,6 +127,7 @@ export function getApprovedWeddingPhotos(): WeddingPhoto[] {
 
 /**
  * Save an uploaded photo to the top of the live stream (defaults to pending_ceo_approval)
+ * Dynamically binds upload to the active user's email ID and Google Drive folder.
  */
 export function addUploadedPhoto(photo: {
   id: string;
@@ -136,10 +138,15 @@ export function addUploadedPhoto(photo: {
   ceremony: string;
   photographer?: string;
   approvalStatus?: "pending_ceo_approval" | "approved" | "rejected";
+  uploaderEmail?: string;
+  driveFolderId?: string;
 }) {
   if (typeof window === "undefined") return;
   try {
     const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
+    const activeUser = getStoredGoogleUser();
+    const effectiveEmail = (photo.uploaderEmail || activeUser?.email || "guest@maan-ai.com").trim().toLowerCase();
+    const effectiveFolder = photo.driveFolderId || activeUser?.driveFolderId;
 
     // Use direct high-speed Google Usercontent CDN link if Drive ID is available
     const directCdnUrl = photo.driveFileId
@@ -160,6 +167,8 @@ export function addUploadedPhoto(photo: {
       aspectRatio: "portrait",
       approvalStatus: photo.approvalStatus || "pending_ceo_approval",
       uploadedAt: new Date().toISOString(),
+      uploaderEmail: effectiveEmail,
+      driveFolderId: effectiveFolder,
     };
 
     // Filter out duplicate IDs if any, and insert newest at the top
@@ -171,6 +180,88 @@ export function addUploadedPhoto(photo: {
   } catch (err) {
     console.error("Failed to save uploaded photo:", err);
   }
+}
+
+/**
+ * Removes session-uploaded photos from local gallery storage upon user logout.
+ * Keeps photos permanently preserved in Google Drive / backend while isolating guest privacy locally.
+ */
+export function clearUserSessionPhotos(targetEmail?: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const uploaded: WeddingPhoto[] = JSON.parse(raw);
+
+    const emailToClear = targetEmail?.trim().toLowerCase();
+
+    const filtered = uploaded.filter((p) => {
+      // The authentic hero couple portrait is always preserved
+      if (p.id === "hero_couple_photo") return true;
+
+      // If specific email provided, remove photos uploaded by that email
+      if (emailToClear && p.uploaderEmail) {
+        return p.uploaderEmail.toLowerCase() !== emailToClear;
+      }
+
+      // If generic logout with no email, remove all guest uploads so local view is clean
+      return p.photographer !== "Guest Live Upload" && !p.uploaderEmail;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    window.dispatchEvent(new Event("shaadisnap_photos_updated"));
+  } catch (err) {
+    console.error("Failed to clear session photos on logout:", err);
+  }
+}
+
+/**
+ * Returns photos scoped to the currently authenticated user session.
+ * - Authenticated guests see: Approved wedding photos + their own uploads (matching active email)
+ * - CEO / CTO / Organizers see: All photos across the event for master moderation
+ * - Unauthenticated / Logged-out guests see: ONLY official approved wedding photos (zero private guest uploads)
+ */
+export function getPhotosForCurrentUser(): WeddingPhoto[] {
+  const allPhotos = getWeddingPhotos();
+  const currentUser = getStoredGoogleUser();
+
+  if (!currentUser || !currentUser.email) {
+    // Unauthenticated / Logged-out guest: strictly public approved photos
+    return getApprovedWeddingPhotos();
+  }
+
+  const userEmail = currentUser.email.toLowerCase();
+
+  // Leadership / Organizers: full event visibility for master moderation
+  const isOrganizer =
+    currentUser.scopes?.includes("admin") ||
+    currentUser.scopes?.includes("organizer") ||
+    userEmail.includes("admin") ||
+    userEmail.includes("marwaha") ||
+    userEmail.includes("gulati") ||
+    userEmail.includes("kabir") ||
+    userEmail.includes("dhairya") ||
+    userEmail.includes("simran");
+
+  if (isOrganizer) {
+    return allPhotos;
+  }
+
+  // Authenticated guest: approved wedding photos + photos uploaded by this guest email
+  return allPhotos.filter((p) => {
+    if (p.id === "hero_couple_photo") return true;
+    if (p.approvalStatus === "approved") return true;
+    if (p.uploaderEmail && p.uploaderEmail.toLowerCase() === userEmail) return true;
+    return false;
+  });
+}
+
+// Auto-register session logout listener in browser environment
+if (typeof window !== "undefined") {
+  window.addEventListener("shaadisnap_user_logout", (e: Event) => {
+    const custom = e as CustomEvent<{ email?: string }>;
+    clearUserSessionPhotos(custom.detail?.email);
+  });
 }
 
 /**

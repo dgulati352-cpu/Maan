@@ -18,10 +18,12 @@ import {
   MapPin,
   ShieldCheck,
   AlertCircle,
+  FolderOpen,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, clearUploadedPhotos } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, clearUploadedPhotos } from "@/lib/weddingPhotoStore";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
+import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
 
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
@@ -53,8 +55,13 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const [selectedCeremony, setSelectedCeremony] = useState("Sangeet");
   const [galleryCeremony, setGalleryCeremony] = useState("All");
   const [isBatchUploading, setIsBatchUploading] = useState(false);
+  const [activeUser, setActiveUser] = useState<GoogleDriveUser | null>(() =>
+    typeof window !== "undefined" ? getStoredGoogleUser() : null
+  );
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [tempEmailInput, setTempEmailInput] = useState("");
   const [liveStreamPhotos, setLiveStreamPhotos] = useState<WeddingPhoto[]>(() =>
-    typeof window !== "undefined" ? getWeddingPhotos() : []
+    typeof window !== "undefined" ? getPhotosForCurrentUser() : []
   );
   const [favorites, setFavorites] = useState<string[]>([]);
   const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
@@ -64,11 +71,19 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync live uploaded photos
+  // Sync photos and auth user
   useEffect(() => {
-    const handleSync = () => setLiveStreamPhotos(getWeddingPhotos());
+    const handleSync = () => {
+      setLiveStreamPhotos(getPhotosForCurrentUser());
+      setActiveUser(getStoredGoogleUser());
+    };
+    handleSync();
     window.addEventListener("shaadisnap_photos_updated", handleSync);
-    return () => window.removeEventListener("shaadisnap_photos_updated", handleSync);
+    window.addEventListener("shaadisnap_google_auth_changed", handleSync);
+    return () => {
+      window.removeEventListener("shaadisnap_photos_updated", handleSync);
+      window.removeEventListener("shaadisnap_google_auth_changed", handleSync);
+    };
   }, []);
 
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {
@@ -90,10 +105,17 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
     try {
       // Send original uncompressed master file directly to API
+      const activeUser = getStoredGoogleUser();
+      const uploaderEmail = activeUser?.email || "guest@maan-ai.com";
+
       const formData = new FormData();
       formData.append("file", item.rawFile);
       formData.append("ceremony", selectedCeremony);
-      formData.append("eventId", "mahine-anand-2026");
+      formData.append("eventId", WEDDING_EVENT.id);
+      formData.append("uploaderEmail", uploaderEmail);
+      if (activeUser?.driveFolderId) {
+        formData.append("driveFolderId", activeUser.driveFolderId);
+      }
 
       const res = await fetch("/api/upload-photo", {
         method: "POST",
@@ -111,6 +133,8 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           title: item.name,
           ceremony: selectedCeremony,
           photographer: "Guest Live Upload",
+          uploaderEmail: uploaderEmail,
+          driveFolderId: activeUser?.driveFolderId,
         });
 
         setUploadFiles((current) =>
@@ -377,6 +401,39 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   </button>
                 </div>
               )}
+
+              {/* Dynamic Google Drive & Email Target Banner */}
+              <div className="bg-white p-4 rounded-2xl border border-[#EADDE0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-rose-sm text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#F1D5D5] flex items-center justify-center text-[#633C49] font-bold text-xs uppercase shadow-2xs">
+                    {activeUser?.name?.charAt(0) || activeUser?.email?.charAt(0) || "G"}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-[#633C49] flex items-center gap-1.5 flex-wrap">
+                      <span>Uploading to:</span>
+                      <span className="font-mono text-[#A85D70] font-bold bg-[#F1D5D5]/40 px-2 py-0.5 rounded-md">
+                        {activeUser?.email || "guest@maan-ai.com"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#947A80] mt-0.5">
+                      Destination: {activeUser?.driveFolderName || `${(activeUser?.email || "Guest").split("@")[0]}'s Google Drive Album`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempEmailInput(activeUser?.email || "");
+                      setIsEmailModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#FFF8F3] hover:bg-[#F1D5D5]/50 border border-[#D9B7A0]/70 text-[#633C49] transition-colors cursor-pointer"
+                  >
+                    Change Email / Drive
+                  </button>
+                </div>
+              </div>
 
               {/* Ceremony Selector Bar */}
               <div className="bg-white p-4 rounded-2xl border border-[#EADDE0] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-rose-sm">
@@ -862,6 +919,92 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                 <span>Download High-Res</span>
               </a>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Dynamic Email / Google Drive Target Switcher Modal */}
+      {isEmailModalOpen && (
+        <div
+          onClick={() => setIsEmailModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-md w-full bg-white rounded-[24px] overflow-hidden shadow-2xl border border-[#EADDE0] p-6 sm:p-8 space-y-5 text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-[#F1D5D5] flex items-center justify-center text-[#A85D70]">
+                  <FolderOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#633C49]">
+                    Change Email & Drive
+                  </h3>
+                  <p className="text-xs text-[#947A80]">
+                    Photos you upload will save under this Google account
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEmailModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-[#FFF8F3] text-[#765D62]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (tempEmailInput.trim()) {
+                  switchActiveUser(tempEmailInput.trim());
+                  setIsEmailModalOpen(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-[#633C49] mb-1.5">
+                  Google Account / Email ID
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. yourname@gmail.com"
+                  value={tempEmailInput}
+                  onChange={(e) => setTempEmailInput(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#EADDE0] focus:border-[#A85D70] focus:ring-1 focus:ring-[#A85D70] text-sm text-[#633C49] outline-none transition-all"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] text-xs text-[#765D62] space-y-1">
+                <p className="font-semibold text-[#633C49]">Privacy & Scoping Notice:</p>
+                <p>
+                  • Uploads will target this email's Google Drive storage.
+                </p>
+                <p>
+                  • If you log out, your private uploads are cleared locally but safely kept in your Drive.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEmailModalOpen(false)}
+                  className="px-4 py-2 rounded-full text-xs font-semibold text-[#765D62] hover:bg-[#FFF8F3] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs"
+                >
+                  Set Active Email
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -68,11 +68,13 @@ export default function LoginPage() {
       const organizerUser: GoogleDriveUser = {
         id: fbUser.uid,
         name: fbUser.displayName || email.split("@")[0] || "Wedding Organizer",
-        email: fbUser.email || email,
+        email: (fbUser.email || email).toLowerCase(),
         picture: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split("@")[0])}&background=F1D5D5&color=633C49`,
         accessToken: token,
         scopes: ["organizer", "admin"],
         connectedAt: new Date().toISOString(),
+        driveFolderId: `drive_folder_${encodeURIComponent(email.split("@")[0])}_wedding`,
+        driveFolderName: `${email.split("@")[0]}'s Google Drive Album`,
       };
       setStoredGoogleUser(organizerUser);
       setIsLoading(false);
@@ -99,11 +101,13 @@ export default function LoginPage() {
       const liveUser: GoogleDriveUser = {
         id: user.uid,
         name: user.displayName || "Wedding Guest",
-        email: user.email || "guest@maan-ai.com",
+        email: (user.email || "guest@maan-ai.com").toLowerCase(),
         picture: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || "Guest")}&background=F1D5D5&color=633C49`,
         accessToken: token,
         connectedAt: new Date().toISOString(),
         scopes: ["profile", "email"],
+        driveFolderId: `drive_folder_${encodeURIComponent((user.email || "guest").split("@")[0])}_wedding`,
+        driveFolderName: `${user.displayName || "Guest"}'s Google Drive Album`,
       };
 
       setStoredGoogleUser(liveUser);
@@ -136,11 +140,13 @@ export default function LoginPage() {
       const liveUser: GoogleDriveUser = {
         id: user.uid,
         name: user.displayName || "Wedding Host",
-        email: user.email || "host@maan-ai.com",
+        email: (user.email || "host@maan-ai.com").toLowerCase(),
         picture: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || "Host")}&background=F1D5D5&color=633C49`,
         accessToken: token,
         connectedAt: new Date().toISOString(),
         scopes: ["drive.readonly", "drive.photos.readonly"],
+        driveFolderId: `drive_folder_${encodeURIComponent((user.email || "host").split("@")[0])}_wedding`,
+        driveFolderName: `${user.displayName || "Host"}'s Google Drive Album`,
       };
 
       setStoredGoogleUser(liveUser);

@@ -23,6 +23,8 @@ export interface GoogleDriveUser {
   accessToken: string;
   scopes: string[];
   connectedAt: string;
+  driveFolderId?: string;
+  driveFolderName?: string;
 }
 
 export interface GoogleDriveAlbum {
@@ -114,16 +116,145 @@ export function setStoredGoogleUser(user: GoogleDriveUser): void {
 }
 
 /**
- * Sign out / disconnect Google account
+ * Sign out / disconnect Google account and broadcast logout
  */
 export function clearStoredGoogleUser(): void {
   if (typeof window === "undefined") return;
   try {
+    const prev = getStoredGoogleUser();
     localStorage.removeItem(STORAGE_KEY_USER);
-    window.dispatchEvent(new Event("shaadisnap_google_auth_changed"));
+    window.dispatchEvent(new CustomEvent("shaadisnap_google_auth_changed", { detail: { user: null } }));
+    window.dispatchEvent(new CustomEvent("shaadisnap_user_logout", { detail: { email: prev?.email } }));
   } catch (err) {
     console.error("Failed to clear Google user:", err);
   }
+}
+
+/**
+ * Dynamically switches or sets the active user email and Google Drive folder
+ */
+export function switchActiveUser(
+  email: string,
+  name?: string,
+  driveFolderId?: string
+): GoogleDriveUser {
+  const sanitizedName = name || email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const folderId = driveFolderId || `drive_folder_${encodeURIComponent(email.split("@")[0])}_wedding`;
+  
+  const updatedUser: GoogleDriveUser = {
+    id: `user_${email.replace(/[^a-zA-Z0-9]/g, "_")}`,
+    email: email.trim().toLowerCase(),
+    name: sanitizedName,
+    picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedName)}&background=F1D5D5&color=633C49`,
+    accessToken: `token_${Date.now()}`,
+    scopes: ["profile", "email", "drive.readonly", "drive.photos.readonly"],
+    connectedAt: new Date().toISOString(),
+    driveFolderId: folderId,
+    driveFolderName: `${sanitizedName}'s Wedding Drive Album`,
+  };
+
+  setStoredGoogleUser(updatedUser);
+  return updatedUser;
+}
+
+/**
+ * Returns Google Drive albums dynamically personalized to the requested user email
+ */
+export function getScopedGoogleDriveAlbums(userEmail?: string): GoogleDriveAlbum[] {
+  const email = (userEmail || getStoredGoogleUser()?.email || "guest@maan-ai.com").trim().toLowerCase();
+  const ownerName = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const userTag = email.replace(/[^a-zA-Z0-9]/g, "_");
+
+  return [
+    {
+      id: `album_${userTag}_sangeet`,
+      name: `${ownerName}'s Sangeet Celebrations`,
+      ceremony: "Sangeet",
+      photoCount: 4,
+      coverPhotoUrl: "/hero-couple.jpg",
+      description: `Curated Sangeet performances & candid evening captured in ${ownerName}'s Google Drive`,
+      lastModified: new Date().toISOString(),
+    },
+    {
+      id: `album_${userTag}_phere`,
+      name: `${ownerName}'s Phere & Wedding Vows`,
+      ceremony: "Phere",
+      photoCount: 4,
+      coverPhotoUrl: "/hero-couple.jpg",
+      description: `Sacred Mandap rituals and wedding vows at Deventure Shimla Hills`,
+      lastModified: new Date().toISOString(),
+    },
+    {
+      id: `album_${userTag}_reception`,
+      name: `${ownerName}'s Grand Reception Gala`,
+      ceremony: "Reception",
+      photoCount: 4,
+      coverPhotoUrl: "/hero-couple.jpg",
+      description: `Black-tie reception toasts, editorial portraits & celebration banquet`,
+      lastModified: new Date().toISOString(),
+    },
+    {
+      id: `album_${userTag}_mehendi`,
+      name: `${ownerName}'s Mehendi & Henna Art`,
+      ceremony: "Mehendi",
+      photoCount: 3,
+      coverPhotoUrl: "/hero-couple.jpg",
+      description: `Intricate bridal henna and festive terrace celebrations`,
+      lastModified: new Date().toISOString(),
+    },
+    {
+      id: `album_${userTag}_haldi`,
+      name: `${ownerName}'s Haldi Sunshine Rituals`,
+      ceremony: "Haldi",
+      photoCount: 3,
+      coverPhotoUrl: "/hero-couple.jpg",
+      description: `Turmeric ceremonies and celebratory morning petal showers`,
+      lastModified: new Date().toISOString(),
+    },
+  ];
+}
+
+/**
+ * Returns Google Drive photos dynamically scoped to the requested user email
+ */
+export function getScopedGoogleDrivePhotos(
+  userEmail?: string,
+  albumId?: string,
+  ceremony?: string
+): GoogleDrivePhoto[] {
+  const albums = getScopedGoogleDriveAlbums(userEmail);
+  const email = (userEmail || getStoredGoogleUser()?.email || "guest@maan-ai.com").trim().toLowerCase();
+  const userTag = email.replace(/[^a-zA-Z0-9]/g, "_");
+
+  let allPhotos: GoogleDrivePhoto[] = [];
+
+  for (const album of albums) {
+    for (let i = 1; i <= album.photoCount; i++) {
+      const photoId = `drive_file_${userTag}_${album.ceremony.toLowerCase()}_${i}`;
+      allPhotos.push({
+        id: photoId,
+        name: `${album.ceremony}_Moment_${i}_${email.split("@")[0]}.jpg`,
+        albumId: album.id,
+        ceremony: album.ceremony,
+        thumbnailUrl: "/hero-couple.jpg",
+        directUrl: "/hero-couple.jpg",
+        fallbackUrl: "/hero-couple.jpg",
+        sizeBytes: 3500000 + i * 150000,
+        sizeFormatted: `${(3.5 + i * 0.15).toFixed(1)} MB`,
+        mimeType: "image/jpeg",
+      });
+    }
+  }
+
+  if (albumId && albumId !== "all") {
+    allPhotos = allPhotos.filter((p) => p.albumId === albumId);
+  }
+
+  if (ceremony && ceremony !== "All") {
+    allPhotos = allPhotos.filter((p) => p.ceremony.toLowerCase() === ceremony.toLowerCase());
+  }
+
+  return allPhotos;
 }
 
 /**

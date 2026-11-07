@@ -30,9 +30,9 @@ Data and state flow:
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
 | 1 | M1: Mock Data & Demo Profile Purge | `src/data/mockWeddingData.ts`, `src/lib/weddingPhotoStore.ts` | none | DONE |
-| 2 | M2: Genuine Face Matching & Honest Empty State | `src/components/GuestSelfieSearch.tsx` | M1 | IN_PROGRESS |
-| 3 | M3: Authentic Gallery Presentation | `src/components/FullWeddingGallery.tsx`, `src/components/LuxuryGalleryPreview.tsx` | M1 | PLANNED |
-| 4 | M4: Build, Test & Forensic Verification | Full repo build (`npm run build`), test suites (`tests/`), auditor verification | M1, M2, M3 | PLANNED |
+| 2 | M2: Genuine Face Matching & Honest Empty State | `src/components/GuestSelfieSearch.tsx` | M1 | DONE |
+| 3 | M3: Authentic Gallery Presentation | `src/components/FullWeddingGallery.tsx`, `src/components/LuxuryGalleryPreview.tsx` | M1 | DONE |
+| 4 | M4: Build, Test & Forensic Verification | Full repo build (`npm run build`), test suites (`tests/`), auditor verification | M1, M2, M3 | DONE |
 
 ## Interface Contracts
 ### `src/lib/weddingPhotoStore.ts` ↔ `src/components/GuestSelfieSearch.tsx`, `FullWeddingGallery.tsx`

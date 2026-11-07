@@ -17,7 +17,7 @@ import {
   Share2,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos } from "@/lib/weddingPhotoStore";
+import { getApprovedWeddingPhotos, getPhotosForCurrentUser } from "@/lib/weddingPhotoStore";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface FullWeddingGalleryProps {
@@ -45,11 +45,15 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 
   useEffect(() => {
     const syncPhotos = () => {
-      setPhotos(getApprovedWeddingPhotos());
+      setPhotos(getPhotosForCurrentUser());
     };
     syncPhotos();
     window.addEventListener("shaadisnap_photos_updated", syncPhotos);
-    return () => window.removeEventListener("shaadisnap_photos_updated", syncPhotos);
+    window.addEventListener("shaadisnap_google_auth_changed", syncPhotos);
+    return () => {
+      window.removeEventListener("shaadisnap_photos_updated", syncPhotos);
+      window.removeEventListener("shaadisnap_google_auth_changed", syncPhotos);
+    };
   }, []);
 
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {

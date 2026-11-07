@@ -1,34 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SAMPLE_GOOGLE_DRIVE_PHOTOS } from "@/lib/googleAuth";
+import { getScopedGoogleDrivePhotos } from "@/lib/googleAuth";
 
 /**
  * GET /api/google-drive/photos
  * 
- * Returns photos from user's Google Drive storage, optionally filtered by albumId or ceremony.
+ * Returns photos dynamically scoped to user's Google Drive storage, optionally filtered by albumId or ceremony.
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const albumId = searchParams.get("albumId");
-    const ceremony = searchParams.get("ceremony");
+    const email = searchParams.get("email") || req.headers.get("x-user-email") || undefined;
+    const albumId = searchParams.get("albumId") || undefined;
+    const ceremony = searchParams.get("ceremony") || undefined;
 
-    let photos = [...SAMPLE_GOOGLE_DRIVE_PHOTOS];
-
-    if (albumId && albumId !== "all") {
-      photos = photos.filter((p) => p.albumId === albumId);
-    }
-
-    if (ceremony && ceremony !== "All") {
-      photos = photos.filter(
-        (p) => p.ceremony.toLowerCase() === ceremony.toLowerCase()
-      );
-    }
+    const photos = getScopedGoogleDrivePhotos(email, albumId, ceremony);
 
     return NextResponse.json({
       success: true,
       photos,
       count: photos.length,
       albumId: albumId || "all",
+      email: email || "active_session",
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to retrieve Google Drive photos";

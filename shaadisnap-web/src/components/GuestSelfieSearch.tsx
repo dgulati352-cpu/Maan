@@ -27,8 +27,7 @@ import {
   WeddingPhoto,
   WEDDING_EVENT,
 } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos, getWeddingPhotos, isLegacyMockPhoto, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
-import { matchSelfieAgainstPhotos } from "@/lib/faceComparison";
+import { getApprovedWeddingPhotos, getPhotosForCurrentUser, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface ApiFaceMatch {
@@ -291,10 +290,8 @@ export const GuestSelfieSearch: React.FC = () => {
     setProcessStep("ArcFace 512-d hyperspherical embedding extraction...");
     await new Promise((r) => setTimeout(r, 500));
 
-    const allLivePhotos = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
-    const approvedPhotos = getApprovedWeddingPhotos();
-    // Candidate pool: authentic live event gallery and guest uploads
-    const photoPool = allLivePhotos.length > 0 ? allLivePhotos : approvedPhotos;
+    // Candidate pool: authentic approved photos + photos uploaded by currently signed-in user
+    const photoPool = getPhotosForCurrentUser();
 
     setProcessStep(`Searching ${photoPool.length} photos in event gallery (τ = 0.70)...`);
 
@@ -349,13 +346,7 @@ export const GuestSelfieSearch: React.FC = () => {
             confidenceTier: sim >= 0.75 ? ("high" as const) : ("medium" as const),
           };
         });
-    } else if (selfieImage) {
-      // In-browser biometric perceptual likeness matching (dHash + color histogram)
-      // Reliably matches guest photos in serverless deployments where native Python ML is unavailable
-      setProcessStep("Analyzing facial structure and biometric likeness...");
-      results = await matchSelfieAgainstPhotos(selfieImage, photoPool, 0.70);
     } else {
-      // Strictly show only genuine matches. If no verified match detected, return empty results for honest empty state.
       results = [];
     }
 

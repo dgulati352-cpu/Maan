@@ -16,6 +16,8 @@ export interface WeddingPhoto {
   approvedBy?: string;
   approvedAt?: string;
   uploadedAt?: string;
+  uploaderEmail?: string;
+  driveFolderId?: string;
 }
 
 export interface DemoSelfie {

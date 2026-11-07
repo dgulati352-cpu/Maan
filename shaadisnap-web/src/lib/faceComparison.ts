@@ -142,13 +142,6 @@ export async function computeBiometricLikeness(
 ): Promise<number> {
   const targetSrc = targetPhoto.fallbackUrl || targetPhoto.url;
 
-  // Determine if photo was uploaded by the user / camera capture
-  const isCameraUpload =
-    Boolean(targetPhoto.title?.startsWith("WIN_")) ||
-    Boolean(targetPhoto.title?.toLowerCase().includes("selfie")) ||
-    Boolean(targetPhoto.title?.toLowerCase().includes("camera")) ||
-    targetPhoto.photographer === "Guest Live Upload";
-
   try {
     const [selfieImg, targetImg] = await Promise.all([
       loadImage(selfieSrc),
@@ -168,28 +161,14 @@ export async function computeBiometricLikeness(
       const dHashSim = hammingSimilarity(selfieFeatures.dHash, targetFeatures.dHash);
       const histSim = cosineSimilarity(selfieFeatures.histogram, targetFeatures.histogram);
 
-      // Composite perceptual similarity
-      const rawScore = 0.50 * dHashSim + 0.50 * histSim;
-
-      if (isCameraUpload) {
-        // For camera captures taken in matching lighting/device environment
-        if (rawScore >= 0.52) {
-          return Math.min(0.97, Math.max(0.88, rawScore + 0.20));
-        }
-      }
-
-      return rawScore;
+      // Composite perceptual similarity strictly derived from visual features without artificial inflation
+      return 0.50 * dHashSim + 0.50 * histSim;
     }
   } catch {
     // Canvas read failed (e.g. cross-origin restriction or unreadable remote URL)
   }
 
-  // Graceful heuristic fallback: If the photo was uploaded by a guest on this device (e.g. WIN_...)
-  if (isCameraUpload) {
-    return 0.94; // Authentic match for the guest's uploaded photo
-  }
-
-  return 0.40;
+  return 0.0;
 }
 
 /**

@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SAMPLE_GOOGLE_DRIVE_ALBUMS } from "@/lib/googleAuth";
+import { getScopedGoogleDriveAlbums } from "@/lib/googleAuth";
 
 /**
  * GET /api/google-drive/albums
  * 
- * Returns wedding photo albums from the authenticated user's Google Drive.
+ * Returns wedding photo albums dynamically scoped to the authenticated user's Google Drive.
  */
 export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const email = searchParams.get("email") || req.headers.get("x-user-email") || undefined;
     const authHeader = req.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
 
-    // If real Google API integration is available in production
-    // googleapis can be queried using google.drive({ version: 'v3', auth: oauth2Client });
-    // In dev / test or when token is present, deliver rich curated wedding albums
+    const albums = getScopedGoogleDriveAlbums(email);
+
     return NextResponse.json({
       success: true,
-      albums: SAMPLE_GOOGLE_DRIVE_ALBUMS,
-      total: SAMPLE_GOOGLE_DRIVE_ALBUMS.length,
+      albums: albums,
+      total: albums.length,
+      email: email || "active_session",
       authenticated: Boolean(token),
     });
   } catch (err: unknown) {

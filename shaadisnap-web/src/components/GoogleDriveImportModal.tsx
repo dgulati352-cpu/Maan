@@ -27,8 +27,8 @@ import {
   getStoredGoogleUser,
   setStoredGoogleUser,
   clearStoredGoogleUser,
-  SAMPLE_GOOGLE_DRIVE_ALBUMS,
-  SAMPLE_GOOGLE_DRIVE_PHOTOS,
+  getScopedGoogleDriveAlbums,
+  getScopedGoogleDrivePhotos,
 } from "@/lib/googleAuth";
 import { auth, getGoogleDriveProvider } from "@/lib/firebase";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
@@ -48,9 +48,15 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
   defaultCeremony = "Sangeet",
 }) => {
   const [activeTab, setActiveTab] = useState<"albums" | "photos" | "links">("albums");
-  const [currentUser, setCurrentUser] = useState<GoogleDriveUser | null>(null);
-  const [albums, setAlbums] = useState<GoogleDriveAlbum[]>(SAMPLE_GOOGLE_DRIVE_ALBUMS);
-  const [allPhotos, setAllPhotos] = useState<GoogleDrivePhoto[]>(SAMPLE_GOOGLE_DRIVE_PHOTOS);
+  const [currentUser, setCurrentUser] = useState<GoogleDriveUser | null>(() =>
+    typeof window !== "undefined" ? getStoredGoogleUser() : null
+  );
+  const [albums, setAlbums] = useState<GoogleDriveAlbum[]>(() =>
+    getScopedGoogleDriveAlbums(typeof window !== "undefined" ? getStoredGoogleUser()?.email : undefined)
+  );
+  const [allPhotos, setAllPhotos] = useState<GoogleDrivePhoto[]>(() =>
+    getScopedGoogleDrivePhotos(typeof window !== "undefined" ? getStoredGoogleUser()?.email : undefined)
+  );
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [selectedCeremony, setSelectedCeremony] = useState<string>(defaultCeremony);
@@ -64,7 +70,10 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncUser = () => {
-      setCurrentUser(getStoredGoogleUser());
+      const u = getStoredGoogleUser();
+      setCurrentUser(u);
+      setAlbums(getScopedGoogleDriveAlbums(u?.email));
+      setAllPhotos(getScopedGoogleDrivePhotos(u?.email));
     };
     syncUser();
     window.addEventListener("shaadisnap_google_auth_changed", syncUser);
@@ -75,28 +84,30 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let isMounted = true;
+    const userEmail = currentUser?.email || "";
     const fetchDriveData = async () => {
       try {
-        const resAlbums = await fetch("/api/google-drive/albums");
+        const queryParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : "";
+        const resAlbums = await fetch(`/api/google-drive/albums${queryParam}`);
         if (resAlbums.ok) {
           const data = await resAlbums.json();
           if (data.albums && isMounted) setAlbums(data.albums);
         }
 
-        const resPhotos = await fetch("/api/google-drive/photos");
+        const resPhotos = await fetch(`/api/google-drive/photos${queryParam}`);
         if (resPhotos.ok) {
           const pData = await resPhotos.json();
           if (pData.photos && isMounted) setAllPhotos(pData.photos);
         }
       } catch {
-        // Fallback to SAMPLE data already in state
+        // Fallback to scoped data already in state
       }
     };
     fetchDriveData();
     return () => {
       isMounted = false;
     };
-  }, [isOpen]);
+  }, [isOpen, currentUser?.email]);
 
   if (!isOpen) return null;
 

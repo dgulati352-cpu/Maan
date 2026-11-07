@@ -68,7 +68,9 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const ceremony = (formData.get("ceremony") as string) || "Sangeet";
-    const eventId = (formData.get("eventId") as string) || "mahine-anand-2026";
+    const eventId = (formData.get("eventId") as string) || "marwaha-gulati-2026";
+    const uploaderEmail = (formData.get("uploaderEmail") as string) || (formData.get("email") as string) || "guest@maan-ai.com";
+    const driveFolderId = (formData.get("driveFolderId") as string) || "";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -105,6 +107,8 @@ export async function POST(req: NextRequest) {
       mimeType: file.type || (ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".heic" ? "image/heic" : "image/jpeg"),
       base64: base64,
       ceremony: ceremony,
+      uploaderEmail: uploaderEmail,
+      driveFolderId: driveFolderId,
     };
 
     // Forward to Google Apps Script Web App
@@ -182,6 +186,8 @@ export async function POST(req: NextRequest) {
       name: file.name,
       ceremony: ceremony,
       facesIndexed: facesIndexed,
+      uploaderEmail: uploaderEmail,
+      driveFolderId: driveFolderId || data.folderId,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Internal server error";
