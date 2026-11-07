@@ -21,9 +21,9 @@ export const StatsSection: React.FC = () => {
   const stats = [
     {
       icon: Heart,
-      value: "Mahine & Anand",
+      value: "Marwaha & Gulati",
       label: "Royal Celebration",
-      subtext: "The Oberoi Udaivilas, Udaipur",
+      subtext: "Deventure Shimla Hills Resort, Solan (HP)",
     },
     {
       icon: Camera,

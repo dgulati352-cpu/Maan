@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Camera,
   Sparkles,
-  UploadCloud,
   Heart,
   Download,
   X,
@@ -15,10 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Share2,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getWeddingPhotos } from "@/lib/weddingPhotoStore";
-import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
+import { getApprovedWeddingPhotos } from "@/lib/weddingPhotoStore";
+import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface FullWeddingGalleryProps {
   onFindPhotos?: () => void;
@@ -37,20 +37,15 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<string | null>(null);
-  const [isDriveModalOpen, setIsDriveModalOpen] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("openDrive") === "true" || params.get("gdrive") === "connected") {
-        setIsDriveModalOpen(true);
-      }
-    }
+    // Clean gallery view without auto-opening modals
   }, []);
 
   useEffect(() => {
     const syncPhotos = () => {
-      setPhotos(getWeddingPhotos());
+      setPhotos(getApprovedWeddingPhotos());
     };
     syncPhotos();
     window.addEventListener("shaadisnap_photos_updated", syncPhotos);
@@ -163,7 +158,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
           </h1>
 
           <p className="text-sm sm:text-base text-[#765D62] max-w-xl mx-auto leading-relaxed">
-            High-fashion magazine album capturing the royal Udaipur celebration. Explore candid memories with AI facial retrieval or enjoy full ceremony spreads.
+            High-fashion magazine album capturing the celebration at Deventure Shimla Hills Resort, Solan (HP). Explore candid memories with AI facial retrieval or enjoy full ceremony spreads.
           </p>
 
           {/* Quick Action Buttons (Centered) */}
@@ -179,31 +174,13 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               </button>
             )}
 
-            {onUploadPhotos && (
-              <button
-                type="button"
-                onClick={onUploadPhotos}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all cursor-pointer shadow-2xs"
-              >
-                <UploadCloud className="w-4 h-4 text-[#A85D70]" />
-                <span>Upload Photos</span>
-              </button>
-            )}
-
             <button
               type="button"
-              onClick={() => setIsDriveModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all cursor-pointer shadow-2xs"
+              onClick={() => setIsShareModalOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-[#633C49] bg-white hover:bg-[#F1D5D5]/50 border border-[#EADDE0] hover:border-[#A85D70] transition-all cursor-pointer shadow-2xs"
             >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
-                <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.25z" fill="#00832d"/>
-                <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-              </svg>
-              <span>Google Drive</span>
+              <Share2 className="w-4 h-4 text-[#A85D70]" />
+              <span>Share Guest Link</span>
             </button>
           </div>
         </div>
@@ -429,7 +406,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                         {photo.title}
                       </h4>
                       <p className="text-[11px] text-[#D9B7A0] truncate">
-                        {photo.photographer || "Oberoi Udaivilas Studio Master"}
+                        {photo.photographer || "Deventure Shimla Hills Studio Master"}
                       </p>
                       <div className="flex items-center justify-between pt-1">
                         <span className="text-[10px] text-emerald-300 flex items-center gap-1 font-medium bg-emerald-950/60 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-emerald-400/30">
@@ -563,14 +540,10 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
         </div>
       )}
 
-      {/* Google Drive Album & Photo Import Modal */}
-      <GoogleDriveImportModal
-        isOpen={isDriveModalOpen}
-        onClose={() => setIsDriveModalOpen(false)}
-        onImport={() => {
-          setPhotos(getWeddingPhotos());
-        }}
-        defaultCeremony={selectedCeremony === "All" ? "Sangeet" : selectedCeremony}
+      {/* Share Guest Link Modal */}
+      <ShareGuestLinkModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
       />
     </div>
   );

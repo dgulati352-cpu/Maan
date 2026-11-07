@@ -6,6 +6,8 @@ import { Hero } from "@/components/Hero";
 import { FeatureStrip } from "@/components/FeatureStrip";
 import { HowItWorks } from "@/components/HowItWorks";
 import { StatsSection } from "@/components/StatsSection";
+import { ExecutiveLeadershipSection } from "@/components/ExecutiveLeadershipSection";
+import { EventScheduleSection } from "@/components/EventScheduleSection";
 import { LuxuryGalleryPreview } from "@/components/LuxuryGalleryPreview";
 import { FullWeddingGallery } from "@/components/FullWeddingGallery";
 import { GuestSelfieSearch } from "@/components/GuestSelfieSearch";
@@ -34,6 +36,8 @@ export default function Home() {
           />
           <HowItWorks onGetStarted={() => setActiveTab("search")} />
           <StatsSection />
+          <ExecutiveLeadershipSection />
+          <EventScheduleSection />
         </main>
       )}
 
@@ -41,7 +45,6 @@ export default function Home() {
         <main className="flex-1">
           <FullWeddingGallery
             onFindPhotos={() => setActiveTab("search")}
-            onUploadPhotos={() => setActiveTab("upload")}
           />
         </main>
       )}

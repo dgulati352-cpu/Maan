@@ -26,7 +26,7 @@ export const TrustSection: React.FC = () => {
       title: "RAW Master Preservation",
       subtitle: "Studio High-Resolution Quality",
       description:
-        "Every candid and ceremonial photograph from The Oberoi Udaivilas is archived in full uncompressed resolution. Download print-ready high-definition masters without compression artifacts or watermarks.",
+        "Every candid and ceremonial photograph from Deventure Shimla Hills Resort, Solan (HP) is archived in full uncompressed resolution. Download print-ready high-definition masters without compression artifacts or watermarks.",
       highlight: "Lossless Master Files",
     },
     {
@@ -58,7 +58,7 @@ export const TrustSection: React.FC = () => {
           </h2>
 
           <p className="text-sm sm:text-base text-[#765D62] max-w-2xl mx-auto leading-relaxed">
-            Your privacy is as sacrosanct as the royal celebration. Designed for the high-profile wedding of Mahine &amp; Anand at The Oberoi Udaivilas with uncompromising security standards.
+            Your privacy is as sacrosanct as the royal celebration. Designed for the high-profile wedding of Mahine &amp; Anand at Deventure Shimla Hills Resort, Solan (HP) with uncompromising security standards.
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export const TrustSection: React.FC = () => {
             </div>
           </div>
           <div className="text-[11px] font-semibold text-[#A85D70] bg-[#F1D5D5]/50 px-4 py-2 rounded-full border border-[#A85D70]/30 shrink-0">
-            Event Hash: UDAIVILAS-2026-MAHINE-ANAND
+            Event Hash: DEVENTURE-SOLAN-2026-MG
           </div>
         </div>
 

@@ -107,10 +107,10 @@ export default function ContactPage() {
                         Headquarters & Studios
                       </span>
                       <span className="font-serif text-base font-bold text-[#633C49] block">
-                        The Oberoi Udaivilas & New Delhi
+                        Deventure Shimla Hills Resort, Solan (HP)
                       </span>
                       <p className="text-xs text-[#765D62] mt-0.5">
-                        Haridas Ji Ki Magri, Udaipur, Rajasthan 313001
+                        Solan-Shimla National Highway 22, Kandaghat, Himachal Pradesh 173215
                       </p>
                     </div>
                   </div>

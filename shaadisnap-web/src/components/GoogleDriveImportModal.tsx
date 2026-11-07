@@ -27,10 +27,11 @@ import {
   getStoredGoogleUser,
   setStoredGoogleUser,
   clearStoredGoogleUser,
-  createMockGoogleUser,
   SAMPLE_GOOGLE_DRIVE_ALBUMS,
   SAMPLE_GOOGLE_DRIVE_PHOTOS,
 } from "@/lib/googleAuth";
+import { auth, getGoogleDriveProvider } from "@/lib/firebase";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUploadedPhoto } from "@/lib/weddingPhotoStore";
 
 interface GoogleDriveImportModalProps {
@@ -99,25 +100,30 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Google OAuth Sign-In
+  // Handle Production Google Drive OAuth Sign-In
   const handleConnectGoogle = async () => {
     setIsAuthenticating(true);
     try {
-      // Call authentication endpoint with mock=true for seamless instant verification
-      const res = await fetch("/api/auth/google?mock=true");
-      const data = await res.json();
-      if (data.success && data.user) {
-        setStoredGoogleUser(data.user);
-        setCurrentUser(data.user);
-      } else {
-        const fallback = createMockGoogleUser();
-        setStoredGoogleUser(fallback);
-        setCurrentUser(fallback);
-      }
-    } catch {
-      const fallback = createMockGoogleUser();
-      setStoredGoogleUser(fallback);
-      setCurrentUser(fallback);
+      const provider = getGoogleDriveProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken || (await user.getIdToken());
+
+      const liveUser: GoogleDriveUser = {
+        id: user.uid,
+        name: user.displayName || "Wedding Host",
+        email: user.email || "host@maan-ai.com",
+        picture: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || "Host")}&background=F1D5D5&color=633C49`,
+        accessToken: token,
+        connectedAt: new Date().toISOString(),
+        scopes: ["drive.readonly", "drive.photos.readonly"],
+      };
+
+      setStoredGoogleUser(liveUser);
+      setCurrentUser(liveUser);
+    } catch (err: unknown) {
+      console.error("Google Drive connection error:", err);
     } finally {
       setIsAuthenticating(false);
     }

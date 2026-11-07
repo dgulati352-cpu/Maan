@@ -12,6 +12,10 @@ export interface WeddingPhoto {
   similarity?: number;
   confidenceTier?: "high" | "medium";
   aspectRatio?: "portrait" | "landscape" | "square";
+  approvalStatus?: "pending_ceo_approval" | "approved" | "rejected";
+  approvedBy?: string;
+  approvedAt?: string;
+  uploadedAt?: string;
 }
 
 export interface DemoSelfie {
@@ -23,13 +27,13 @@ export interface DemoSelfie {
 }
 
 export const WEDDING_EVENT = {
-  id: "mahine-anand-2026",
-  couple: "Mahine Weds Anand",
-  date: "December 14-16, 2026",
-  venue: "The Oberoi Udaivilas, Udaipur",
+  id: "marwaha-gulati-2026",
+  couple: "Marwaha's and Gulati's",
+  date: "November 12-13, 2026",
+  venue: "Deventure Shimla Hills Resort, Solan (HP)",
   totalPhotos: 1,
-  photographer: "The Wedding Story & Stories by Joseph Radhik",
-  accessCode: "MAHINE-ANAND-2026",
+  photographer: "Royal Wedding Photography",
+  accessCode: "MARWAHA-GULATI-2026",
   // Direct Google Drive Folder for the wedding album:
   googleDriveFolderUrl: "https://drive.google.com/drive/folders/188n-f26gJUCpngyyxnXuHTLsobGdqqqQ",
   googleDriveFolderId: "188n-f26gJUCpngyyxnXuHTLsobGdqqqQ",

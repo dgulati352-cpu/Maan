@@ -10,7 +10,9 @@ import {
   Search,
   ShieldCheck,
   ChevronRight,
+  Share2,
 } from "lucide-react";
+import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 export interface NavbarProps {
   activeTab?: "landing" | "gallery" | "search" | "upload";
@@ -34,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDivElement>(null);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
@@ -143,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-[0_4px_12px_rgba(99,60,73,0.16)] flex items-center justify-center group-hover:scale-105 transition-transform duration-200 bg-[#FFF8F3] ring-1 ring-[#D9B7A0]/70">
               <img
                 src="/hero-couple.jpg"
-                alt="ShaadiSnap AI"
+                alt="ShaadiSnap AI — Wedding Discovery"
                 className="w-full h-full object-cover object-top"
               />
             </div>
@@ -153,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   ShaadiSnap
                 </span>
                 <span className="text-[10px] tracking-widest font-semibold px-2.5 py-0.5 rounded-full bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/30 uppercase font-sans">
-                  AI
+                  Wedding
                 </span>
               </div>
               <span className="text-[9px] tracking-[0.2em] uppercase font-semibold text-[#947A80] mt-0.5">
@@ -188,7 +191,32 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
           </nav>
 
           {/* Desktop Right CTAs */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShareModalOpen(true)}
+              className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#A85D70]/40 bg-[#F1D5D5]/50 hover:bg-[#F1D5D5] transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              title="Share Guest Facial Pass & QR Code"
+            >
+              <Share2 className="w-3.5 h-3.5 text-[#A85D70]" />
+              <span>Share Guest Link</span>
+            </button>
+
+            <Link
+              href="/admin"
+              className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#A85D70]/30 bg-[#F1D5D5]/30 hover:bg-[#F1D5D5]/60 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
+              <span>Organizer Portal</span>
+            </Link>
+
+            <Link
+              href="/login"
+              className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#EADDE0] bg-white/70 hover:bg-white transition-all shadow-2xs"
+            >
+              Sign In
+            </Link>
+
             <Link
               href="/find-photos"
               onClick={(e) => {
@@ -259,10 +287,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <div className="flex items-center justify-between pb-3 border-b border-[#EADDE0]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full overflow-hidden border border-[#A85D70]/40 shadow-xs flex-shrink-0">
-                  <img src="/hero-couple.jpg" alt="ShaadiSnap AI" className="w-full h-full object-cover object-top" />
+                  <img src="/hero-couple.jpg" alt="Maan AI" className="w-full h-full object-cover object-top" />
                 </div>
                 <span className="font-serif text-lg font-bold text-[#633C49]">
-                  ShaadiSnap AI
+                  Maan AI
                 </span>
               </div>
               <button
@@ -313,18 +341,38 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShareModalOpen(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold text-[#633C49] bg-[#F1D5D5]/60 hover:bg-[#F1D5D5] border border-[#A85D70]/30 transition-colors shadow-2xs cursor-pointer"
+              >
+                <Share2 className="w-3.5 h-3.5 text-[#A85D70]" />
+                <span>Share Guest Pass & QR Code</span>
+              </button>
+
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#947A80]">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#3D7A5A]" />
                 <span>Private & Ephemeral Biometric Vault</span>
               </div>
 
-              <div className="pt-2 text-center">
+              <div className="pt-2 flex flex-col gap-2 text-center">
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 rounded-full text-xs font-semibold text-[#633C49] bg-[#F1D5D5]/40 hover:bg-[#F1D5D5]/80 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
+                  <span>Organizer Portal</span>
+                </Link>
                 <Link
                   href="/login"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-xs text-[#765D62] hover:text-[#633C49] transition-colors"
                 >
-                  Organizer Sign In
+                  Sign In
                 </Link>
               </div>
             </div>
@@ -338,6 +386,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
         <Link href="/features">Features</Link>
         <Link href="/login">Sign In</Link>
       </div>
+
+      {/* Share Guest Link Modal */}
+      <ShareGuestLinkModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+      />
     </header>
   );
 };

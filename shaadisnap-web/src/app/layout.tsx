@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /**
  * Resilient Font Loader Definitions for Offline / Network-Isolated Builds
@@ -63,13 +64,14 @@ export const viewport: Viewport = {
  */
 export const metadata: Metadata = {
   title: {
-    default: "Maan AI — Mahine Weds Anand @ The Oberoi Udaivilas, Udaipur",
+    default: "Maan AI — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP)",
     template: "%s | Maan AI — ShaadiSnap",
   },
   description:
     "Experience the Rose Champagne luxury wedding photo discovery platform. Find every photograph featuring you in seconds using private, privacy-first AI face matching complying with DPDP Act 2023 & GDPR.",
-  applicationName: "ShaadiSnap AI",
+  applicationName: "Maan AI",
   keywords: [
+    "Maan AI",
     "ShaadiSnap AI",
     "wedding photo discovery",
     "AI face recognition wedding",
@@ -79,34 +81,37 @@ export const metadata: Metadata = {
     "DPDP compliant wedding AI",
     "biometric photo search",
   ],
-  authors: [{ name: "ShaadiSnap AI" }],
-  creator: "ShaadiSnap AI",
-  publisher: "ShaadiSnap AI",
+  authors: [{ name: "Maan AI" }],
+  creator: "Maan AI",
+  publisher: "Maan AI",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://shaadisnap.com"
+    process.env.NEXT_PUBLIC_APP_URL || "https://maan-gulati.vercel.app"
   ),
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "ShaadiSnap AI — Luxury Wedding Photo Discovery",
+    title: "Maan AI — Luxury Wedding Photo Discovery",
     description:
       "Find and download all your wedding memories instantly with private, privacy-first AI face matching.",
-    url: "https://shaadisnap.com",
-    siteName: "ShaadiSnap AI",
+    url: "https://maan-gulati.vercel.app",
+    siteName: "Maan AI",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ShaadiSnap AI — Luxury Wedding Photo Discovery",
+    title: "Maan AI — Luxury Wedding Photo Discovery",
     description:
       "Find and download all your wedding memories instantly with private, privacy-first AI face matching.",
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
   robots: {
     index: true,
@@ -152,7 +157,9 @@ export default function RootLayout({
         className="min-h-full flex flex-col bg-[#FFF8F3] text-[#765D62] font-sans antialiased selection:bg-[#F1D5D5] selection:text-[#633C49] overflow-x-hidden"
         style={{ backgroundColor: "#FFF8F3", color: "#765D62" }}
       >
-        {children}
+        <AuthGuard>
+          {children}
+        </AuthGuard>
       </body>
     </html>
   );

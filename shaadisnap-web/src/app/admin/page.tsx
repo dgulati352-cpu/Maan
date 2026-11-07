@@ -18,8 +18,17 @@ import {
   UserX,
   Sliders,
   Check,
+  Award,
+  Clock,
 } from "lucide-react";
-import { getWeddingPhotos, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
+import {
+  getWeddingPhotos,
+  deleteUploadedPhoto,
+  approvePhoto,
+  batchApprovePhotos,
+  getGuestLinkApprovalStatus,
+  setGuestLinkApprovalStatus,
+} from "@/lib/weddingPhotoStore";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 
 interface GuestRecord {
@@ -124,6 +133,9 @@ export default function AdminPage() {
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [guests, setGuests] = useState<GuestRecord[]>(INITIAL_GUESTS);
   const [guestSearch, setGuestSearch] = useState<string>("");
+  const [isGuestLinkApproved, setIsGuestLinkApproved] = useState<boolean>(() =>
+    getGuestLinkApprovalStatus()
+  );
 
   useEffect(() => {
     const handleSync = () => {
@@ -132,6 +144,10 @@ export default function AdminPage() {
     window.addEventListener("shaadisnap_photos_updated", handleSync);
     return () => window.removeEventListener("shaadisnap_photos_updated", handleSync);
   }, []);
+
+  const pendingCount = photos.filter(
+    (p) => p.approvalStatus === "pending_ceo_approval"
+  ).length;
 
   const handleDelete = (id: string, title: string) => {
     deleteUploadedPhoto(id);
@@ -154,8 +170,40 @@ export default function AdminPage() {
   const handleBatchApprove = () => {
     if (selectedPhotoIds.length === 0) return;
     const count = selectedPhotoIds.length;
+    batchApprovePhotos(selectedPhotoIds);
+    setPhotos(getWeddingPhotos());
     setSelectedPhotoIds([]);
     setNotice(`${count} photograph${count === 1 ? "" : "s"} approved for VIP master gallery.`);
+    setTimeout(() => setNotice(""), 4000);
+  };
+
+  const handleCeoBatchApproveAll = () => {
+    const pendingIds = photos
+      .filter((p) => p.approvalStatus === "pending_ceo_approval")
+      .map((p) => p.id);
+    if (pendingIds.length === 0) return;
+    batchApprovePhotos(pendingIds);
+    setPhotos(getWeddingPhotos());
+    setNotice(`All ${pendingIds.length} pending photographs approved by CEO Kabir Marwaha.`);
+    setTimeout(() => setNotice(""), 4000);
+  };
+
+  const handleSingleApprove = (id: string, title: string) => {
+    approvePhoto(id);
+    setPhotos(getWeddingPhotos());
+    setNotice(`Photo "${title}" approved by CEO.`);
+    setTimeout(() => setNotice(""), 3000);
+  };
+
+  const toggleGuestLinkApproval = () => {
+    const nextVal = !isGuestLinkApproved;
+    setIsGuestLinkApproved(nextVal);
+    setGuestLinkApprovalStatus(nextVal);
+    setNotice(
+      nextVal
+        ? "Guest Access Link (/find-photos) is now LIVE & Authorized by CEO."
+        : "Guest Access Link (/find-photos) has been gated for security review."
+    );
     setTimeout(() => setNotice(""), 4000);
   };
 
@@ -264,10 +312,10 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="font-serif text-2xl font-bold text-[#633C49] mt-3 truncate">
-            Mahine Weds Anand
+            Marwaha &amp; Gulati Wedding
           </div>
           <p className="text-xs text-[#765D62] mt-1">
-            The Oberoi Udaivilas, Udaipur
+            Deventure Shimla Hills Resort, Solan (HP)
           </p>
         </div>
 
@@ -320,6 +368,81 @@ export default function AdminPage() {
           <p className="text-xs text-[#765D62] mt-1">
             0 persistent biometric retainers
           </p>
+        </div>
+      </div>
+
+      {/* CEO Executive Approval Station */}
+      <div className="bg-gradient-to-r from-white via-[#FFF8F3] to-[#F1D5D5]/35 rounded-3xl p-6 border-2 border-[#D9B7A0] shadow-[0_12px_36px_rgba(99,60,73,0.08)] flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#633C49] text-[#D9B7A0] flex items-center justify-center shrink-0 shadow-xs">
+            <Award className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#A85D70] bg-[#F1D5D5] px-2.5 py-0.5 rounded-full border border-[#A85D70]/20">
+                Executive Governance • CEO Kabir Marwaha Desk
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+            <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#633C49] mt-1">
+              CEO Master Approval Station
+            </h3>
+            <p className="text-xs sm:text-sm text-[#765D62] mt-0.5 max-w-xl">
+              Strict approval protocol: Only photos signed off by the CEO desk go live in public guest galleries.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-[#EADDE0]">
+          {/* Pending Photos Counter & 1-Click Approve */}
+          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-[#EADDE0] shadow-2xs">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-[#947A80]">
+                Pending Photos
+              </span>
+              <span className="font-serif text-lg font-bold text-[#633C49]">
+                {pendingCount} waiting
+              </span>
+            </div>
+            {pendingCount > 0 && (
+              <button
+                type="button"
+                onClick={handleCeoBatchApproveAll}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-2xs cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>1-Click CEO Batch Approve</span>
+              </button>
+            )}
+          </div>
+
+          {/* Guest Access Link Approval Switch */}
+          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-[#EADDE0] shadow-2xs">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-[#947A80]">
+                Guest Link Access (/find-photos)
+              </span>
+              <span className="text-xs font-semibold text-[#633C49]">
+                {isGuestLinkApproved ? "Active & Authorized" : "Temporarily Gated"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleGuestLinkApproval}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                isGuestLinkApproved ? "bg-emerald-600" : "bg-gray-300"
+              }`}
+              role="switch"
+              aria-checked={isGuestLinkApproved}
+              title="Toggle Guest Access Link Approval"
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  isGuestLinkApproved ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -520,13 +643,30 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td className="py-3">
-                          <span className="text-[11px] font-medium text-emerald-700 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Approved
-                          </span>
+                          {photo.approvalStatus === "pending_ceo_approval" ? (
+                            <span className="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300 text-[10px]">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              Pending CEO Review
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300 text-[10px]">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              Approved by CEO
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 pr-2 text-right">
                           <div className="inline-flex items-center gap-2">
+                            {photo.approvalStatus === "pending_ceo_approval" && (
+                              <button
+                                type="button"
+                                onClick={() => handleSingleApprove(photo.id, photo.title)}
+                                className="p-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 border border-emerald-200 transition-colors cursor-pointer"
+                                title="Approve Photo (CEO Sign-Off)"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              </button>
+                            )}
                             <a
                               href={photo.url}
                               target="_blank"

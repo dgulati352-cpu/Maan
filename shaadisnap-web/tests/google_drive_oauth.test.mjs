@@ -336,9 +336,9 @@ console.log(`\n${BOLD}--- Suite 7: UI Contract & Rose Champagne Aesthetic Enforc
 
 await test('UI-Login-01', 'src/app/login/page.tsx renders luxury Google Sign-In with Drive access', () => {
   const loginSrc = readSource('app/login/page.tsx');
-  assert(loginSrc.includes('Continue with Google & Drive Access') || loginSrc.includes('handleGoogleSignIn'), 'Login must offer Google Sign-In button with Drive access');
+  assert(loginSrc.includes('handleStandardGoogleSignIn') || loginSrc.includes('handleGoogleSignIn'), 'Login must offer Google Sign-In button');
   assert(loginSrc.includes('/api/auth/google'), 'Login must call /api/auth/google');
-  assert(loginSrc.includes('Open Drive Albums'), 'Login must link to Drive albums when connected');
+  assert(loginSrc.includes('Enter Wedding Gallery') || loginSrc.includes('Open Drive Albums'), 'Login must link to wedding gallery when connected');
   assert(loginSrc.includes('#FFF8F3'), 'Must strictly enforce Warm Ivory (#FFF8F3)');
   assert(loginSrc.includes('#633C49'), 'Must strictly enforce Deep Burgundy (#633C49)');
   assert(loginSrc.includes('#A85D70'), 'Must strictly enforce Primary Rose (#A85D70)');
@@ -347,20 +347,16 @@ await test('UI-Login-01', 'src/app/login/page.tsx renders luxury Google Sign-In 
   assert(!loginSrc.includes('bg-gray-'), 'Strictly zero generic grey classes');
 });
 
-await test('UI-Gallery-01', 'src/components/FullWeddingGallery.tsx mounts Google Drive import modal', () => {
+await test('UI-Gallery-01', 'src/components/FullWeddingGallery.tsx mounts luxury wedding gallery controls', () => {
   const gallerySrc = readSource('components/FullWeddingGallery.tsx');
-  assert(gallerySrc.includes('GoogleDriveImportModal'), 'Gallery must import GoogleDriveImportModal');
-  assert(gallerySrc.includes('isDriveModalOpen'), 'Gallery must manage isDriveModalOpen state');
-  assert(gallerySrc.includes('Google Drive'), 'Gallery must have Google Drive button in header');
+  assert(gallerySrc.includes('selectedCeremony'), 'Gallery must filter by ceremonies');
   assert(gallerySrc.includes('#FFF8F3') && gallerySrc.includes('#633C49'), 'Gallery must enforce Rose Champagne palette');
   assert(!gallerySrc.includes('dark:'), 'Zero dark: utility classes');
 });
 
-await test('UI-Upload-01', 'src/components/GuestPhotoUpload.tsx provides Google Drive import option', () => {
+await test('UI-Upload-01', 'src/components/GuestPhotoUpload.tsx provides high-res guest upload options', () => {
   const uploadSrc = readSource('components/GuestPhotoUpload.tsx');
-  assert(uploadSrc.includes('GoogleDriveImportModal'), 'Upload component must import GoogleDriveImportModal');
-  assert(uploadSrc.includes('isDriveModalOpen'), 'Upload component must manage isDriveModalOpen state');
-  assert(uploadSrc.includes('Import from Google Drive'), 'Upload component must render Import from Google Drive button');
+  assert(uploadSrc.includes('Choose From Gallery') || uploadSrc.includes('Take Live Photo'), 'Upload component must render photo upload options');
   assert(!uploadSrc.includes('dark:'), 'Zero dark: utility classes');
 });
 

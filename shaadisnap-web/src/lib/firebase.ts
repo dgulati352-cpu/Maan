@@ -15,14 +15,18 @@ export const firebaseConfig = {
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Configure Google Auth Provider with Google Drive Scopes
-export function getGoogleDriveProvider(): GoogleAuthProvider {
+// Standard Google Auth Provider (Clean, Instant, Zero Warning for Guests)
+export function getStandardGoogleProvider(): GoogleAuthProvider {
   const provider = new GoogleAuthProvider();
-  // Request Google Drive access so user's wedding photos can be accessed
-  provider.addScope("https://www.googleapis.com/auth/drive.readonly");
-  provider.addScope("https://www.googleapis.com/auth/drive.photos.readonly");
+  provider.addScope("profile");
+  provider.addScope("email");
   provider.setCustomParameters({
     prompt: "select_account",
   });
   return provider;
+}
+
+// Google Auth Provider (Clean, Standard, Zero Sensitive Scopes)
+export function getGoogleDriveProvider(): GoogleAuthProvider {
+  return getStandardGoogleProvider();
 }

@@ -24,7 +24,7 @@ export default function PrivacyPage() {
               Privacy Charter & Biometric Policy
             </h1>
             <p className="text-base sm:text-lg text-[#765D62] max-w-2xl mx-auto leading-relaxed">
-              At ShaadiSnap AI, we believe luxury celebrations require the highest standards of digital privacy. Learn how your facial biometric data and wedding memories are guarded.
+              At Maan AI (ShaadiSnap), we believe luxury celebrations require the highest standards of digital privacy. Learn how your facial biometric data and wedding memories are guarded.
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
                 <span>2. Event Scope & Access Isolation</span>
               </h3>
               <p className="text-sm text-[#765D62] leading-relaxed">
-                Every wedding album is isolated in a private event vault protected by cryptographic token identifiers. Guests attending the Oberoi Udaivilas celebration can only search photographs uploaded for that specific celebration. Cross-wedding indexing is strictly forbidden by architectural system constraints.
+                Every wedding album is isolated in a private event vault protected by cryptographic token identifiers. Guests attending the celebration at Deventure Shimla Hills Resort, Solan (HP) can only search photographs uploaded for that specific celebration. Cross-wedding indexing is strictly forbidden by architectural system constraints.
               </p>
             </section>
 

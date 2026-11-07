@@ -15,7 +15,6 @@ export default function GalleryPage() {
       <main className="flex-1">
         <FullWeddingGallery
           onFindPhotos={() => router.push("/find-photos")}
-          onUploadPhotos={() => router.push("/upload-photos")}
         />
       </main>
       <Footer />

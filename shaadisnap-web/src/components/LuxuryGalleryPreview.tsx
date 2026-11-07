@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, ExternalLink, ArrowRight, Camera } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getWeddingPhotos } from "@/lib/weddingPhotoStore";
+import { getApprovedWeddingPhotos } from "@/lib/weddingPhotoStore";
 
 interface LuxuryGalleryPreviewProps {
   onFindYourFace: () => void;
@@ -14,13 +14,13 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
   onFindYourFace,
   onViewAllGallery,
 }) => {
-  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getWeddingPhotos());
+  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getApprovedWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
 
   useEffect(() => {
     const handleUpdate = () => {
-      setPhotos(getWeddingPhotos());
+      setPhotos(getApprovedWeddingPhotos());
     };
 
     window.addEventListener("shaadisnap_photos_updated", handleUpdate);

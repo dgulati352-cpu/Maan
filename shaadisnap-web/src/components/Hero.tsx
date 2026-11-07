@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, UploadCloud, Shield, Lock, Award, Play } from "lucide-react";
+import { Sparkles, ArrowRight, UploadCloud, Shield, Lock, Award, Play, Share2 } from "lucide-react";
 import { getWeddingPhotos } from "@/lib/weddingPhotoStore";
 import { WeddingPhoto } from "@/data/mockWeddingData";
+import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface HeroProps {
   onFindPhotos: () => void;
@@ -12,6 +13,7 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
   const [livePhotos, setLivePhotos] = useState<WeddingPhoto[]>([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     const syncLivePhotos = () => {
@@ -46,7 +48,7 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
 
             {/* Three-Line Editorial Headline */}
             <div className="space-y-3">
-              <p className="editorial-kicker">Mahine Weds Anand / The Oberoi Udaivilas, Udaipur</p>
+              <p className="editorial-kicker">Marwaha &amp; Gulati Wedding / Deventure Shimla Hills Resort, Solan (HP)</p>
               <h1 className="font-serif text-fluid-display font-bold tracking-[-0.04em] text-[#633C49] leading-[0.98]">
                 Every Moment.<br />
                 Every Memory.<br />
@@ -58,7 +60,7 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
 
             {/* Supporting Editorial Description */}
             <p className="text-base sm:text-lg text-[#765D62] max-w-xl font-normal leading-[1.75]">
-              Thousands of wedding photos. One simple selfie. Discover every moment you were part of with <strong className="text-[#633C49] font-semibold">Mahine Weds Anand</strong>.
+              Thousands of wedding photos. One simple selfie. Discover every moment you were part of with <strong className="text-[#633C49] font-semibold">Marwaha &amp; Gulati Wedding</strong>.
             </p>
 
             {/* Luxury CTAs */}
@@ -69,6 +71,15 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
               >
                 <span>Find My Photos</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-full text-sm font-semibold text-[#633C49] bg-[#F1D5D5]/50 hover:bg-[#F1D5D5] border border-[#A85D70]/40 hover:border-[#A85D70] backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-[#A85D70]" />
+                <span>Share Guest Pass &amp; QR</span>
               </button>
 
               <button
@@ -132,9 +143,9 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <p className="text-[11px] uppercase tracking-widest text-[#D9B7A0] font-semibold">The Oberoi Udaivilas, Udaipur</p>
+                        <p className="text-[11px] uppercase tracking-widest text-[#D9B7A0] font-semibold">Deventure Shimla Hills Resort, Solan (HP)</p>
                       </div>
-                      <p className="font-serif text-lg font-bold mt-0.5 text-white">Mahine Weds Anand</p>
+                      <p className="font-serif text-lg font-bold mt-0.5 text-white">Marwaha &amp; Gulati Celebration</p>
                     </div>
                     <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -172,6 +183,11 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
 
         </div>
       </div>
+
+      <ShareGuestLinkModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+      />
     </section>
   );
 };

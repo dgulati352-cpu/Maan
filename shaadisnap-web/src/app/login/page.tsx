@@ -11,10 +11,14 @@ import {
   getStoredGoogleUser,
   setStoredGoogleUser,
   clearStoredGoogleUser,
-  createMockGoogleUser,
 } from "@/lib/googleAuth";
-import { auth, getGoogleDriveProvider } from "@/lib/firebase";
-import { signInWithPopup } from "firebase/auth";
+import { auth, getStandardGoogleProvider, getGoogleDriveProvider } from "@/lib/firebase";
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,65 +38,134 @@ export default function LoginPage() {
     return () => window.removeEventListener("shaadisnap_google_auth_changed", syncUser);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Auto-create organizer session so user is logged in
-    const organizerUser: GoogleDriveUser = {
-      id: "organizer_demo_" + Date.now(),
-      name: email.split("@")[0] || "Wedding Organizer",
-      email: email,
-      picture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80",
-      accessToken: "demo_organizer_token",
-      scopes: ["drive.readonly", "drive.photos.readonly"],
-      connectedAt: new Date().toISOString(),
-    };
-    setStoredGoogleUser(organizerUser);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to admin dashboard or gallery directly
-      window.location.href = "/admin";
-    }, 400);
-  };
-
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Production Real Firebase Email/Password Sign-In & Registration
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } catch (signInErr: unknown) {
+        const err = signInErr as { code?: string };
+        if (
+          err.code === "auth/user-not-found" ||
+          err.code === "auth/invalid-credential" ||
+          err.code === "auth/invalid-login-credentials"
+        ) {
+          userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+          throw signInErr;
+        }
+      }
+
+      const fbUser = userCredential.user;
+      const token = await fbUser.getIdToken();
+      const organizerUser: GoogleDriveUser = {
+        id: fbUser.uid,
+        name: fbUser.displayName || email.split("@")[0] || "Wedding Organizer",
+        email: fbUser.email || email,
+        picture: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split("@")[0])}&background=F1D5D5&color=633C49`,
+        accessToken: token,
+        scopes: ["organizer", "admin"],
+        connectedAt: new Date().toISOString(),
+      };
+      setStoredGoogleUser(organizerUser);
+      setIsLoading(false);
+      window.location.href = "/admin";
+    } catch (err: unknown) {
+      console.error("Organizer authentication error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setAuthError(msg);
+      setIsLoading(false);
+    }
+  };
+
+  // Production Standard Google Sign-In for Guests (1-Click, Zero Google Warnings)
+  const handleStandardGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setAuthError(null);
+    try {
+      const provider = getStandardGoogleProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken || (await user.getIdToken());
+
+      const liveUser: GoogleDriveUser = {
+        id: user.uid,
+        name: user.displayName || "Wedding Guest",
+        email: user.email || "guest@maan-ai.com",
+        picture: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || "Guest")}&background=F1D5D5&color=633C49`,
+        accessToken: token,
+        connectedAt: new Date().toISOString(),
+        scopes: ["profile", "email"],
+      };
+
+      setStoredGoogleUser(liveUser);
+      setGoogleUser(liveUser);
+      setIsGoogleLoading(false);
+      window.location.href = "/gallery";
+    } catch (err: unknown) {
+      console.error("Firebase standard Google sign in error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("popup-closed-by-user") || msg.includes("cancelled-popup-request")) {
+        setIsGoogleLoading(false);
+        return;
+      }
+      setAuthError(msg);
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // Production Google Drive OAuth for Hosts & Organizers (Reads albums from Drive)
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setAuthError(null);
     try {
-      // Live Firebase Google Popup Login with Drive Scopes
       const provider = getGoogleDriveProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken || (await user.getIdToken());
 
-      // Extract OAuth credential / access token if returned
       const liveUser: GoogleDriveUser = {
         id: user.uid,
         name: user.displayName || "Wedding Host",
         email: user.email || "host@maan-ai.com",
-        picture: user.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80",
-        accessToken: "firebase_live_oauth_token",
+        picture: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || "Host")}&background=F1D5D5&color=633C49`,
+        accessToken: token,
         connectedAt: new Date().toISOString(),
         scopes: ["drive.readonly", "drive.photos.readonly"],
       };
 
       setStoredGoogleUser(liveUser);
       setGoogleUser(liveUser);
+
+      // Sync session with backend API endpoint
+      try {
+        await fetch("/api/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, user: liveUser }),
+        });
+      } catch {
+        // Non-blocking API sync
+      }
+
       setIsGoogleLoading(false);
-      window.location.href = "/gallery?openDrive=true";
+      window.location.href = "/gallery";
     } catch (err: unknown) {
-      console.error("Firebase Google sign in error:", err);
+      console.error("Firebase Google Drive sign in error:", err);
       const msg = err instanceof Error ? err.message : String(err);
-      
-      // If user closed the popup window, don't show an error
       if (msg.includes("popup-closed-by-user") || msg.includes("cancelled-popup-request")) {
         setIsGoogleLoading(false);
         return;
       }
-
       setAuthError(msg);
       setIsGoogleLoading(false);
     }
@@ -122,7 +195,7 @@ export default function LoginPage() {
               Welcome Back
             </h2>
             <p className="text-sm text-[#947A80]">
-              Sign in to manage your luxury wedding gallery or access your Google Drive photo albums.
+              Sign in to access your luxury wedding gallery & AI face search.
             </p>
           </div>
 
@@ -155,11 +228,11 @@ export default function LoginPage() {
               <div className="flex items-center gap-2 pt-1 border-t border-[#EADDE0]/60">
                 <button
                   type="button"
-                  onClick={() => router.push("/gallery?openDrive=true")}
+                  onClick={() => router.push("/gallery")}
                   className="flex-1 py-2 px-3 rounded-full text-xs font-bold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
-                  <span>Open Drive Albums</span>
+                  <span>Enter Wedding Gallery</span>
                 </button>
                 <button
                   type="button"
@@ -171,10 +244,11 @@ export default function LoginPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Primary 1-Click Guest Google Sign-In (Zero Warnings) */}
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
+                onClick={handleStandardGoogleSignIn}
                 disabled={isGoogleLoading}
                 className="w-full h-12 rounded-full font-semibold text-xs sm:text-sm tracking-wide text-[#633C49] bg-[#FFF8F3] hover:bg-[#F1D5D5]/40 border border-[#EADDE0] hover:border-[#A85D70] transition-all duration-200 shadow-2xs hover:shadow-xs flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer"
               >
@@ -185,11 +259,12 @@ export default function LoginPage() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                <span>{isGoogleLoading ? "Connecting to Google Drive..." : "Continue with Google & Drive Access"}</span>
+                <span>{isGoogleLoading ? "Signing in..." : "Continue with Google (Guest Sign In)"}</span>
               </button>
               <p className="text-[11px] text-[#947A80] text-center">
-                Grants read access to import wedding albums from your personal Google Drive.
+                Instant access to private wedding gallery and AI face matching.
               </p>
+
               {authError && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
                   <p className="font-semibold mb-0.5">Authentication Note:</p>

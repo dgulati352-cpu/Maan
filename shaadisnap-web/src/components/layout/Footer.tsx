@@ -18,17 +18,17 @@ export const Footer: React.FC = () => {
               className="inline-flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70] rounded-lg"
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#A85D70]/40 shadow-xs flex items-center justify-center flex-shrink-0">
-                <img src="/hero-couple.jpg" alt="ShaadiSnap AI — Mahine Weds Anand @ The Oberoi Udaivilas, Udaipur" className="w-full h-full object-cover object-top" />
+                <img src="/hero-couple.jpg" alt="Maan AI — Marwaha & Gulati Wedding" className="w-full h-full object-cover object-top" />
               </div>
               <span className="font-serif text-2xl font-bold tracking-tight text-[#633C49]">
-                ShaadiSnap
+                Maan AI
               </span>
               <span className="text-[10px] tracking-widest font-semibold px-2 py-0.5 rounded-full bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/30 uppercase font-sans">
-                AI
+                Wedding
               </span>
             </Link>
             <p className="text-xs text-[#765D62] leading-relaxed max-w-xs">
-              ShaadiSnap AI — Mahine Weds Anand @ The Oberoi Udaivilas, Udaipur. Luxury AI-powered wedding photo discovery designed for modern Indian celebrations. Completely private, ephemeral, and DPDP Act 2023 compliant.
+              Maan AI — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP). Luxury AI-powered wedding photo discovery designed for modern Indian celebrations. Completely private, ephemeral, and DPDP Act 2023 compliant.
             </p>
             <div className="pt-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/20">
@@ -165,7 +165,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
-          <p>© 2026 ShaadiSnap AI. All rights reserved.</p>
+          <p>© 2026 Maan AI. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link
               href="/privacy"

@@ -38,7 +38,7 @@ export default function AdminLayout({
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-[#EADDE0]">
         <Link href="/admin" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-[#A85D70]/40 shadow-xs">
-            <img src="/hero-couple.jpg" alt="ShaadiSnap AI — Mahine Weds Anand @ The Oberoi Udaivilas" className="w-full h-full object-cover object-top" />
+            <img src="/hero-couple.jpg" alt="ShaadiSnap AI — Mahine Weds Anand @ Deventure Shimla Hills Resort, Solan (HP)" className="w-full h-full object-cover object-top" />
           </div>
           <span className="font-serif text-lg font-bold text-[#633C49]">
             ShaadiSnap AI Organizer
@@ -66,7 +66,7 @@ export default function AdminLayout({
           <div>
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 rounded-full overflow-hidden border border-[#A85D70]/40 shadow-xs flex-shrink-0">
-                <img src="/hero-couple.jpg" alt="ShaadiSnap AI — Mahine Weds Anand @ The Oberoi Udaivilas" className="w-full h-full object-cover object-top" />
+                <img src="/hero-couple.jpg" alt="ShaadiSnap AI — Mahine Weds Anand @ Deventure Shimla Hills Resort, Solan (HP)" className="w-full h-full object-cover object-top" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
@@ -78,7 +78,7 @@ export default function AdminLayout({
                   </span>
                 </div>
                 <span className="text-[8px] uppercase tracking-wider text-[#947A80] font-semibold">
-                  Mahine Weds Anand
+                  Marwaha &amp; Gulati Wedding
                 </span>
               </div>
             </Link>
@@ -89,10 +89,10 @@ export default function AdminLayout({
                 Active Celebration
               </span>
               <p className="font-serif text-xs font-bold text-[#633C49] truncate">
-                Mahine Weds Anand
+                Marwaha &amp; Gulati Wedding
               </p>
               <p className="text-[11px] text-[#947A80] truncate">
-                The Oberoi Udaivilas, Udaipur
+                Deventure Shimla Hills Resort, Solan (HP)
               </p>
             </div>
           </div>

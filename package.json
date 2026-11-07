@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "npm run dev --workspace=shaadisnap-web",
     "build": "npm run build --workspace=shaadisnap-web",
-    "start": "npm run start --workspace=shaadisnap-web"
+    "start": "npm run start --workspace=shaadisnap-web",
+    "deploy": "cd shaadisnap-web && npx vercel --prod"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",

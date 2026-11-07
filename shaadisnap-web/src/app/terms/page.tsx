@@ -122,7 +122,7 @@ export default function TermsPage() {
                 <span>5. Governing Law & Dispute Resolution</span>
               </h3>
               <p className="text-sm text-[#765D62] leading-relaxed">
-                These terms are governed by and construed in accordance with the laws of India. Any legal dispute or controversy arising out of or related to the platform shall be subject to the exclusive jurisdiction of the competent courts in New Delhi or Udaipur, Rajasthan.
+                These terms are governed by and construed in accordance with the laws of India. Any legal dispute or controversy arising out of or related to the platform shall be subject to the exclusive jurisdiction of the competent courts in New Delhi or Solan / Shimla, Himachal Pradesh.
               </p>
               <div className="pt-4 flex items-center justify-between text-xs text-[#947A80] border-t border-[#EADDE0]/60">
                 <span>Last updated: October 2026</span>

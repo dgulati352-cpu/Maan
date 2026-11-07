@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("organizer");
-  const [venue, setVenue] = useState("The Oberoi Udaivilas, Udaipur");
+  const [venue, setVenue] = useState("Deventure Shimla Hills Resort, Solan (HP)");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +53,7 @@ export default function RegisterPage() {
           {/* Header */}
           <div className="text-center space-y-2.5">
             <div className="w-12 h-12 rounded-full overflow-hidden mx-auto shadow-xs border border-[#A85D70]/30">
-              <img src="/hero-couple.jpg" alt="Maan AI — Mahine Weds Anand @ The Oberoi Udaivilas" className="w-full h-full object-cover object-top" />
+              <img src="/hero-couple.jpg" alt="ShaadiSnap AI — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP)" className="w-full h-full object-cover object-top" />
             </div>
             <h1 className="font-serif text-3xl font-bold tracking-tight text-[#633C49]">
               Create Organizer Portal
@@ -152,7 +152,7 @@ export default function RegisterPage() {
                 type="text"
                 value={venue}
                 onChange={(e) => setVenue(e.target.value)}
-                placeholder="The Oberoi Udaivilas, Udaipur"
+                placeholder="Deventure Shimla Hills Resort, Solan (HP)"
                 className="w-full h-11 px-4 rounded-[12px] bg-[#FFF8F3]/50 border border-[#EADDE0] text-sm text-[#633C49] placeholder:text-[#947A80] focus:outline-hidden focus:border-[#A85D70] transition-colors"
               />
             </div>
