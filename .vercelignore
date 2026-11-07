@@ -6,3 +6,5 @@ compreface/
 node_modules/
 .next/
 **/.next/
+shaadisnap-web/.next/
+shaadisnap-web/.next
