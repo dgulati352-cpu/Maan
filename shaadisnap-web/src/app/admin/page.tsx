@@ -20,6 +20,7 @@ import {
   Check,
   Award,
   Clock,
+  Key,
 } from "lucide-react";
 import {
   getWeddingPhotos,
@@ -30,6 +31,7 @@ import {
   setGuestLinkApprovalStatus,
 } from "@/lib/weddingPhotoStore";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
+import { GuestPassManagementSection } from "@/components/admin/GuestPassManagementSection";
 
 interface GuestRecord {
   id: string;
@@ -126,7 +128,7 @@ const INITIAL_GUESTS: GuestRecord[] = [
 ];
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"photos" | "guests">("photos");
+  const [activeTab, setActiveTab] = useState<"passes" | "photos" | "guests">("passes");
   const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [notice, setNotice] = useState<string>("");
@@ -447,11 +449,24 @@ export default function AdminPage() {
       </div>
 
       {/* Main Console Navigation Tabs */}
-      <div className="flex items-center gap-3 border-b border-[#EADDE0] pb-2">
+      <div className="flex items-center gap-3 border-b border-[#EADDE0] pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab("passes")}
+          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+            activeTab === "passes"
+              ? "bg-[#633C49] text-white shadow-xs"
+              : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
+          }`}
+        >
+          <Key className="w-3.5 h-3.5" />
+          <span>Guest Pass Management</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab("photos")}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "photos"
               ? "bg-[#633C49] text-white shadow-xs"
               : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
@@ -464,7 +479,7 @@ export default function AdminPage() {
         <button
           type="button"
           onClick={() => setActiveTab("guests")}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "guests"
               ? "bg-[#633C49] text-white shadow-xs"
               : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
@@ -474,6 +489,9 @@ export default function AdminPage() {
           <span>Guest Management &amp; DPDP Vault ({guests.length})</span>
         </button>
       </div>
+
+      {/* TAB 0: GUEST PASS MANAGEMENT */}
+      {activeTab === "passes" && <GuestPassManagementSection />}
 
       {/* TAB 1: PHOTO MODERATION QUEUE */}
       {activeTab === "photos" && (

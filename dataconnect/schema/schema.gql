@@ -35,3 +35,52 @@ type Document @table {
   description: String
   couple: Couple!
 }
+
+# --- Login-Free Guest Pass & AI Biometrics Tables ---
+
+type GuestPass @table {
+  tokenHash: String!
+  eventId: String!
+  eventName: String!
+  guestName: String
+  guestPhone: String
+  expiresAt: Timestamp
+  isRevoked: Boolean!
+  revokedAt: Timestamp
+  revokedReason: String
+  maxScans: Int
+  scanCount: Int!
+  lastAccessedAt: Timestamp
+  createdAt: Timestamp!
+}
+
+type FaceSearchSession @table {
+  guestPassId: String!
+  eventId: String!
+  matchesCount: Int!
+  highestSimilarity: Float
+  latencyMs: Int!
+  status: String!
+  engine: String!
+  createdAt: Timestamp!
+}
+
+type GuestAccessLog @table {
+  guestPassId: String!
+  action: String!
+  ipAddress: String
+  userAgent: String
+  timestamp: Timestamp!
+}
+
+type PhotoProcessingJob @table {
+  eventId: String!
+  photoId: String!
+  photoUrl: String!
+  status: String!
+  facesDetected: Int
+  errorMessage: String
+  attempts: Int!
+  createdAt: Timestamp!
+  completedAt: Timestamp
+}
