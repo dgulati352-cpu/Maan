@@ -125,7 +125,7 @@ export const GuestSelfieSearch: React.FC = () => {
       setCameraStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     } catch (err: unknown) {
       console.warn("Camera error:", err);
@@ -414,14 +414,14 @@ export const GuestSelfieSearch: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFF8F3] py-10 lg:py-16 text-[#765D62]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header Breadcrumb & Title */}
         <div className="text-center max-w-3xl mx-auto space-y-3 mb-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F1D5D5]/50 border border-[#EADDE0] text-xs font-semibold uppercase tracking-wider text-[#633C49]">
             <Sparkles className="w-3.5 h-3.5 text-[#A85D70]" />
             <span>Event: {WEDDING_EVENT.couple} • {WEDDING_EVENT.venue}</span>
           </div>
-          
+
           <h1 className="font-serif text-4xl sm:text-5xl font-bold text-[#633C49] tracking-tight">
             Find Your Photos
           </h1>
@@ -466,10 +466,10 @@ export const GuestSelfieSearch: React.FC = () => {
 
         {/* Vertical Stack: Up to Down Flow */}
         <div className="space-y-8 mb-12">
-          
+
           {/* 1. TOP: Primary Upload & Camera Card */}
           <div className="bg-white rounded-[24px] p-6 sm:p-10 border border-[#EADDE0] shadow-rose-sm">
-            
+
             {/* Standard file picker */}
             <input
               ref={fileInputRef}
@@ -493,16 +493,15 @@ export const GuestSelfieSearch: React.FC = () => {
             {isCameraOpen ? (
               <div className="space-y-4">
                 <div className="relative rounded-[24px] overflow-hidden aspect-[3/4] sm:aspect-[4/3] bg-black border-2 border-[#A85D70]/40 shadow-[0_0_24px_-2px_rgba(168,93,112,0.25),0_12px_28px_-4px_rgba(99,60,73,0.15)] flex items-center justify-center">
-                  
+
                   {/* Camera Video Stream */}
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className={`w-full h-full object-cover ${
-                      facingMode === "user" ? "scale-x-[-1]" : ""
-                    }`}
+                    className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""
+                      }`}
                   />
 
                   {/* Four Architectural Corner Reticles */}
@@ -515,9 +514,8 @@ export const GuestSelfieSearch: React.FC = () => {
 
                   {/* Shutter Flash Animation */}
                   <div
-                    className={`absolute inset-0 bg-white transition-opacity duration-200 pointer-events-none z-30 ${
-                      isFlashing ? "opacity-90" : "opacity-0"
-                    }`}
+                    className={`absolute inset-0 bg-white transition-opacity duration-200 pointer-events-none z-30 ${isFlashing ? "opacity-90" : "opacity-0"
+                      }`}
                   />
 
                   {/* Biometric Oval Face Alignment Guide */}
@@ -610,16 +608,15 @@ export const GuestSelfieSearch: React.FC = () => {
                 {/* Viewfinder Controls Bar */}
                 {!cameraError && (
                   <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FFF8F3] border border-[#EADDE0]">
-                    
+
                     {/* Timer Toggle */}
                     <button
                       type="button"
                       onClick={() => setUseCountdown(!useCountdown)}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        useCountdown
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${useCountdown
                           ? "bg-[#A85D70] text-white shadow-xs"
                           : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
-                      }`}
+                        }`}
                       title="Toggle 3s countdown timer"
                     >
                       <Timer className="w-4 h-4" />
@@ -670,7 +667,7 @@ export const GuestSelfieSearch: React.FC = () => {
                 <div className="w-16 h-16 rounded-full bg-[#F1D5D5]/50 flex items-center justify-center mb-4 border border-[#EADDE0] shadow-xs">
                   <Camera className="w-8 h-8 text-[#A85D70]" />
                 </div>
-                
+
                 <h3 className="font-serif text-2xl font-bold text-[#633C49] mb-1.5">
                   Take a Selfie or Upload Photo
                 </h3>
@@ -680,7 +677,7 @@ export const GuestSelfieSearch: React.FC = () => {
 
                 {/* Primary Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-md justify-center">
-                  
+
                   {/* Camera Option */}
                   <button
                     type="button"
@@ -770,11 +767,10 @@ export const GuestSelfieSearch: React.FC = () => {
                 </div>
 
                 {/* Consent Checkbox */}
-                <div className={`p-4 rounded-xl border transition-all flex items-start gap-3 ${
-                  !hasConsent
+                <div className={`p-4 rounded-xl border transition-all flex items-start gap-3 ${!hasConsent
                     ? "bg-[#FFF8F3] border-[#A85D70]/50 shadow-xs"
                     : "bg-[#FFF8F3] border-[#EADDE0]"
-                }`}>
+                  }`}>
                   <input
                     id="consent-check"
                     type="checkbox"
@@ -901,13 +897,13 @@ export const GuestSelfieSearch: React.FC = () => {
         {/* --- Search Results State --- */}
         {hasSearched && (
           <div className="mt-14 pt-10 border-t border-[#EADDE0] space-y-8 animate-fadeIn">
-            
+
             {matchedPhotos.length === 0 ? (
               <div className="text-center py-12 px-6 sm:px-12 bg-white rounded-3xl border border-[#EADDE0] shadow-rose-sm max-w-2xl mx-auto space-y-6">
                 <div className="w-16 h-16 rounded-full bg-[#F1D5D5]/60 border border-[#EADDE0] flex items-center justify-center mx-auto text-[#A85D70] shadow-2xs">
                   <Sparkles className="w-8 h-8 text-[#A85D70]" />
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F1D5D5]/40 border border-[#EADDE0] text-xs font-semibold text-[#633C49]">
                     <span>Biometric Resemblance Verification</span>
@@ -1034,11 +1030,10 @@ export const GuestSelfieSearch: React.FC = () => {
                     <button
                       key={c}
                       onClick={() => setSelectedCeremony(c)}
-                      className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                        selectedCeremony === c
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${selectedCeremony === c
                           ? "bg-[#633C49] text-white shadow-xs"
                           : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
-                      }`}
+                        }`}
                     >
                       {c}
                     </button>

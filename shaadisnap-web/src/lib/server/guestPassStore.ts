@@ -37,13 +37,13 @@ export interface GuestAccessLogRecord {
   id: string;
   guestPassId: string;
   action:
-    | "PAGE_VIEW"
-    | "FACE_SCAN_INITIATED"
-    | "FACE_MATCH_SUCCESS"
-    | "FACE_MATCH_EMPTY"
-    | "PHOTO_DOWNLOAD_SINGLE"
-    | "PHOTO_DOWNLOAD_BATCH"
-    | "PASS_REVOKED";
+  | "PAGE_VIEW"
+  | "FACE_SCAN_INITIATED"
+  | "FACE_MATCH_SUCCESS"
+  | "FACE_MATCH_EMPTY"
+  | "PHOTO_DOWNLOAD_SINGLE"
+  | "PHOTO_DOWNLOAD_BATCH"
+  | "PASS_REVOKED";
   ipAddress?: string;
   userAgent?: string;
   timestamp: string;
