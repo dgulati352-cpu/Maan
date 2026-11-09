@@ -29,6 +29,7 @@ import {
   batchApprovePhotos,
   getGuestLinkApprovalStatus,
   setGuestLinkApprovalStatus,
+  getActualSearchCount,
 } from "@/lib/weddingPhotoStore";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { GuestPassManagementSection } from "@/components/admin/GuestPassManagementSection";
@@ -49,28 +50,28 @@ const INITIAL_GUESTS: GuestRecord[] = [
     id: "g-01",
     name: "Ananya Gulati",
     role: "Immediate Family",
-    table: "Table 1 (Royal Pavilion)",
-    matchedCount: 24,
+    table: "Solan Valley Lawn - Suite 101",
+    matchedCount: 2,
     consentGiven: true,
     erased: false,
-    lastActive: "12 mins ago",
+    lastActive: "Just now",
   },
   {
     id: "g-02",
     name: "Vikramaditya Singh",
     role: "Bridal Party",
-    table: "Table 2 (Mewar Courtyard)",
-    matchedCount: 31,
+    table: "Pine Crest Pavilion",
+    matchedCount: 0,
     consentGiven: true,
     erased: false,
-    lastActive: "25 mins ago",
+    lastActive: "15 mins ago",
   },
   {
     id: "g-03",
     name: "Rohan Mehta",
     role: "Groomsmen",
-    table: "Table 4 (Lake Promenade)",
-    matchedCount: 14,
+    table: "Cedar Court Terrace",
+    matchedCount: 1,
     consentGiven: true,
     erased: false,
     lastActive: "1 hour ago",
@@ -79,8 +80,8 @@ const INITIAL_GUESTS: GuestRecord[] = [
     id: "g-04",
     name: "Priya Sharma",
     role: "Bridal Party",
-    table: "Table 3 (Rose Garden)",
-    matchedCount: 19,
+    table: "Rose Champagne Lounge",
+    matchedCount: 0,
     consentGiven: true,
     erased: false,
     lastActive: "40 mins ago",
@@ -89,8 +90,8 @@ const INITIAL_GUESTS: GuestRecord[] = [
     id: "g-05",
     name: "Siddharth Anand",
     role: "Immediate Family",
-    table: "Table 1 (Royal Pavilion)",
-    matchedCount: 42,
+    table: "Shimla Hills Grand Ballroom",
+    matchedCount: 1,
     consentGiven: true,
     erased: false,
     lastActive: "2 hours ago",
@@ -99,8 +100,8 @@ const INITIAL_GUESTS: GuestRecord[] = [
     id: "g-06",
     name: "Sunita Gulati",
     role: "Immediate Family",
-    table: "Table 1 (Royal Pavilion)",
-    matchedCount: 38,
+    table: "Solan Valley Lawn - Suite 102",
+    matchedCount: 2,
     consentGiven: true,
     erased: false,
     lastActive: "35 mins ago",
@@ -109,8 +110,8 @@ const INITIAL_GUESTS: GuestRecord[] = [
     id: "g-07",
     name: "Karan Kapoor",
     role: "Groomsmen",
-    table: "Table 5 (Zenana Mahal)",
-    matchedCount: 9,
+    table: "Pine Crest Pavilion",
+    matchedCount: 0,
     consentGiven: true,
     erased: false,
     lastActive: "3 hours ago",
@@ -119,8 +120,8 @@ const INITIAL_GUESTS: GuestRecord[] = [
     id: "g-08",
     name: "Meera Patel",
     role: "VIP Guest",
-    table: "Table 6 (Chini Mahal)",
-    matchedCount: 16,
+    table: "Cedar Court Terrace",
+    matchedCount: 0,
     consentGiven: true,
     erased: false,
     lastActive: "4 hours ago",
@@ -138,13 +139,43 @@ export default function AdminPage() {
   const [isGuestLinkApproved, setIsGuestLinkApproved] = useState<boolean>(() =>
     getGuestLinkApprovalStatus()
   );
+  const [actualGuestSearches, setActualGuestSearches] = useState<number>(() =>
+    getActualSearchCount()
+  );
 
   useEffect(() => {
     const handleSync = () => {
       setPhotos(getWeddingPhotos());
     };
+    const handleStatsSync = () => {
+      setActualGuestSearches(getActualSearchCount());
+    };
+
+    // Load server guest pass telemetry
+    async function fetchServerStats() {
+      try {
+        const res = await fetch("/api/admin/guest-passes");
+        const data = await res.json();
+        if (data.success && data.stats) {
+          const serverScans = (data.stats.totalScans || 0) + (data.stats.successfulSearches || 0);
+          const localScans = getActualSearchCount();
+          setActualGuestSearches(Math.max(serverScans, localScans));
+        }
+      } catch {
+        // Fall back to local telemetry
+      }
+    }
+    fetchServerStats();
+
     window.addEventListener("shaadisnap_photos_updated", handleSync);
-    return () => window.removeEventListener("shaadisnap_photos_updated", handleSync);
+    window.addEventListener("shaadisnap_stats_updated", handleStatsSync);
+    window.addEventListener("shaadisnap_search_performed", handleStatsSync);
+
+    return () => {
+      window.removeEventListener("shaadisnap_photos_updated", handleSync);
+      window.removeEventListener("shaadisnap_stats_updated", handleStatsSync);
+      window.removeEventListener("shaadisnap_search_performed", handleStatsSync);
+    };
   }, []);
 
   const pendingCount = photos.filter(
@@ -348,10 +379,14 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="font-serif text-3xl font-bold text-[#633C49] mt-3">
-            2,410+
+            {actualGuestSearches.toLocaleString()}
           </div>
           <p className="text-xs text-[#765D62] mt-1">
-            Ephemeral ArcFace selfie lookups
+            {actualGuestSearches === 1
+              ? "1 authentic selfie lookup"
+              : actualGuestSearches === 0
+              ? "Ready for first authentic lookup"
+              : `${actualGuestSearches.toLocaleString()} authentic selfie lookups`}
           </p>
         </div>
 

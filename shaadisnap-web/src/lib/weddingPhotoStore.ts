@@ -368,6 +368,40 @@ export function setGuestLinkApprovalStatus(approved: boolean): void {
   }
 }
 
+const STORAGE_KEY_SEARCH_COUNT = "shaadisnap_actual_search_count";
+
+/**
+ * Records an authentic guest search event (from live camera or guest pass)
+ */
+export function recordActualSearch(guestIdentifier?: string): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SEARCH_COUNT);
+    const count = (parseInt(raw || "0", 10) || 0) + 1;
+    localStorage.setItem(STORAGE_KEY_SEARCH_COUNT, count.toString());
+    window.dispatchEvent(
+      new CustomEvent("shaadisnap_search_performed", { detail: { count, guestIdentifier } })
+    );
+    window.dispatchEvent(new Event("shaadisnap_stats_updated"));
+    return count;
+  } catch {
+    return 1;
+  }
+}
+
+/**
+ * Retrieves the actual count of authentic guest searches performed
+ */
+export function getActualSearchCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SEARCH_COUNT);
+    return parseInt(raw || "0", 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Delete a specific photo by ID
  */

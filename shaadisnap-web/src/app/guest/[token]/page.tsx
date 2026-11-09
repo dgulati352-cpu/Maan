@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { WeddingPhoto } from "@/data/mockWeddingData";
 import { matchSelfieAgainstPhotos } from "@/lib/faceComparison";
-import { getWeddingPhotos } from "@/lib/weddingPhotoStore";
+import { getWeddingPhotos, recordActualSearch } from "@/lib/weddingPhotoStore";
 
 interface GuestPassInfo {
   id: string;
@@ -264,6 +264,9 @@ export default function GuestPassPage({
       formData.append("hasConsent", "true");
       formData.append("threshold", "0.70");
 
+      // Record authentic guest search event telemetry
+      recordActualSearch(token);
+
       // Request server-side face search strictly bound to the token's authorized event
       const res = await fetch("/api/guest/face-search", {
         method: "POST",
@@ -306,8 +309,8 @@ export default function GuestPassPage({
         }
       }
 
-      // If backend was running in simulation / standalone mode, use client-side likeness comparison
-      if (finalMatched.length === 0 && data.engine === "simulation" && capturedImage) {
+      // If backend returned zero matches (e.g. serverless environment), use perceptual likeness comparison
+      if (finalMatched.length === 0 && capturedImage) {
         try {
           const clientMatches = await matchSelfieAgainstPhotos(capturedImage, allApprovedPhotos, 0.70);
           finalMatched = clientMatches.map((p) => ({

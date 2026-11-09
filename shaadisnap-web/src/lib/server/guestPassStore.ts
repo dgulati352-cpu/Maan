@@ -152,7 +152,7 @@ function seedInitialEventData(data: StoreData) {
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       isRevoked: false,
       maxScans: 100,
-      scanCount: 12,
+      scanCount: 0,
       lastAccessedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

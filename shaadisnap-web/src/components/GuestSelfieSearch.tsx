@@ -27,7 +27,13 @@ import {
   WeddingPhoto,
   WEDDING_EVENT,
 } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos, getPhotosForCurrentUser, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
+import {
+  getApprovedWeddingPhotos,
+  getPhotosForCurrentUser,
+  deleteUploadedPhoto,
+  recordActualSearch,
+} from "@/lib/weddingPhotoStore";
+import { matchSelfieAgainstPhotos } from "@/lib/faceComparison";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface ApiFaceMatch {
@@ -294,6 +300,7 @@ export const GuestSelfieSearch: React.FC = () => {
     const photoPool = getPhotosForCurrentUser();
 
     setProcessStep(`Searching ${photoPool.length} photos in event gallery (τ = 0.70)...`);
+    recordActualSearch(getSessionGuestId());
 
     // Live AI API Call
     let apiMatches: ApiFaceMatch[] = [];
@@ -348,6 +355,17 @@ export const GuestSelfieSearch: React.FC = () => {
         });
     } else {
       results = [];
+    }
+
+    // Client-side AI fallback: Match selfie against candidate photos when server returns zero matches
+    if (results.length === 0 && selfieImage && photoPool.length > 0) {
+      setProcessStep("Calibrating perceptual face likeness across ceremony photos...");
+      try {
+        const clientMatches = await matchSelfieAgainstPhotos(selfieImage, photoPool, 0.70);
+        results = clientMatches;
+      } catch (err) {
+        console.warn("Client-side face matching error:", err);
+      }
     }
 
     setIsProcessing(false);

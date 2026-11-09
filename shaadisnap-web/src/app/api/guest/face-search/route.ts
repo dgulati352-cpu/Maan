@@ -236,6 +236,10 @@ export async function POST(req: NextRequest) {
           console.warn("CompreFace HTTP call failed:", cfMsg);
         }
       }
+
+      if (matches.length === 0) {
+        engine = "simulation";
+      }
     }
 
     const latencyMs = Date.now() - startTime;
