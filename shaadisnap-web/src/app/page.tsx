@@ -5,7 +5,6 @@ import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { FeatureStrip } from "@/components/FeatureStrip";
 import { HowItWorks } from "@/components/HowItWorks";
-import { StatsSection } from "@/components/StatsSection";
 import { EventScheduleSection } from "@/components/EventScheduleSection";
 import { LuxuryGalleryPreview } from "@/components/LuxuryGalleryPreview";
 import { FullWeddingGallery } from "@/components/FullWeddingGallery";
@@ -34,7 +33,6 @@ export default function Home() {
             onViewAllGallery={() => setActiveTab("gallery")}
           />
           <HowItWorks onGetStarted={() => setActiveTab("search")} />
-          <StatsSection />
           <EventScheduleSection />
         </main>
       )}

@@ -4,7 +4,6 @@ import React from "react";
 import { Navbar } from "@/components/Navbar";
 import { HowItWorks } from "@/components/HowItWorks";
 import { FeatureStrip } from "@/components/FeatureStrip";
-import { StatsSection } from "@/components/StatsSection";
 import { Footer } from "@/components/Footer";
 import { useRouter } from "next/navigation";
 
@@ -17,7 +16,6 @@ export default function HowItWorksPage() {
       <main className="flex-1">
         <HowItWorks onGetStarted={() => router.push("/find-photos")} />
         <FeatureStrip />
-        <StatsSection />
       </main>
       <Footer />
     </div>
