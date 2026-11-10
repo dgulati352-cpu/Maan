@@ -163,10 +163,30 @@ export const Footer: React.FC = () => {
 
         </div>
 
+        {/* Gift Dedication Banner to Maan Family */}
+        <div className="mt-10 pt-6 border-t border-[#EADDE0]/60 flex flex-col items-center justify-center text-center space-y-2">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white/90 border border-[#D9B7A0]/70 shadow-[0_4px_16px_rgba(99,60,73,0.06)] backdrop-blur-xs">
+            <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70] animate-pulse" />
+            <span className="text-xs sm:text-sm font-serif italic font-medium text-[#633C49]">
+              &ldquo;A small gift to Maan Family&rdquo;
+            </span>
+            <span className="text-[#D9B7A0] hidden sm:inline">•</span>
+            <span className="text-xs text-[#765D62]">Crafted with love by</span>
+            <a
+              href="https://dhairyagulati.co.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold text-[#A85D70] hover:text-[#914C60] transition-colors underline decoration-[#A85D70]/40 hover:decoration-[#914C60]"
+            >
+              Dhairya Gulati
+            </a>
+          </div>
+        </div>
+
         {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
           <p>© 2026 Dhairya AI. All rights reserved.</p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link
               href="/privacy"
               className="hover:text-[#633C49] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70] rounded"
@@ -179,15 +199,26 @@ export const Footer: React.FC = () => {
             >
               Terms of Service
             </Link>
-            <Link
-              href="/contact"
-              className="hover:text-[#633C49] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70] rounded"
+            <a
+              href="https://dhairyagulati.co.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#633C49] transition-colors font-semibold text-[#A85D70]"
             >
-              Contact Support
-            </Link>
+              dhairyagulati.co.in
+            </a>
           </div>
-          <p className="flex items-center gap-1">
-            Crafted with <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70]" /> for luxury Indian weddings.
+          <p className="flex items-center gap-1.5 text-xs text-[#765D62]">
+            <span>Made by</span>
+            <a
+              href="https://dhairyagulati.co.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#633C49] hover:text-[#A85D70] transition-colors"
+            >
+              Dhairya Gulati
+            </a>
+            <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70]" />
           </p>
         </div>
       </div>
