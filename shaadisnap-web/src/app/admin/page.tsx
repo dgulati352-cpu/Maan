@@ -34,6 +34,7 @@ import {
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { GuestPassManagementSection } from "@/components/admin/GuestPassManagementSection";
 import { AdminPhotoManagementStudio } from "@/components/admin/AdminPhotoManagementStudio";
+import { EventMonitorSection } from "@/components/admin/EventMonitorSection";
 
 interface GuestRecord {
   id: string;
@@ -130,7 +131,9 @@ const INITIAL_GUESTS: GuestRecord[] = [
 ];
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"passes" | "studio" | "photos" | "guests">("passes");
+  const [activeTab, setActiveTab] = useState<"monitor" | "studio" | "passes" | "photos" | "guests">("monitor");
+  const [selectedEventId, setSelectedEventId] = useState<string>("marwaha-gulati-2026");
+  const [selectedEventName, setSelectedEventName] = useState<string>("Marwaha & Gulati Grand Wedding");
   const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [notice, setNotice] = useState<string>("");
@@ -488,15 +491,16 @@ export default function AdminPage() {
       <div className="flex items-center gap-3 border-b border-[#EADDE0] pb-2 overflow-x-auto">
         <button
           type="button"
-          onClick={() => setActiveTab("passes")}
+          onClick={() => setActiveTab("monitor")}
           className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
-            activeTab === "passes"
+            activeTab === "monitor"
               ? "bg-[#633C49] text-white shadow-xs"
               : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
           }`}
         >
-          <Key className="w-3.5 h-3.5" />
-          <span>Guest Pass Management</span>
+          <Calendar className="w-3.5 h-3.5 text-[#A85D70]" />
+          <span>Event Monitor &amp; Live Telemetry</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </button>
 
         <button
@@ -510,6 +514,19 @@ export default function AdminPage() {
         >
           <UploadCloud className="w-3.5 h-3.5" />
           <span>Photo Upload &amp; Drive Studio</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("passes")}
+          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+            activeTab === "passes"
+              ? "bg-[#633C49] text-white shadow-xs"
+              : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
+          }`}
+        >
+          <Key className="w-3.5 h-3.5" />
+          <span>Guest Pass Management</span>
         </button>
 
         <button
@@ -539,11 +556,28 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* TAB 0: GUEST PASS MANAGEMENT */}
-      {activeTab === "passes" && <GuestPassManagementSection />}
+      {/* TAB 0: EVENT MONITOR & TELEMETRY */}
+      {activeTab === "monitor" && (
+        <EventMonitorSection
+          currentEventId={selectedEventId}
+          onSelectEvent={(id, name) => {
+            setSelectedEventId(id);
+            setSelectedEventName(name);
+          }}
+        />
+      )}
 
       {/* TAB 1: ADVANCED PHOTO MANAGEMENT & GOOGLE DRIVE STUDIO */}
-      {activeTab === "studio" && <AdminPhotoManagementStudio />}
+      {activeTab === "studio" && (
+        <AdminPhotoManagementStudio
+          eventId={selectedEventId}
+          eventName={selectedEventName}
+          onPhotoUploaded={() => setPhotos(getWeddingPhotos())}
+        />
+      )}
+
+      {/* TAB 2: GUEST PASS MANAGEMENT */}
+      {activeTab === "passes" && <GuestPassManagementSection />}
 
       {/* TAB 1: PHOTO MODERATION QUEUE */}
       {activeTab === "photos" && (
