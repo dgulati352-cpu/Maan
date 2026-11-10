@@ -155,14 +155,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-[0_4px_12px_rgba(99,60,73,0.16)] flex items-center justify-center group-hover:scale-105 transition-transform duration-200 bg-[#FFF8F3] ring-1 ring-[#D9B7A0]/70">
               <img
                 src="/hero-couple.jpg"
-                alt="ShaadiSnap AI — Wedding Discovery"
+                alt="Dhairya AI — Wedding Discovery"
                 className="w-full h-full object-cover object-top"
               />
             </div>
             <div className="flex flex-col text-left">
               <div className="flex items-center gap-2">
                 <span className="font-serif text-[25px] font-bold tracking-tight text-[#633C49] leading-none">
-                  ShaadiSnap
+                  Dhairya AI
                 </span>
                 <span className="text-[10px] tracking-widest font-semibold px-2.5 py-0.5 rounded-full bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/30 uppercase font-sans">
                   Wedding
@@ -283,10 +283,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <div className="flex items-center justify-between pb-3 border-b border-[#EADDE0]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full overflow-hidden border border-[#A85D70]/40 shadow-xs flex-shrink-0">
-                  <img src="/hero-couple.jpg" alt="Maan AI" className="w-full h-full object-cover object-top" />
+                  <img src="/hero-couple.jpg" alt="Dhairya AI" className="w-full h-full object-cover object-top" />
                 </div>
                 <span className="font-serif text-lg font-bold text-[#633C49]">
-                  Maan AI
+                  Dhairya AI
                 </span>
               </div>
               <button

@@ -787,7 +787,7 @@ export const GuestSelfieSearch: React.FC = () => {
                     className="mt-1 w-4 h-4 accent-[#A85D70] rounded cursor-pointer"
                   />
                   <label htmlFor="consent-check" className="text-xs text-[#765D62] leading-relaxed cursor-pointer">
-                    <span className="font-semibold text-[#633C49]">Biometric Consent (DPDP Act 2023 & GDPR):</span> I authorize ShaadiSnap to perform ephemeral facial biometric analysis solely for the purpose of discovering my photographs. My selfie is never added to public models, and my biometric data can be erased at any time in compliance with DPDP Act 2023 & GDPR.
+                    <span className="font-semibold text-[#633C49]">Biometric Consent (DPDP Act 2023 & GDPR):</span> I authorize Dhairya AI to perform ephemeral facial biometric analysis solely for the purpose of discovering my photographs. My selfie is never added to public models, and my biometric data can be erased at any time in compliance with DPDP Act 2023 & GDPR.
                   </label>
                 </div>
 
