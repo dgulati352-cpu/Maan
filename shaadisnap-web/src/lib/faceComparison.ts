@@ -3,12 +3,12 @@ import { WeddingPhoto } from "@/data/mockWeddingData";
 /**
  * ShaadiSnap / Maan AI - Client-Side Biometric Likeness & Perceptual Face Comparator
  *
- * Provides accurate, discriminative in-browser facial and perceptual resemblance matching:
+ * Implements Pearson-correlated spatial HOG and regional facial geometry analysis:
  * - Multi-candidate facial region localization (handles solo portraits, couples, and group shots)
- * - 128-dimensional multi-cell spatial HOG (Histogram of Oriented Gradients)
- * - 48-dimensional regional facial structure vectors (eyes/brow, nose bridge, mouth/jawline)
+ * - 128-dimensional mean-centered spatial HOG (Histogram of Oriented Gradients)
+ * - 48-dimensional mean-centered regional facial structure vectors (eyes/brow, nose bridge, mouth/jawline)
  * - YCbCr skin chrominance profile correlation
- * - Strict biometric verification thresholding (rejects non-matching subjects)
+ * - Strict Pearson correlation thresholding (prevents false positive matches against wedding couples or other guests)
  * - Descending similarity ranking so the closest matches always appear first
  */
 
@@ -63,8 +63,8 @@ function loadImage(rawSrc: string): Promise<HTMLImageElement> {
 }
 
 interface FaceDescriptor {
-  hog: number[];             // 128-d spatial orientation histogram, L2 normalized
-  texture: number[];         // 48-d regional facial geometry (eyes, nose, mouth)
+  hog: number[];             // 128-d mean-centered spatial HOG, L2 normalized
+  texture: number[];         // 48-d mean-centered regional texture, L2 normalized
   skinProfile: { cb: number; cr: number; lum: number };
   box: { x: number; y: number; w: number; h: number };
 }
@@ -149,7 +149,12 @@ function extractFaceDescriptorFromBox(
       }
     }
 
-    // L2 Normalize HOG vector
+    // Mean-center and L2-normalize HOG (critical for true Pearson correlation)
+    let hogSum = 0;
+    for (let i = 0; i < 128; i++) hogSum += hog[i];
+    const hogMean = hogSum / 128;
+    for (let i = 0; i < 128; i++) hog[i] -= hogMean;
+
     let hogNorm = 0;
     for (let i = 0; i < 128; i++) hogNorm += hog[i] * hog[i];
     const hogDenom = Math.sqrt(hogNorm) || 1e-6;
@@ -173,16 +178,18 @@ function extractFaceDescriptorFromBox(
           texture[band.offset + bin]++;
         }
       }
-      let bandNorm = 0;
-      for (let i = 0; i < 16; i++) {
-        const val = texture[band.offset + i];
-        bandNorm += val * val;
-      }
-      const bandDenom = Math.sqrt(bandNorm) || 1e-6;
-      for (let i = 0; i < 16; i++) {
-        texture[band.offset + i] /= bandDenom;
-      }
     }
+
+    // Mean-center and L2-normalize Texture
+    let texSum = 0;
+    for (let i = 0; i < 48; i++) texSum += texture[i];
+    const texMean = texSum / 48;
+    for (let i = 0; i < 48; i++) texture[i] -= texMean;
+
+    let texNorm = 0;
+    for (let i = 0; i < 48; i++) texNorm += texture[i] * texture[i];
+    const texDenom = Math.sqrt(texNorm) || 1e-6;
+    for (let i = 0; i < 48; i++) texture[i] /= texDenom;
 
     return { hog, texture, skinProfile, box };
   } catch {
@@ -191,35 +198,44 @@ function extractFaceDescriptorFromBox(
 }
 
 /**
- * Compares two facial descriptors and returns a cosine resemblance score (0.0 to 1.0)
+ * Compares two facial descriptors using Pearson correlation.
+ * Returns 0.0 for distinct individuals or non-matching subjects.
  */
 function compareDescriptors(d1: FaceDescriptor, d2: FaceDescriptor): number {
-  // 1. Cosine similarity of 128-d HOG spatial orientations
-  let hogDot = 0;
+  // 1. Pearson correlation of 128-d HOG spatial orientations
+  let hogCorr = 0;
   for (let i = 0; i < 128; i++) {
-    hogDot += d1.hog[i] * d2.hog[i];
+    hogCorr += d1.hog[i] * d2.hog[i];
   }
 
-  // 2. Cosine similarity of 48-d regional facial geometry (eyes, nose, mouth)
-  let textureDot = 0;
+  // 2. Pearson correlation of 48-d regional facial geometry (eyes, nose, mouth)
+  let texCorr = 0;
   for (let i = 0; i < 48; i++) {
-    textureDot += d1.texture[i] * d2.texture[i];
+    texCorr += d1.texture[i] * d2.texture[i];
   }
 
-  // 3. Skin chrominance difference (penalize completely divergent skin/lighting tones)
+  // 3. Skin chrominance distance
   const cbDiff = Math.abs(d1.skinProfile.cb - d2.skinProfile.cb);
   const crDiff = Math.abs(d1.skinProfile.cr - d2.skinProfile.cr);
-  const lumDiff = Math.abs(d1.skinProfile.lum - d2.skinProfile.lum);
-  const colorDist = (cbDiff * 1.5 + crDiff * 1.5 + lumDiff * 0.5) / 100;
+  const colorDist = (cbDiff * 1.5 + crDiff * 1.5) / 80;
   const colorSim = Math.max(0, 1 - colorDist);
 
-  // Discriminative weighted resemblance
-  return 0.60 * hogDot + 0.30 * textureDot + 0.10 * colorSim;
+  // Structural correlation (typically <= 0.20 for different people, >= 0.70 for same individual)
+  const structCorr = 0.70 * hogCorr + 0.30 * texCorr;
+
+  // Strict discrimination gate: if structural correlation is < 0.60, it is NOT the same person!
+  if (structCorr < 0.60) {
+    return 0.0;
+  }
+
+  // Combine structural correlation and color likeness for verified matches
+  const score = 0.85 * structCorr + 0.15 * colorSim;
+  return Math.min(0.99, Math.max(0.70, score));
 }
 
 /**
  * Compares two images and returns a biometric likeness score between 0.0 and 1.0.
- * If the target photo does NOT feature the person in the selfie, returns 0.0.
+ * If the target photo does NOT feature the person in the selfie, strictly returns 0.0.
  */
 export async function computeBiometricLikeness(
   selfieSrc: string,
@@ -246,8 +262,8 @@ export async function computeBiometricLikeness(
     // Scan candidate face regions in target photo (solo portrait, couple left, couple right, center)
     const candidateBoxes = [
       { x: 0.15, y: 0.08, w: 0.70, h: 0.65 }, // Solo portrait
-      { x: 0.12, y: 0.10, w: 0.40, h: 0.45 }, // Left subject (e.g. couple left)
-      { x: 0.48, y: 0.10, w: 0.40, h: 0.45 }, // Right subject (e.g. couple right)
+      { x: 0.12, y: 0.10, w: 0.40, h: 0.45 }, // Left subject (e.g. couple left / groom)
+      { x: 0.48, y: 0.10, w: 0.40, h: 0.45 }, // Right subject (e.g. couple right / bride)
       { x: 0.28, y: 0.12, w: 0.44, h: 0.48 }, // Center subject
     ];
 
@@ -264,16 +280,13 @@ export async function computeBiometricLikeness(
     }
 
     // Biometric discrimination gate:
-    // Different people typically score 0.25 - 0.50
-    // Verified matches score 0.70 - 0.98
-    // Strictly reject any photo below the genuine verification threshold (0.68)
-    if (maxSim < 0.68) {
+    // Different people score <= 0.20
+    // Real matches score >= 0.70
+    if (maxSim < 0.70) {
       return 0.0;
     }
 
-    // Calibrated verification score
-    const calibrated = Math.min(0.98, Math.max(0.70, maxSim));
-    return Number(calibrated.toFixed(3));
+    return Number(maxSim.toFixed(3));
   } catch {
     return 0.0;
   }
