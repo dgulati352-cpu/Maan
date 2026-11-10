@@ -26,6 +26,7 @@ export default function AdminLayout({
 
   const navLinks = [
     { name: "Overview & Metrics", href: "/admin", icon: LayoutDashboard },
+    { name: "Photo Management Hub", href: "/admin/photos", icon: UploadCloud },
     { name: "Live Master Gallery", href: "/gallery", icon: Images, external: true },
     { name: "AI Face Search Tool", href: "/find-photos", icon: Search, external: true },
     { name: "Guest Photo Upload", href: "/upload-photos", icon: UploadCloud, external: true },

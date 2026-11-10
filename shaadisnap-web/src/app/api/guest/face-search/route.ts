@@ -159,53 +159,92 @@ export async function POST(req: NextRequest) {
       title?: string;
       ceremony?: string;
     }> = [];
-    let engine = "shaadisnap-arcface-native";
+    let engine = "shaadisnap-fastapi-backend";
+    let backendProcessed = false;
 
-    // 5. Run Primary Native ArcFace Pipeline
+    // 5. Primary Engine: Ultra-fast HTTP call to live FastAPI backend (port 8001)
+    const mlServiceUrl = process.env.ML_SERVICE_URL || "http://localhost:8001";
+    const internalApiKey = process.env.SHAADISNAP_INTERNAL_API_KEY || "shaadisnap_dev_secret_key_2026_change_in_production";
     try {
-      const pyPath = await resolvePythonExecutable();
-      const { scriptPath, mlDir } = await resolveScriptPath();
+      const mlFormData = new FormData();
+      mlFormData.append("event_id", derivedEventId);
+      mlFormData.append("guest_id", `guest_${passId.slice(-6)}`);
+      mlFormData.append("consent_token", `consent_verified_${passId}_${Date.now()}`);
+      mlFormData.append("threshold", threshold.toString());
+      const selfieBlob = new Blob([buffer], { type: file.type || "image/jpeg" });
+      mlFormData.append("file", selfieBlob, file.name || "guest_selfie.jpg");
 
-      const { stdout } = await execFileAsync(
-        pyPath,
-        [
-          "-W",
-          "ignore",
-          scriptPath,
-          "search-selfie",
-          "--event",
-          derivedEventId,
-          "--selfie",
-          tmpFilePath,
-          "--threshold",
-          threshold.toString(),
-          "--guest-id",
-          `guest_${passId.slice(-6)}`,
-        ],
-        {
-          timeout: 30000,
-          env: {
-            ...process.env,
-            PYTHONPATH: mlDir,
-            PYTHONWARNINGS: "ignore",
-          },
-        }
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-      const lines = stdout.trim().split("\n");
-      const jsonLine = lines.reverse().find((l) => l.trim().startsWith("{") && l.trim().endsWith("}"));
-      if (jsonLine) {
-        const parsed = JSON.parse(jsonLine.trim());
-        if (Array.isArray(parsed.matches)) {
-          matches = parsed.matches;
+      const mlRes = await fetch(`${mlServiceUrl}/api/v1/search`, {
+        method: "POST",
+        headers: {
+          "x-api-key": internalApiKey,
+        },
+        body: mlFormData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (mlRes.ok) {
+        const mlData = await mlRes.json();
+        if (Array.isArray(mlData.matches)) {
+          matches = mlData.matches;
+          backendProcessed = true;
         }
       }
-    } catch (cliErr: unknown) {
-      const msg = cliErr instanceof Error ? cliErr.message : String(cliErr);
-      console.warn("Native ArcFace CLI search fallback:", msg);
+    } catch {
+      // Backend offline or starting up, fall through to CLI subprocess engine
+    }
 
-      // 6. Secondary CompreFace HTTP Fallback
-      if (COMPREFACE_API_KEY) {
+    // 6. Secondary Engine: Native ArcFace CLI Subprocess Fallback
+    if (!backendProcessed) {
+      engine = "shaadisnap-arcface-native";
+      try {
+        const pyPath = await resolvePythonExecutable();
+        const { scriptPath, mlDir } = await resolveScriptPath();
+
+        const { stdout } = await execFileAsync(
+          pyPath,
+          [
+            "-W",
+            "ignore",
+            scriptPath,
+            "search-selfie",
+            "--event",
+            derivedEventId,
+            "--selfie",
+            tmpFilePath,
+            "--threshold",
+            threshold.toString(),
+            "--guest-id",
+            `guest_${passId.slice(-6)}`,
+          ],
+          {
+            timeout: 30000,
+            env: {
+              ...process.env,
+              PYTHONPATH: mlDir,
+              PYTHONWARNINGS: "ignore",
+            },
+          }
+        );
+
+        const lines = stdout.trim().split("\n");
+        const jsonLine = lines.reverse().find((l) => l.trim().startsWith("{") && l.trim().endsWith("}"));
+        if (jsonLine) {
+          const parsed = JSON.parse(jsonLine.trim());
+          if (Array.isArray(parsed.matches)) {
+            matches = parsed.matches;
+          }
+        }
+      } catch (cliErr: unknown) {
+        const msg = cliErr instanceof Error ? cliErr.message : String(cliErr);
+        console.warn("Native ArcFace CLI search fallback:", msg);
+
+        // 7. Tertiary CompreFace HTTP Fallback
+        if (COMPREFACE_API_KEY) {
         try {
           const comprefaceFormData = new FormData();
           const blob = new Blob([buffer], { type: file.type || "image/jpeg" });
@@ -241,6 +280,7 @@ export async function POST(req: NextRequest) {
         engine = "simulation";
       }
     }
+  }
 
     const latencyMs = Date.now() - startTime;
     const highestSim = matches.length > 0 ? Math.max(...matches.map((m) => m.similarity)) : undefined;

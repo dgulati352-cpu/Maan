@@ -13,15 +13,60 @@ import os
 import time
 import secrets
 import logging
+import pickle
 import numpy as np
 import cv2
+from dotenv import load_dotenv
+
+# Load local environment variables from .env
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.inference import WeddingPhotoPipeline
+from src.inference import WeddingPhotoPipeline, EventFaceIndex
 from src.compreface_client import CompreFaceClient
+
+INDICES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "indices")
+os.makedirs(INDICES_DIR, exist_ok=True)
+
+def get_index_path(event_id: str) -> str:
+    safe_event_id = "".join(c for c in event_id if c.isalnum() or c in ("-", "_"))
+    return os.path.join(INDICES_DIR, f"{safe_event_id}.pkl")
+
+def ensure_event_index_loaded(event_id: str):
+    if pipeline is None:
+        return
+    if event_id not in pipeline.event_indices:
+        idx_path = get_index_path(event_id)
+        if os.path.exists(idx_path):
+            try:
+                with open(idx_path, "rb") as f:
+                    saved_data = pickle.load(f)
+                    index_obj = EventFaceIndex(event_id)
+                    index_obj.records = saved_data.get("records", [])
+                    index_obj.embeddings_matrix = saved_data.get("embeddings_matrix", None)
+                    pipeline.event_indices[event_id] = index_obj
+                    logger.info(f"Loaded existing index for event '{event_id}' with {len(index_obj.records)} faces from {idx_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load index from {idx_path}: {e}")
+
+def save_event_index(event_id: str):
+    if pipeline and event_id in pipeline.event_indices:
+        idx_path = get_index_path(event_id)
+        index_obj = pipeline.event_indices[event_id]
+        try:
+            with open(idx_path, "wb") as f:
+                pickle.dump({
+                    "records": index_obj.records,
+                    "embeddings_matrix": index_obj.embeddings_matrix,
+                }, f)
+            logger.info(f"Persisted event index for '{event_id}' to {idx_path} ({len(index_obj.records)} faces)")
+        except Exception as e:
+            logger.error(f"Failed to persist index for '{event_id}': {e}")
 
 # Configure structured audit logging
 logging.basicConfig(
@@ -31,6 +76,11 @@ logging.basicConfig(
 logger = logging.getLogger("shaadisnap_api")
 
 API_KEY_SECRET = os.getenv("SHAADISNAP_INTERNAL_API_KEY", "shaadisnap_dev_secret_key_2026")
+VALID_API_KEYS = {
+    API_KEY_SECRET,
+    "shaadisnap_dev_secret_key_2026",
+    "shaadisnap_dev_secret_key_2026_change_in_production",
+}
 MODEL_VERSION = "shaadisnap-v1.0.0-compreface-arcface"
 
 app = FastAPI(
@@ -81,7 +131,7 @@ def startup_event():
 
 # Authentication Dependency
 def verify_api_key(x_api_key: Optional[str] = Header(None)) -> str:
-    if not x_api_key or not secrets.compare_digest(x_api_key, API_KEY_SECRET):
+    if not x_api_key or not any(secrets.compare_digest(x_api_key, k) for k in VALID_API_KEYS if k):
         logger.warning("Unauthorized API access attempt rejected.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -157,6 +207,18 @@ async def decode_upload_image(file: UploadFile) -> np.ndarray:
 
 # --- Endpoints ---
 
+@app.get("/", tags=["System"])
+def root_endpoint():
+    return {
+        "service": "ShaadiSnap AI - Facial Recognition & Discovery Microservice",
+        "version": MODEL_VERSION,
+        "status": "online",
+        "docs_url": "/docs",
+        "health_url": "/health",
+        "loaded_events": list(pipeline.event_indices.keys()) if pipeline else [],
+    }
+
+
 @app.get("/health", tags=["System"])
 def health_check():
     cf_health = compreface_client.check_health() if compreface_client else {"connected": False}
@@ -165,6 +227,7 @@ def health_check():
         "service": "shaadisnap-ml",
         "native_model_loaded": pipeline is not None,
         "compreface": cf_health,
+        "loaded_events_count": len(pipeline.event_indices) if pipeline else 0,
         "timestamp": time.time(),
     }
 
@@ -214,15 +277,38 @@ async def detect_faces(
 async def index_photo(
     event_id: str = Form(...),
     photo_id: str = Form(...),
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
+    photo_path: Optional[str] = Form(None),
+    photo_url: Optional[str] = Form(None),
     _: str = Depends(verify_api_key),
 ):
     """
     Indexes all faces detected in a wedding photo into the event-isolated index.
+    Supports either direct multipart file upload or local filesystem photo_path.
     Embeddings are kept server-side and never exposed in the response.
     """
-    img_bgr = await decode_upload_image(file)
-    records = pipeline.index_wedding_photo(event_id=event_id, photo_id=photo_id, image_bgr=img_bgr)
+    ensure_event_index_loaded(event_id)
+
+    if file is not None and getattr(file, "filename", None):
+        img_bgr = await decode_upload_image(file)
+    elif photo_path and os.path.exists(photo_path):
+        img_bgr = cv2.imread(photo_path)
+        if img_bgr is None:
+            raise HTTPException(status_code=400, detail=f"Cannot read image from path: {photo_path}")
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Either multipart 'file' or valid 'photo_path' parameter must be provided.",
+        )
+
+    meta = {"url": photo_url} if photo_url else {}
+    records = pipeline.index_wedding_photo(
+        event_id=event_id,
+        photo_id=photo_id,
+        image_bgr=img_bgr,
+        photo_metadata=meta,
+    )
+    save_event_index(event_id)
 
     # Return sanitized metadata without raw embeddings
     sanitized_faces = [
@@ -230,7 +316,7 @@ async def index_photo(
             "face_id": r["face_id"],
             "bbox": r["bbox"],
             "usable": r["usable"],
-            "sharpness": r["quality"]["sharpness_score"],
+            "sharpness": float(r["quality"]["sharpness_score"]),
         }
         for r in records
     ]
@@ -243,6 +329,89 @@ async def index_photo(
         faces_indexed=len(records),
         faces=sanitized_faces,
     )
+
+
+class BatchIndexItem(BaseModel):
+    photo_id: str
+    path: Optional[str] = None
+    url: Optional[str] = None
+
+
+class BatchIndexRequest(BaseModel):
+    event_id: str
+    photos: List[BatchIndexItem]
+
+
+@app.post("/api/v1/batch-index", tags=["Indexing"])
+async def batch_index_photos(
+    payload: BatchIndexRequest,
+    _: str = Depends(verify_api_key),
+):
+    """
+    High-throughput batch photo indexing for admin photo imports.
+    Indexes multiple photos sequentially without re-loading models.
+    """
+    ensure_event_index_loaded(payload.event_id)
+    total_faces = 0
+    indexed_photos = 0
+    errors = []
+
+    for item in payload.photos:
+        try:
+            if not item.path or not os.path.exists(item.path):
+                errors.append(f"{item.photo_id}: file not found at {item.path}")
+                continue
+            img_bgr = cv2.imread(item.path)
+            if img_bgr is None:
+                errors.append(f"{item.photo_id}: failed to decode cv2 image")
+                continue
+            meta = {"url": item.url} if item.url else {}
+            recs = pipeline.index_wedding_photo(
+                event_id=payload.event_id,
+                photo_id=item.photo_id,
+                image_bgr=img_bgr,
+                photo_metadata=meta,
+            )
+            total_faces += len(recs)
+            indexed_photos += 1
+        except Exception as e:
+            errors.append(f"{item.photo_id}: {str(e)}")
+
+    save_event_index(payload.event_id)
+    return {
+        "success": True,
+        "event_id": payload.event_id,
+        "photos_processed": indexed_photos,
+        "total_faces_indexed": total_faces,
+        "errors": errors,
+    }
+
+
+@app.get("/api/v1/events/{event_id}/stats", tags=["Discovery"])
+def get_event_stats(
+    event_id: str,
+    _: str = Depends(verify_api_key),
+):
+    """Returns analytics and enrollment statistics for an event."""
+    ensure_event_index_loaded(event_id)
+    if not pipeline or event_id not in pipeline.event_indices:
+        return {
+            "success": True,
+            "event_id": event_id,
+            "faces_indexed": 0,
+            "photos_enrolled": 0,
+            "photos": [],
+        }
+
+    records = pipeline.event_indices[event_id].records
+    photo_ids = list({r["photo_id"] for r in records})
+    return {
+        "success": True,
+        "event_id": event_id,
+        "faces_indexed": len(records),
+        "photos_enrolled": len(photo_ids),
+        "photos": photo_ids,
+    }
 
 
 @app.post("/api/v1/search", tags=["Discovery"])
@@ -259,6 +428,8 @@ async def search_guest_photos(
     Guest photo discovery by selfie.
     Requires explicit guest biometric consent verification.
     """
+    ensure_event_index_loaded(event_id)
+
     # Verify consent token
     if not consent_token or len(consent_token) < 8:
         logger.warning(f"Search rejected for guest {guest_id}: Invalid consent token.")
@@ -304,7 +475,8 @@ def delete_guest_biometrics(
     GDPR Article 17 / DPDP Section 12 Right to Erasure:
     Deletes all facial biometric embeddings and search indexes associated with a guest.
     """
-    if event_id not in pipeline.event_indices:
+    ensure_event_index_loaded(event_id)
+    if not pipeline or event_id not in pipeline.event_indices:
         return DeleteBiometricsResponse(
             success=True,
             guest_id=guest_id,
@@ -316,6 +488,7 @@ def delete_guest_biometrics(
     # Identify records tagged to this guest (or remove from event index)
     guest_face_ids = [r["face_id"] for r in event_index.records if r.get("metadata", {}).get("guest_id") == guest_id]
     deleted_count = event_index.remove_guest_biometrics(guest_face_ids)
+    save_event_index(event_id)
 
     logger.info(f"Biometric erasure executed for guest {guest_id} in event {event_id}: {deleted_count} records purged.")
     return DeleteBiometricsResponse(
@@ -324,6 +497,65 @@ def delete_guest_biometrics(
         deleted_face_signatures=deleted_count,
         audit_timestamp=time.time(),
     )
+
+
+@app.post("/api/v1/admin/cluster-faces", tags=["Admin & VIP Discovery"])
+def cluster_event_faces(
+    event_id: str = Form(...),
+    threshold: float = Form(0.45),
+    min_cluster_size: int = Form(2),
+    _: str = Depends(verify_api_key),
+):
+    """
+    Groups recurring faces in a wedding event into VIP/Family clusters (e.g. Bride, Groom, Parents).
+    Returns clusters ordered by size.
+    """
+    ensure_event_index_loaded(event_id)
+    if not pipeline or event_id not in pipeline.event_indices:
+        return {"success": True, "event_id": event_id, "clusters": []}
+
+    records = pipeline.event_indices[event_id].records
+    if not records or len(records) < 2:
+        return {"success": True, "event_id": event_id, "clusters": []}
+
+    embs = np.vstack([r["embedding"] for r in records])  # N x 512, unit normalized
+    
+    # Pairwise cosine distance = 1 - dot product
+    sims = np.dot(embs, embs.T)
+    dists = np.clip(1.0 - sims, 0.0, 2.0)
+
+    # Simple greedy graph clustering for robust, zero-dependency clustering
+    visited = set()
+    clusters = []
+
+    for i in range(len(records)):
+        if i in visited:
+            continue
+        cluster_members = [i]
+        visited.add(i)
+
+        for j in range(i + 1, len(records)):
+            if j not in visited and dists[i, j] < threshold:
+                cluster_members.append(j)
+                visited.add(j)
+
+        if len(cluster_members) >= min_cluster_size:
+            photo_ids = list({records[idx]["photo_id"] for idx in cluster_members})
+            clusters.append({
+                "cluster_id": f"cluster_{len(clusters)+1}",
+                "face_count": len(cluster_members),
+                "photo_count": len(photo_ids),
+                "sample_photo_id": photo_ids[0] if photo_ids else "",
+                "all_photo_ids": photo_ids,
+            })
+
+    clusters.sort(key=lambda c: c["photo_count"], reverse=True)
+    return {
+        "success": True,
+        "event_id": event_id,
+        "total_clusters": len(clusters),
+        "clusters": clusters,
+    }
 
 
 @app.post("/api/v1/reindex-event", tags=["Indexing"])

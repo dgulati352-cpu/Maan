@@ -33,6 +33,7 @@ import {
 } from "@/lib/weddingPhotoStore";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { GuestPassManagementSection } from "@/components/admin/GuestPassManagementSection";
+import { AdminPhotoManagementStudio } from "@/components/admin/AdminPhotoManagementStudio";
 
 interface GuestRecord {
   id: string;
@@ -129,7 +130,7 @@ const INITIAL_GUESTS: GuestRecord[] = [
 ];
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"passes" | "photos" | "guests">("passes");
+  const [activeTab, setActiveTab] = useState<"passes" | "studio" | "photos" | "guests">("passes");
   const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [notice, setNotice] = useState<string>("");
@@ -500,6 +501,19 @@ export default function AdminPage() {
 
         <button
           type="button"
+          onClick={() => setActiveTab("studio")}
+          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+            activeTab === "studio"
+              ? "bg-[#633C49] text-white shadow-xs"
+              : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
+          }`}
+        >
+          <UploadCloud className="w-3.5 h-3.5" />
+          <span>Photo Upload &amp; Drive Studio</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab("photos")}
           className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === "photos"
@@ -527,6 +541,9 @@ export default function AdminPage() {
 
       {/* TAB 0: GUEST PASS MANAGEMENT */}
       {activeTab === "passes" && <GuestPassManagementSection />}
+
+      {/* TAB 1: ADVANCED PHOTO MANAGEMENT & GOOGLE DRIVE STUDIO */}
+      {activeTab === "studio" && <AdminPhotoManagementStudio />}
 
       {/* TAB 1: PHOTO MODERATION QUEUE */}
       {activeTab === "photos" && (

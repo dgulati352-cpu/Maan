@@ -83,12 +83,50 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // 1. Ultra-Fast Live Microservice Engine (FastAPI on ML_SERVICE_URL)
+    const mlServiceUrl = process.env.ML_SERVICE_URL || "http://localhost:8001";
+    const internalApiKey = process.env.SHAADISNAP_INTERNAL_API_KEY || "shaadisnap_dev_secret_key_2026_change_in_production";
+    try {
+      const mlFormData = new FormData();
+      mlFormData.append("event_id", eventId);
+      mlFormData.append("guest_id", guestId);
+      mlFormData.append("consent_token", `consent_verified_${guestId}_${Date.now()}`);
+      mlFormData.append("threshold", threshold.toString());
+      const selfieBlob = new Blob([buffer], { type: file.type || "image/jpeg" });
+      mlFormData.append("file", selfieBlob, file.name || "selfie.jpg");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const mlRes = await fetch(`${mlServiceUrl}/api/v1/search`, {
+        method: "POST",
+        headers: {
+          "x-api-key": internalApiKey,
+        },
+        body: mlFormData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (mlRes.ok) {
+        const mlData = await mlRes.json();
+        return NextResponse.json({
+          success: true,
+          engine: "shaadisnap-fastapi-backend",
+          model: "IResNet50-ArcFace",
+          ...mlData,
+        });
+      }
+    } catch {
+      // Backend offline or starting up, fall through to CLI subprocess engine
+    }
+
     // Save temporary selfie file for facial recognition inference
     const tmpFileName = `selfie_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
     tmpFilePath = path.join(os.tmpdir(), tmpFileName);
     await fs.writeFile(tmpFilePath, buffer);
 
-    // 1. Primary Engine: On-Device ArcFace & OpenCV Native ML Core
+    // 2. Secondary Engine: On-Device ArcFace & OpenCV Native ML Core (Subprocess)
     try {
       const pyPath = await resolvePythonExecutable();
       const { scriptPath, mlDir } = await resolveScriptPath();

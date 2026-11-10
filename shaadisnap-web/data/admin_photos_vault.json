@@ -1,0 +1,116 @@
+{
+  "photos": [
+    {
+      "id": "hero_couple_photo",
+      "eventId": "marwaha-gulati-2026",
+      "url": "/hero-couple.jpg",
+      "thumbnailUrl": "/hero-couple.jpg",
+      "fallbackUrl": "/hero-couple.jpg",
+      "filename": "hero-couple.jpg",
+      "fileHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sizeBytes": 1845200,
+      "sizeFormatted": "1.8 MB",
+      "mimeType": "image/jpeg",
+      "width": 1920,
+      "height": 2560,
+      "ceremony": "Reception",
+      "album": "Grand Reception Gala",
+      "source": "computer",
+      "processingStatus": "COMPLETED",
+      "facesDetected": 2,
+      "facesIndexed": 2,
+      "approvalStatus": "approved",
+      "approvedBy": "Kabir Marwaha (Chief Executive Officer)",
+      "approvedAt": "2026-11-06T12:00:00Z",
+      "uploaderEmail": "admin@maan-ai.com",
+      "createdAt": "2026-11-06T12:00:00Z",
+      "updatedAt": "2026-11-06T12:00:00Z"
+    }
+  ],
+  "albums": [
+    {
+      "id": "album_mehendi",
+      "eventId": "marwaha-gulati-2026",
+      "name": "Mehendi Ceremony",
+      "ceremony": "Mehendi",
+      "description": "Bridal henna intricacies and celebration candids",
+      "photoCount": 0,
+      "createdAt": "2026-11-10T09:09:14.424Z",
+      "updatedAt": "2026-11-10T09:09:14.425Z"
+    },
+    {
+      "id": "album_haldi",
+      "eventId": "marwaha-gulati-2026",
+      "name": "Haldi Sunshine",
+      "ceremony": "Haldi",
+      "description": "Turmeric rituals and family blessings",
+      "photoCount": 0,
+      "createdAt": "2026-11-10T09:09:14.425Z",
+      "updatedAt": "2026-11-10T09:09:14.425Z"
+    },
+    {
+      "id": "album_sangeet",
+      "eventId": "marwaha-gulati-2026",
+      "name": "Sangeet Musical Night",
+      "ceremony": "Sangeet",
+      "description": "Dance floor celebrations and musical performances",
+      "photoCount": 0,
+      "createdAt": "2026-11-10T09:09:14.425Z",
+      "updatedAt": "2026-11-10T09:09:14.425Z"
+    },
+    {
+      "id": "album_wedding",
+      "eventId": "marwaha-gulati-2026",
+      "name": "Varmala & Royal Phere",
+      "ceremony": "Phere",
+      "description": "Sacred pheras and main wedding ceremony",
+      "photoCount": 1,
+      "coverPhotoUrl": "/hero-couple.jpg",
+      "createdAt": "2026-11-10T09:09:14.425Z",
+      "updatedAt": "2026-11-10T09:09:14.425Z"
+    },
+    {
+      "id": "album_reception",
+      "eventId": "marwaha-gulati-2026",
+      "name": "Grand Reception Gala",
+      "ceremony": "Reception",
+      "description": "Evening banquet and VIP toasts",
+      "photoCount": 2,
+      "createdAt": "2026-11-10T09:09:14.425Z",
+      "updatedAt": "2026-11-10T09:09:14.428Z"
+    },
+    {
+      "id": "album_1794301759904_qmb9",
+      "eventId": "marwaha-gulati-2026",
+      "name": "Mehendi Gala",
+      "ceremony": "Mehendi",
+      "description": "Album for Mehendi celebrations",
+      "photoCount": 0,
+      "createdAt": "2026-11-10T09:09:19.904Z",
+      "updatedAt": "2026-11-10T09:09:19.904Z"
+    },
+    {
+      "id": "album_1794301759904_3na1",
+      "eventId": "isolated-event-test-2026",
+      "name": "Private VIP Suite",
+      "ceremony": "Cocktail",
+      "description": "Album for Cocktail celebrations",
+      "photoCount": 0,
+      "createdAt": "2026-11-10T09:09:19.904Z",
+      "updatedAt": "2026-11-10T09:09:19.904Z"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job_1794301754442_xrus",
+      "photoId": "photo_test_lifecycle_1794301754442",
+      "eventId": "marwaha-gulati-2026",
+      "stage": "COMPLETED",
+      "status": "COMPLETED",
+      "progress": 100,
+      "attempts": 1,
+      "createdAt": "2026-11-10T09:09:14.442Z",
+      "updatedAt": "2026-11-10T09:09:14.443Z"
+    }
+  ]
+}

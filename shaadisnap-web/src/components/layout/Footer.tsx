@@ -21,7 +21,7 @@ export const Footer: React.FC = () => {
                 <img src="/hero-couple.jpg" alt="Maan AI — Marwaha & Gulati Wedding" className="w-full h-full object-cover object-top" />
               </div>
               <span className="font-serif text-2xl font-bold tracking-tight text-[#633C49]">
-                Maan AI
+                ShaadiSnap AI
               </span>
               <span className="text-[10px] tracking-widest font-semibold px-2 py-0.5 rounded-full bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/30 uppercase font-sans">
                 Wedding
@@ -165,7 +165,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
-          <p>© 2026 Maan AI. All rights reserved.</p>
+          <p>© 2026 ShaadiSnap AI. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link
               href="/privacy"

@@ -106,3 +106,26 @@ def test_index_and_search_endpoints(client):
     )
     assert del_res.status_code == 200
     assert del_res.json()["success"] is True
+
+
+def test_root_and_stats_endpoints(client):
+    # Test Root
+    res_root = client.get("/")
+    assert res_root.status_code == 200
+    assert "ShaadiSnap" in res_root.json()["service"]
+
+    # Test Event Stats
+    res_stats = client.get("/api/v1/events/test_wedding_2026/stats", headers={"X-API-Key": API_KEY_SECRET})
+    assert res_stats.status_code == 200
+    stats = res_stats.json()
+    assert stats["success"] is True
+    assert stats["event_id"] == "test_wedding_2026"
+
+    # Test Face Clustering
+    res_cluster = client.post(
+        "/api/v1/admin/cluster-faces",
+        headers={"X-API-Key": API_KEY_SECRET},
+        data={"event_id": "test_wedding_2026", "min_cluster_size": 1},
+    )
+    assert res_cluster.status_code == 200
+    assert res_cluster.json()["success"] is True

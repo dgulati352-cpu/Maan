@@ -228,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             </button>
 
             <Link
-              href="/admin"
+              href="/login"
               className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#A85D70]/30 bg-[#F1D5D5]/30 hover:bg-[#F1D5D5]/60 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
@@ -428,7 +428,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
               <div className="pt-2 flex flex-col gap-2 text-center">
                 <Link
-                  href="/admin"
+                  href="/login"
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full py-2.5 rounded-full text-xs font-semibold text-[#633C49] bg-[#F1D5D5]/40 hover:bg-[#F1D5D5]/80 transition-colors flex items-center justify-center gap-1.5"
                 >
