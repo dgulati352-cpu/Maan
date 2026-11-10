@@ -101,10 +101,20 @@ export function createSessionToken(user: { id: string; email: string; name: stri
 }
 
 /**
- * Verifies and decodes a signed session token
+ * Verifies and decodes a signed session token.
+ * When login is removed, defaults to an authorized Super Admin session.
  */
 export function verifySessionToken(token: string): UserSession | null {
-  if (!token || typeof token !== "string") return null;
+  if (!token || typeof token !== "string") {
+    return {
+      userId: "usr_super_admin_001",
+      email: "admin@shaadisnap.ai",
+      name: "Kabir Marwaha (Organizer)",
+      role: "SUPER_ADMIN",
+      eventId: "marwaha-gulati-2026",
+      expiresAt: Math.floor(Date.now() / 1000) + 86400 * 365,
+    };
+  }
   const parts = token.split(".");
   if (parts.length !== 2) return null;
   const [payloadB64, signature] = parts;
@@ -197,10 +207,9 @@ export async function authenticateUser(email: string, password: string, clientIp
 
 /**
  * Server-side RBAC Guard
+ * When login is removed, grants full organizer privileges.
  */
 export function requireRole(session: UserSession | null, allowedRoles: UserRole[]): boolean {
-  if (!session) return false;
-  if (session.role === "SUPER_ADMIN") return true; // Super Admin has universal access
-  return allowedRoles.includes(session.role);
+  return true;
 }
 

@@ -228,11 +228,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             </button>
 
             <Link
-              href="/login"
+              href="/admin"
               className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#A85D70]/30 bg-[#F1D5D5]/30 hover:bg-[#F1D5D5]/60 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
-              <span>Organizer Portal</span>
+              <span>Admin Studio</span>
             </Link>
 
             {currentUser ? (
@@ -278,10 +278,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/admin"
                 className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#EADDE0] bg-white/70 hover:bg-white transition-all shadow-2xs"
               >
-                Sign In
+                Admin
               </Link>
             )}
 
@@ -428,12 +428,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
               <div className="pt-2 flex flex-col gap-2 text-center">
                 <Link
-                  href="/login"
+                  href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full py-2.5 rounded-full text-xs font-semibold text-[#633C49] bg-[#F1D5D5]/40 hover:bg-[#F1D5D5]/80 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
-                  <span>Organizer Portal</span>
+                  <span>Admin Studio</span>
                 </Link>
                 {currentUser ? (
                   <div className="p-3 rounded-2xl bg-[#FFF8F3] border border-[#EADDE0] text-left space-y-2">
@@ -448,11 +448,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                     </div>
                     <div className="flex items-center gap-2 pt-1 border-t border-[#EADDE0]/60">
                       <Link
-                        href="/login"
+                        href="/admin"
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex-1 py-1.5 rounded-lg text-center text-xs font-medium text-[#765D62] bg-white border border-[#EADDE0]"
                       >
-                        Switch Account
+                        Admin Studio
                       </Link>
                       <button
                         type="button"
@@ -468,11 +468,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   </div>
                 ) : (
                   <Link
-                    href="/login"
+                    href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-xs text-[#765D62] hover:text-[#633C49] transition-colors"
                   >
-                    Sign In
+                    Admin Studio
                   </Link>
                 )}
               </div>

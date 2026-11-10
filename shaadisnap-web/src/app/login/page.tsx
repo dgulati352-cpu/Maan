@@ -29,6 +29,11 @@ export default function LoginPage() {
   const [googleUser, setGoogleUser] = useState<GoogleDriveUser | null>(null);
 
   useEffect(() => {
+    // Login removed: Automatically redirect directly to Admin Dashboard
+    router.replace("/admin");
+  }, [router]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const syncUser = () => {
       setGoogleUser(getStoredGoogleUser());

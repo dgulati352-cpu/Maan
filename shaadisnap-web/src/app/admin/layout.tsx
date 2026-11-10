@@ -137,12 +137,12 @@ export default function AdminLayout({
             <span className="text-[11px]">DPDP Act 2023 Vault Secured</span>
           </div>
           <Link
-            href="/login"
+            href="/"
             className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#633C49] hover:bg-[#FFF8F3] transition-colors"
           >
             <div className="flex items-center gap-2">
               <LogOut className="w-4 h-4 text-[#A85D70]" />
-              <span>Sign Out</span>
+              <span>Back to Home</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-[#947A80]" />
           </Link>

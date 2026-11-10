@@ -92,7 +92,19 @@ interface UploadTask {
   photoId?: string;
 }
 
-export const AdminPhotoManagementStudio: React.FC = () => {
+export interface AdminPhotoManagementStudioProps {
+  eventId?: string;
+  eventName?: string;
+  onPhotoUploaded?: () => void;
+}
+
+export const AdminPhotoManagementStudio: React.FC<AdminPhotoManagementStudioProps> = ({
+  eventId = "marwaha-gulati-2026",
+  eventName,
+  onPhotoUploaded,
+}) => {
+  const currentEventId = eventId || "marwaha-gulati-2026";
+
   // State
   const [photos, setPhotos] = useState<AdminPhotoItem[]>([]);
   const [albums, setAlbums] = useState<AlbumItem[]>([]);
