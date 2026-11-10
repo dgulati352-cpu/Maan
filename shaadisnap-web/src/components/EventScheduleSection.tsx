@@ -4,13 +4,9 @@ import React, { useState, useEffect } from "react";
 import {
   Clock,
   MapPin,
-  Mail,
   Heart,
-  Send,
-  CheckCircle2,
   ExternalLink,
 } from "lucide-react";
-import confetti from "canvas-confetti";
 
 interface TimeLeft {
   days: number;
@@ -29,13 +25,6 @@ export const EventScheduleSection: React.FC = () => {
     minutes: 0,
     seconds: 0,
   });
-
-  // RSVP Form State
-  const [rsvpName, setRsvpName] = useState("");
-  const [attending, setAttending] = useState("yes");
-  const [message, setMessage] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -58,53 +47,6 @@ export const EventScheduleSection: React.FC = () => {
     const timer = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(timer);
   }, [targetDate]);
-
-  const handleRsvpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rsvpName.trim()) return;
-
-    setIsSubmitting(true);
-
-    // 1. Post directly to SQLite database backend
-    try {
-      await fetch("/api/rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: rsvpName.trim(),
-          attending,
-          message: message.trim(),
-          eventId: "marwaha-gulati-2026",
-        }),
-      });
-    } catch {
-      // Offline fallback
-    }
-
-    // 2. Save to local storage for instant feedback
-    try {
-      const existing = JSON.parse(localStorage.getItem("wedding_rsvps") || "[]");
-      existing.push({
-        id: "rsvp_" + Date.now(),
-        name: rsvpName.trim(),
-        attending,
-        message: message.trim(),
-        submittedAt: new Date().toISOString(),
-      });
-      localStorage.setItem("wedding_rsvps", JSON.stringify(existing));
-    } catch {
-      // Storage fallback
-    }
-
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    confetti({
-      particleCount: 80,
-      spread: 60,
-      origin: { y: 0.7 },
-      colors: ["#A85D70", "#F1D5D5", "#D9B7A0", "#633C49"],
-    });
-  };
 
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#FFF8F3] text-[#765D62] relative overflow-hidden font-sans border-t border-[#EADDE0]">
@@ -334,88 +276,7 @@ export const EventScheduleSection: React.FC = () => {
           </div>
         </div>
 
-        {/* 4. RSVP FORM */}
-        <div className="text-center space-y-6 max-w-md mx-auto">
-          <div className="flex flex-col items-center justify-center gap-2">
-            <Mail className="w-5 h-5 text-[#A85D70]" />
-            <h3 className="font-serif italic text-3xl sm:text-4xl text-[#633C49] font-normal tracking-wide">
-              RSVP
-            </h3>
-            <div className="flex items-center justify-center gap-3 mt-1">
-              <div className="w-12 h-px bg-[#EADDE0]" />
-              <Heart className="w-2.5 h-2.5 text-[#A85D70] fill-[#A85D70]" />
-              <div className="w-12 h-px bg-[#EADDE0]" />
-            </div>
-          </div>
-
-          {isSubmitted ? (
-            <div className="p-6 rounded-2xl bg-white border border-[#EADDE0] text-center space-y-3 shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-[#F1D5D5] text-[#633C49] flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h4 className="font-serif text-lg font-bold text-[#633C49]">
-                Thank You, {rsvpName}!
-              </h4>
-              <p className="text-xs text-[#765D62]">
-                Your response has been sent to the Marwaha &amp; Gulati families. We look forward to celebrating together!
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleRsvpSubmit} className="space-y-4 text-left bg-white/80 p-6 sm:p-7 rounded-2xl border border-[#EADDE0] shadow-[0_8px_24px_rgba(99,60,73,0.05)] backdrop-blur-xs">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#633C49] block">
-                  Your Name <span className="text-[#A85D70]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={rsvpName}
-                  onChange={(e) => setRsvpName(e.target.value)}
-                  placeholder="Your full name"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#EADDE0] bg-white text-sm text-[#633C49] placeholder:text-[#C5AAB2] focus:outline-none focus:ring-2 focus:ring-[#A85D70]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#633C49] block">
-                  Will you be attending? <span className="text-[#A85D70]">*</span>
-                </label>
-                <select
-                  value={attending}
-                  onChange={(e) => setAttending(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#EADDE0] bg-white text-sm text-[#633C49] focus:outline-none focus:ring-2 focus:ring-[#A85D70]"
-                >
-                  <option value="yes">Joyfully Accept (Attending)</option>
-                  <option value="no">Regretfully Decline</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#633C49] block">
-                  Your Message
-                </label>
-                <textarea
-                  rows={3}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write your wishes..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#EADDE0] bg-white text-sm text-[#633C49] placeholder:text-[#C5AAB2] focus:outline-none focus:ring-2 focus:ring-[#A85D70] resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-6 rounded-xl font-semibold text-sm text-white bg-[#633C49] hover:bg-[#914C60] transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <Send className="w-4 h-4" />
-                <span>{isSubmitting ? "Sending..." : "Send Message"}</span>
-              </button>
-            </form>
-          )}
-        </div>
-
-        {/* 5. CELEBRATION SIGN-OFF FOOTER */}
+        {/* 4. CELEBRATION SIGN-OFF FOOTER */}
         <div className="text-center space-y-3 pt-6 border-t border-[#EADDE0]">
           <h3 className="font-serif italic text-2xl sm:text-3xl text-[#633C49]">
             Eagerly waiting to celebrate with you !
