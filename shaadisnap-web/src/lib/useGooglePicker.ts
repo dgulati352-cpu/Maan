@@ -9,6 +9,8 @@ declare global {
   }
 }
 
+export const DEFAULT_MASTER_DRIVE_FOLDER_ID = "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy";
+
 export interface GooglePickerItem {
   id: string;
   name: string;
@@ -19,6 +21,7 @@ export interface GooglePickerItem {
 }
 
 export interface UseGooglePickerOptions {
+  defaultFolderId?: string;
   onSelected?: (items: GooglePickerItem[], accessToken: string) => void;
   onCancel?: () => void;
   onError?: (error: string) => void;
@@ -105,7 +108,7 @@ export function useGooglePicker(options: UseGooglePickerOptions = {}) {
   }, []);
 
   const openPicker = useCallback(
-    async (tokenOverride?: string) => {
+    async (tokenOverride?: string, folderIdOverride?: string) => {
       if (!pickerConfig) {
         options.onError?.("Google Picker credentials are not configured yet.");
         return;
@@ -135,7 +138,7 @@ export function useGooglePicker(options: UseGooglePickerOptions = {}) {
               const receivedToken = response.access_token;
               setAccessToken(receivedToken);
               // Open picker once token is received
-              buildAndShowPicker(receivedToken);
+              buildAndShowPicker(receivedToken, folderIdOverride);
             },
           });
 
@@ -149,12 +152,12 @@ export function useGooglePicker(options: UseGooglePickerOptions = {}) {
       }
 
       // If token already present, build picker directly
-      buildAndShowPicker(activeToken);
+      buildAndShowPicker(activeToken, folderIdOverride);
     },
     [pickerConfig, accessToken, options]
   );
 
-  const buildAndShowPicker = (token: string) => {
+  const buildAndShowPicker = (token: string, targetFolderId?: string) => {
     if (!window.google?.picker) {
       options.onError?.("Google Picker API is still initializing.");
       return;
@@ -162,14 +165,21 @@ export function useGooglePicker(options: UseGooglePickerOptions = {}) {
 
     try {
       const google = window.google;
+      const folderId = targetFolderId || options.defaultFolderId || DEFAULT_MASTER_DRIVE_FOLDER_ID;
 
-      // 1. Folders View
+      // 1. Master Wedding Folder View (opens directly in targeted wedding folder)
+      const masterView = new google.picker.DocsView()
+        .setIncludeFolders(true)
+        .setSelectFolderEnabled(true)
+        .setParent(folderId);
+
+      // 2. Folders View
       const foldersView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
         .setIncludeFolders(true)
         .setSelectFolderEnabled(true)
         .setMimeTypes("application/vnd.google-apps.folder");
 
-      // 2. Images View
+      // 3. Images View
       const imagesView = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
         .setIncludeFolders(true)
         .setMimeTypes("image/jpeg,image/png,image/webp,image/heic");
@@ -180,9 +190,10 @@ export function useGooglePicker(options: UseGooglePickerOptions = {}) {
         .setAppId(pickerConfig?.appId || "")
         .setOAuthToken(token)
         .setDeveloperKey(pickerConfig?.developerKey || "")
+        .addView(masterView)
         .addView(imagesView)
         .addView(foldersView)
-        .setTitle("Select Wedding Photos or Folders from Google Drive")
+        .setTitle("Select Wedding Photos from Google Drive Folder")
         .setCallback((data: any) => {
           if (data.action === google.picker.Action.PICKED) {
             const docs = data[google.picker.Response.DOCUMENTS] || [];

@@ -797,24 +797,50 @@ export const AdminPhotoManagementStudio: React.FC<AdminPhotoManagementStudioProp
               </p>
             </div>
 
-            <div className="pt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => openPicker()}
-                disabled={isAuthenticating || Boolean(driveImportStatus?.inProgress)}
-                className="px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#633C49] hover:bg-[#4E2E39] disabled:opacity-50 transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-              >
-                {isAuthenticating ? (
-                  <RefreshCw className="w-4 h-4 animate-spin text-[#D9B7A0]" />
-                ) : (
-                  <FolderOpen className="w-4 h-4 text-[#D9B7A0]" />
-                )}
-                <span>{isAuthenticating ? "Authenticating Google..." : "Open Google Picker & Import"}</span>
-              </button>
+            <div className="pt-4 flex flex-col gap-3">
+              {/* Master Wedding Drive Folder Callout */}
+              <div className="p-3 rounded-xl bg-white border border-[#D9B7A0]/70 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#A85D70]">
+                      Master Wedding Drive Folder
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-[#633C49] truncate mt-0.5">
+                    Folder ID: 1G53zacxOMhcxh7EDhnL37oRgN3awVJsy
+                  </p>
+                </div>
+                <a
+                  href="https://drive.google.com/drive/folders/1G53zacxOMhcxh7EDhnL37oRgN3awVJsy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-[#633C49] bg-[#FFF8F3] hover:bg-[#F1D5D5] border border-[#EADDE0] transition-colors shrink-0 flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3 text-[#A85D70]" />
+                  <span>Open Drive</span>
+                </a>
+              </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] text-[#947A80]">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Zero Public Model Training</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openPicker(undefined, "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy")}
+                  disabled={isAuthenticating || Boolean(driveImportStatus?.inProgress)}
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#633C49] hover:bg-[#4E2E39] disabled:opacity-50 transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  {isAuthenticating ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-[#D9B7A0]" />
+                  ) : (
+                    <FolderOpen className="w-4 h-4 text-[#D9B7A0]" />
+                  )}
+                  <span>{isAuthenticating ? "Authenticating Google..." : "Import from Master Drive Folder"}</span>
+                </button>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-[#947A80]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Permanent Private Storage Sync</span>
+                </div>
               </div>
             </div>
           </div>

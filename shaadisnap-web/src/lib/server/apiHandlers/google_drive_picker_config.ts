@@ -25,12 +25,21 @@ export async function GET() {
     process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
     "828535566976";
 
+  const defaultFolderId =
+    process.env.GOOGLE_DRIVE_FOLDER_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FOLDER_ID ||
+    "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy";
+
+  const defaultFolderUrl = `https://drive.google.com/drive/folders/${defaultFolderId}`;
+
   return NextResponse.json({
     success: true,
     clientId,
     developerKey,
     apiKey: developerKey,
     appId,
+    defaultFolderId,
+    defaultFolderUrl,
     scopes: [
       "https://www.googleapis.com/auth/drive.readonly",
       "https://www.googleapis.com/auth/drive.file",
