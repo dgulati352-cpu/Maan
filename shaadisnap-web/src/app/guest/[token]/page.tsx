@@ -315,12 +315,15 @@ export default function GuestPassPage({
           const clientMatches = await matchSelfieAgainstPhotos(capturedImage, allApprovedPhotos, 0.70);
           finalMatched = clientMatches.map((p) => ({
             ...p,
-            similarity: p.similarity || 0.85,
+            similarity: p.similarity ?? 0.75,
           }));
         } catch {
           // Keep empty if zero likeness detected
         }
       }
+
+      // Sort strictly by highest similarity first (descending)
+      finalMatched.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
 
       setMatchedPhotos(finalMatched);
       setHasSearched(true);

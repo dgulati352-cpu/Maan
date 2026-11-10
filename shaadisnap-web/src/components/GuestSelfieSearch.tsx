@@ -368,6 +368,9 @@ export const GuestSelfieSearch: React.FC = () => {
       }
     }
 
+    // Sort strictly by highest similarity first (descending)
+    results.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+
     setIsProcessing(false);
     setHasSearched(true);
 

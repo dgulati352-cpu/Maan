@@ -63,6 +63,32 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     return true;
   }
 
+  // Purge test candid uploads, previous WIN_* webcam captures, and test session selfies
+  if (
+    id.startsWith("candid_") ||
+    id.startsWith("test_") ||
+    id.startsWith("guest_test") ||
+    id.includes("1794306") ||
+    id.includes("master_test") ||
+    url.includes("candid_guest") ||
+    url.includes("master_test") ||
+    url.includes("/uploads/photos/") ||
+    url.includes("/uploads/thumbnails/") ||
+    fallback.includes("candid_guest") ||
+    fallback.includes("master_test") ||
+    fallback.includes("/uploads/photos/") ||
+    fallback.includes("/uploads/thumbnails/") ||
+    title.includes("candid_guest") ||
+    title.includes("master_test") ||
+    title.startsWith("win_20261107") ||
+    title.startsWith("win_") ||
+    title.includes("selfie_test") ||
+    url.startsWith("data:") ||
+    fallback.startsWith("data:")
+  ) {
+    return true;
+  }
+
   return false;
 }
 

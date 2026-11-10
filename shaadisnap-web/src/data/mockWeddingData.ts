@@ -37,8 +37,8 @@ export const WEDDING_EVENT = {
   photographer: "Royal Wedding Photography",
   accessCode: "MARWAHA-GULATI-2026",
   // Direct Google Drive Folder for the wedding album:
-  googleDriveFolderUrl: "https://drive.google.com/drive/folders/188n-f26gJUCpngyyxnXuHTLsobGdqqqQ",
-  googleDriveFolderId: "188n-f26gJUCpngyyxnXuHTLsobGdqqqQ",
+  googleDriveFolderUrl: "https://drive.google.com/drive/folders/1G53zacxOMhcxh7EDhnL37oRgN3awVJsy",
+  googleDriveFolderId: "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy",
 };
 
 /**

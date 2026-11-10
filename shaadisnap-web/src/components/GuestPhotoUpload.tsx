@@ -21,7 +21,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, clearUploadedPhotos } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, clearUploadedPhotos, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
 
@@ -655,11 +655,25 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 
+                    {/* Delete Photo Button */}
+                    <button
+                      type="button"
+                      title="Remove photograph"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteUploadedPhoto(photo.id);
+                        setLiveStreamPhotos(getPhotosForCurrentUser());
+                      }}
+                      className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 shadow-xs opacity-90 hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer z-10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
                     {/* Favorite Heart Button */}
                     <button
                       type="button"
                       onClick={(e) => toggleFavorite(photo.id, e)}
-                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer"
+                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer z-10"
                     >
                       <Heart className={`w-4 h-4 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
                     </button>
