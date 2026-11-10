@@ -273,7 +273,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           </div>
 
           {/* Navigation Links: Responsive App Bar on Mobile, Vertical Stack on Desktop */}
-          <nav className="flex md:flex-col items-center md:items-stretch gap-1.5 overflow-x-auto pb-1 md:pb-0 whitespace-nowrap" aria-label="Sidebar Menu">
+          <nav className="flex md:flex-col items-center md:items-stretch gap-1.5 overflow-x-auto pb-1 md:pb-0 whitespace-nowrap scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" aria-label="Sidebar Menu">
             <button
               type="button"
               onClick={() => onNavigate("landing")}
@@ -354,8 +354,8 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           </nav>
         </div>
 
-        {/* Guest Profile Section at bottom of sidebar */}
-        <div className="pt-4 mt-6 border-t border-[#EADDE0] flex items-center gap-3">
+        {/* Guest Profile Section at bottom of sidebar (Desktop only) */}
+        <div className="hidden md:flex pt-4 mt-6 border-t border-[#EADDE0] items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#F1D5D5] border border-[#A85D70]/30 flex items-center justify-center font-bold text-[#633C49] text-sm">
             DG
           </div>
