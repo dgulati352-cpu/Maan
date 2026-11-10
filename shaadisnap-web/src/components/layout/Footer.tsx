@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Heart, Lock, ArrowRight } from "lucide-react";
+import { ShieldCheck, Heart, Lock, ArrowRight, Gift, ExternalLink } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
@@ -163,9 +163,37 @@ export const Footer: React.FC = () => {
 
         </div>
 
+        {/* Special Family Gift Dedication */}
+        <div className="pt-8 pb-2 flex items-center justify-center">
+          <a
+            href="https://dhairyagulati.co.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex flex-wrap items-center justify-center gap-2.5 px-5 py-2.5 rounded-full bg-white border border-[#EADDE0] shadow-[0_4px_16px_rgba(99,60,73,0.06)] hover:shadow-md hover:border-[#A85D70]/40 transition-all text-xs text-[#765D62] backdrop-blur-xs text-center cursor-pointer"
+          >
+            <div className="w-6 h-6 rounded-lg bg-[#FFF8F3] border border-[#EADDE0] flex items-center justify-center p-0.5 shadow-2xs group-hover:scale-110 transition-transform">
+              <img src="/dg-logo.svg" alt="DG Logo" className="w-full h-full object-contain" />
+            </div>
+            <Gift className="w-4 h-4 text-[#A85D70]" />
+            <span className="font-serif italic text-sm text-[#A85D70] font-semibold">
+              A small gift to Maan Family
+            </span>
+            <span className="text-[#D9B7A0] hidden sm:inline">•</span>
+            <span className="flex items-center gap-1.5">
+              <span>Made with</span>
+              <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70] animate-pulse inline" />
+              <span>by</span>
+              <span className="font-bold text-[#633C49] group-hover:text-[#A85D70] underline decoration-[#D9B7A0] underline-offset-2 transition-colors inline-flex items-center gap-1">
+                <span>Dhairya Gulati</span>
+                <ExternalLink className="w-3 h-3 text-[#A85D70]" />
+              </span>
+            </span>
+          </a>
+        </div>
+
         {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
-          <p>© 2026 ShaadiSnap AI. All rights reserved.</p>
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
+          <p>© 2026 ShaadiSnap AI • Marwaha &amp; Gulati Wedding</p>
           <div className="flex items-center gap-6">
             <Link
               href="/privacy"
@@ -186,9 +214,19 @@ export const Footer: React.FC = () => {
               Contact Support
             </Link>
           </div>
-          <p className="flex items-center gap-1">
-            Crafted with <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70]" /> for luxury Indian weddings.
-          </p>
+          <div className="flex items-center gap-2 text-[#765D62]">
+            <a
+              href="https://dhairyagulati.co.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 font-semibold text-[#A85D70] hover:text-[#633C49] transition-colors"
+            >
+              <div className="w-5 h-5 rounded-md bg-white border border-[#EADDE0] flex items-center justify-center p-0.5 shadow-2xs">
+                <img src="/dg-logo.svg" alt="DG Logo" className="w-full h-full object-contain" />
+              </div>
+              <span className="underline decoration-[#D9B7A0] underline-offset-2">dhairyagulati.co.in</span>
+            </a>
+          </div>
         </div>
       </div>
     </footer>
