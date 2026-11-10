@@ -162,7 +162,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
     lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null;
 
   return (
-    <div className="min-h-screen bg-[#FFF8F3] text-[#765D62] pt-8 pb-20">
+    <div className="w-full bg-[#FFF8F3] text-[#765D62] pt-8 pb-20">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 space-y-8">
         
         {/* --- 1. TOP: Centered Editorial Header --- */}

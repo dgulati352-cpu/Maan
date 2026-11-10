@@ -26,10 +26,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { name: "Home", href: "/", tabKey: "landing" },
-  { name: "Gallery", href: "/gallery", tabKey: "gallery" },
-  { name: "Find Photos", href: "/find-photos", tabKey: "search" },
-  { name: "Upload Photos", href: "/upload-photos", tabKey: "upload" },
+  { name: "Home", href: "/#hero", tabKey: "landing" },
+  { name: "Find Photos", href: "/#search", tabKey: "search" },
+  { name: "Upload Photos", href: "/#upload", tabKey: "upload" },
+  { name: "Gallery", href: "/#gallery", tabKey: "gallery" },
+  { name: "Timeline", href: "/#schedule", tabKey: "landing" },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
@@ -102,27 +103,37 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
     return pathname === item.href;
   };
 
-  const handleNavClick = (item: NavItem, e?: React.MouseEvent) => {
-    if (item.tabKey && onTabChange && pathname === "/") {
-      e?.preventDefault();
-      onTabChange(item.tabKey);
-      if (item.tabKey === "landing") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    } else if (item.href.startsWith("/#")) {
-      if (pathname === "/") {
-        e?.preventDefault();
-        onTabChange?.("landing");
-        const targetId = item.href.replace("/#", "");
-        setTimeout(() => {
-          const el = document.getElementById(targetId);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth" });
-          }
-        }, 50);
+  const scrollToSection = (targetId: string) => {
+    if (targetId === "hero" || targetId === "landing") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
+  };
+
+  const handleNavClick = (item: NavItem, e?: React.MouseEvent) => {
     setMobileMenuOpen(false);
+
+    if (pathname === "/") {
+      e?.preventDefault();
+      const targetId = item.href.includes("#")
+        ? item.href.split("#")[1]
+        : item.tabKey === "search"
+        ? "search"
+        : item.tabKey === "upload"
+        ? "upload"
+        : item.tabKey === "gallery"
+        ? "gallery"
+        : "hero";
+
+      onTabChange?.(item.tabKey || "landing");
+      setTimeout(() => {
+        scrollToSection(targetId);
+      }, 50);
+    }
   };
 
   return (
@@ -203,9 +214,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <Link
               href="/find-photos"
               onClick={(e) => {
-                if (pathname === "/" && onTabChange) {
+                if (pathname === "/") {
                   e.preventDefault();
-                  onTabChange("search");
+                  onTabChange?.("search");
+                  scrollToSection("search");
                 }
               }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide text-white bg-[#633C49] hover:bg-[#914C60] transition-all shadow-[0_8px_18px_rgba(99,60,73,0.22)] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFF8F3]"
@@ -221,9 +233,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <Link
               href="/find-photos"
               onClick={(e) => {
-                if (pathname === "/" && onTabChange) {
+                if (pathname === "/") {
                   e.preventDefault();
-                  onTabChange("search");
+                  onTabChange?.("search");
+                  scrollToSection("search");
                 }
               }}
               className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#A85D70] text-white hover:bg-[#914C60] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70]"
@@ -313,9 +326,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <div className="pt-3 border-t border-[#EADDE0] space-y-3">
               <Link
                 href="/find-photos"
-                onClick={() => {
-                  onTabChange?.("search");
+                onClick={(e) => {
                   setMobileMenuOpen(false);
+                  if (pathname === "/") {
+                    e.preventDefault();
+                    onTabChange?.("search");
+                    setTimeout(() => scrollToSection("search"), 100);
+                  }
                 }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70]"
               >

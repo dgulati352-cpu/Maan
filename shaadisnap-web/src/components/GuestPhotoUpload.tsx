@@ -253,7 +253,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const favoritePhotosList = liveStreamPhotos.filter((p) => favorites.includes(p.id));
 
   return (
-    <div className="min-h-screen bg-[#FFF8F3] text-[#765D62] flex flex-col md:flex-row">
+    <div className="w-full bg-[#FFF8F3] text-[#765D62] flex flex-col md:flex-row rounded-3xl border border-[#EADDE0] shadow-[0_8px_30px_rgba(99,60,73,0.06)] overflow-hidden">
       
       {/* --- Left Sidebar (Dashboard) --- */}
       <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-[#EADDE0] flex flex-col justify-between p-3.5 sm:p-6 shrink-0">
@@ -367,7 +367,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
       </aside>
 
       {/* --- Main Content Area --- */}
-      <main className="flex-1 p-6 sm:p-10 lg:p-12 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-8 lg:p-10">
         <div className="max-w-4xl mx-auto space-y-8 text-left">
           
           {/* VIEW 1: UPLOAD PHOTOS */}

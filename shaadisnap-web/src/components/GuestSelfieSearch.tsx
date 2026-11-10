@@ -415,7 +415,7 @@ export const GuestSelfieSearch: React.FC = () => {
       : matchedPhotos.filter((p) => p.ceremony === selectedCeremony);
 
   return (
-    <div className="min-h-screen bg-[#FFF8F3] py-10 lg:py-16 text-[#765D62]">
+    <div className="w-full bg-[#FFF8F3] py-10 lg:py-16 text-[#765D62]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header Breadcrumb & Title */}
