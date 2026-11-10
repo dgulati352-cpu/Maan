@@ -59,13 +59,29 @@ export const EventScheduleSection: React.FC = () => {
     return () => clearInterval(timer);
   }, [targetDate]);
 
-  const handleRsvpSubmit = (e: React.FormEvent) => {
+  const handleRsvpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rsvpName.trim()) return;
 
     setIsSubmitting(true);
 
-    // Save to local storage for Admin RSVP overview
+    // 1. Post directly to SQLite database backend
+    try {
+      await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: rsvpName.trim(),
+          attending,
+          message: message.trim(),
+          eventId: "marwaha-gulati-2026",
+        }),
+      });
+    } catch {
+      // Offline fallback
+    }
+
+    // 2. Save to local storage for instant feedback
     try {
       const existing = JSON.parse(localStorage.getItem("wedding_rsvps") || "[]");
       existing.push({
@@ -80,16 +96,14 @@ export const EventScheduleSection: React.FC = () => {
       // Storage fallback
     }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ["#A85D70", "#F1D5D5", "#D9B7A0", "#633C49"],
-      });
-    }, 400);
+    setIsSubmitting(false);
+    setIsSubmitted(true);
+    confetti({
+      particleCount: 80,
+      spread: 60,
+      origin: { y: 0.7 },
+      colors: ["#A85D70", "#F1D5D5", "#D9B7A0", "#633C49"],
+    });
   };
 
   return (

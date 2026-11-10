@@ -38,23 +38,38 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const fetchLiveGallery = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/gallery/photos?ceremony=${encodeURIComponent(selectedCeremony)}&search=${encodeURIComponent(searchQuery)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.photos) && data.photos.length > 0) {
+          setPhotos(data.photos);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // Fallback to local client store if offline
+    }
+    setPhotos(getPhotosForCurrentUser());
+    setIsLoading(false);
+  }, [selectedCeremony, searchQuery]);
 
   useEffect(() => {
-    // Clean gallery view without auto-opening modals
-  }, []);
-
-  useEffect(() => {
-    const syncPhotos = () => {
-      setPhotos(getPhotosForCurrentUser());
-    };
-    syncPhotos();
-    window.addEventListener("shaadisnap_photos_updated", syncPhotos);
-    window.addEventListener("shaadisnap_google_auth_changed", syncPhotos);
+    fetchLiveGallery();
+    const handleUpdate = () => fetchLiveGallery();
+    window.addEventListener("shaadisnap_photos_updated", handleUpdate);
+    window.addEventListener("shaadisnap_google_auth_changed", handleUpdate);
     return () => {
-      window.removeEventListener("shaadisnap_photos_updated", syncPhotos);
-      window.removeEventListener("shaadisnap_google_auth_changed", syncPhotos);
+      window.removeEventListener("shaadisnap_photos_updated", handleUpdate);
+      window.removeEventListener("shaadisnap_google_auth_changed", handleUpdate);
     };
-  }, []);
+  }, [fetchLiveGallery]);
 
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();

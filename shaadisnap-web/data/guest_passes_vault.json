@@ -1,0 +1,117 @@
+{
+  "passes": [
+    {
+      "id": "pass_1794306819251_a914a946",
+      "tokenHash": "fe0ae25cc68ccf43b555ffd2200fb08cf08d10e02232706da53c9c7b78140c18",
+      "rawTokenPreview": "e055...c10b",
+      "eventId": "evt_test_1794306814526",
+      "eventName": "Marwaha & Gulati Wedding Celebration",
+      "guestName": "Aryan Gulati",
+      "guestPhone": "+91 98765 43210",
+      "expiresAt": "2026-11-13T10:33:39.251Z",
+      "isRevoked": true,
+      "scanCount": 1,
+      "createdAt": "2026-11-10T10:33:39.251Z",
+      "updatedAt": "2026-11-10T10:33:39.273Z",
+      "lastAccessedAt": "2026-11-10T10:33:39.263Z",
+      "revokedAt": "2026-11-10T10:33:39.273Z",
+      "revokedReason": "Security audit test"
+    },
+    {
+      "id": "pass_1794306715547_67babec1",
+      "tokenHash": "8deb6034c2135c795258022c2d54135ecbd346745aa7504bef8431a95b536c8d",
+      "rawTokenPreview": "a822...5ffe",
+      "eventId": "evt_test_1794306711031",
+      "eventName": "Marwaha & Gulati Wedding Celebration",
+      "guestName": "Aryan Gulati",
+      "guestPhone": "+91 98765 43210",
+      "expiresAt": "2026-11-13T10:31:55.547Z",
+      "isRevoked": true,
+      "scanCount": 1,
+      "createdAt": "2026-11-10T10:31:55.547Z",
+      "updatedAt": "2026-11-10T10:31:55.559Z",
+      "lastAccessedAt": "2026-11-10T10:31:55.554Z",
+      "revokedAt": "2026-11-10T10:31:55.559Z",
+      "revokedReason": "Security audit test"
+    },
+    {
+      "id": "pass_1794306508676_c28caa87",
+      "tokenHash": "5b2adc7f86955f1d530597936ea511bb3753499a665a10739dfba1db7db22646",
+      "rawTokenPreview": "e430...1805",
+      "eventId": "evt_test_1794306503922",
+      "eventName": "Marwaha & Gulati Wedding Celebration",
+      "guestName": "Aryan Gulati",
+      "guestPhone": "+91 98765 43210",
+      "expiresAt": "2026-11-13T10:28:28.676Z",
+      "isRevoked": true,
+      "scanCount": 1,
+      "createdAt": "2026-11-10T10:28:28.676Z",
+      "updatedAt": "2026-11-10T10:28:28.692Z",
+      "lastAccessedAt": "2026-11-10T10:28:28.684Z",
+      "revokedAt": "2026-11-10T10:28:28.692Z",
+      "revokedReason": "Security audit test"
+    },
+    {
+      "id": "pass-seed-001",
+      "tokenHash": "e6cd50d79ad75615497533a268b219c2ad4e0600b961cb71b5e1fc6856f3a630",
+      "rawTokenPreview": "mg-ro...-vip",
+      "eventId": "marwaha-gulati-2026",
+      "eventName": "Marwaha & Gulati Wedding Celebration",
+      "guestName": "Ananya Gulati (Family VIP)",
+      "guestPhone": "+91 98765 43210",
+      "expiresAt": "2026-12-10T10:28:28.676Z",
+      "isRevoked": false,
+      "maxScans": 100,
+      "scanCount": 0,
+      "lastAccessedAt": "2026-11-10T10:28:28.676Z",
+      "createdAt": "2026-11-10T10:28:28.676Z",
+      "updatedAt": "2026-11-10T10:28:28.676Z"
+    }
+  ],
+  "sessions": [],
+  "logs": [
+    {
+      "id": "log_1794306819273_f9fb4a",
+      "guestPassId": "pass_1794306819251_a914a946",
+      "action": "PASS_REVOKED",
+      "timestamp": "2026-11-10T10:33:39.273Z"
+    },
+    {
+      "id": "log_1794306819263_2b0a17",
+      "guestPassId": "pass_1794306819251_a914a946",
+      "action": "PAGE_VIEW",
+      "ipAddress": "::1",
+      "userAgent": "node",
+      "timestamp": "2026-11-10T10:33:39.263Z"
+    },
+    {
+      "id": "log_1794306715559_011a46",
+      "guestPassId": "pass_1794306715547_67babec1",
+      "action": "PASS_REVOKED",
+      "timestamp": "2026-11-10T10:31:55.559Z"
+    },
+    {
+      "id": "log_1794306715554_4a944e",
+      "guestPassId": "pass_1794306715547_67babec1",
+      "action": "PAGE_VIEW",
+      "ipAddress": "::1",
+      "userAgent": "node",
+      "timestamp": "2026-11-10T10:31:55.554Z"
+    },
+    {
+      "id": "log_1794306508692_31f3ab",
+      "guestPassId": "pass_1794306508676_c28caa87",
+      "action": "PASS_REVOKED",
+      "timestamp": "2026-11-10T10:28:28.692Z"
+    },
+    {
+      "id": "log_1794306508684_1781d9",
+      "guestPassId": "pass_1794306508676_c28caa87",
+      "action": "PAGE_VIEW",
+      "ipAddress": "::1",
+      "userAgent": "node",
+      "timestamp": "2026-11-10T10:28:28.684Z"
+    }
+  ],
+  "jobs": []
+}

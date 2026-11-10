@@ -10,15 +10,20 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { eventId = "marwaha-gulati-2026", hashes = [] } = body;
+    const { eventId = "marwaha-gulati-2026", hashes = [], fileHash } = body;
 
-    if (!Array.isArray(hashes) || hashes.length === 0) {
-      return NextResponse.json({ success: true, duplicates: [] });
+    const hashList = Array.isArray(hashes) ? [...hashes] : [];
+    if (fileHash && typeof fileHash === "string") {
+      hashList.push(fileHash);
+    }
+
+    if (hashList.length === 0) {
+      return NextResponse.json({ success: true, isDuplicate: false, duplicates: [] });
     }
 
     const duplicates: Array<{ hash: string; existingPhotoId: string; existingFilename: string }> = [];
 
-    for (const hash of hashes) {
+    for (const hash of hashList) {
       if (typeof hash === "string" && hash.length === 64) {
         const match = findPhotoByHash(eventId, hash);
         if (match) {
@@ -33,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      isDuplicate: duplicates.length > 0,
       duplicateCount: duplicates.length,
       duplicates,
     });

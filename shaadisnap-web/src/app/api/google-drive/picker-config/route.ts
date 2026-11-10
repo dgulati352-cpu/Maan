@@ -29,6 +29,7 @@ export async function GET() {
     success: true,
     clientId,
     developerKey,
+    apiKey: developerKey,
     appId,
     scopes: [
       "https://www.googleapis.com/auth/drive.readonly",

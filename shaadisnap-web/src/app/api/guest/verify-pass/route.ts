@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       valid: true,
+      eventId: verification.pass.eventId,
       pass: {
         id: verification.pass.id,
         guestName: verification.pass.guestName || "Distinguished Guest",
