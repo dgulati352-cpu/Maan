@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShaadiSnap AI — Backend Command Center (CDO • CFO • CTO)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0B080A;
+      --bg-surface: #140E12;
+      --bg-card: #1A1217;
+      --bg-card-hover: #22181F;
+      --border-subtle: #2D1E25;
+      --border-active: #53323D;
+      --wine-primary: #633C49;
+      --wine-accent: #A85D70;
+      --rose-blush: #E4C1B9;
+      --rose-champagne: #FFF8F3;
+      --text-muted: #9E868D;
+      --text-main: #F3EAE8;
+      --green-live: #10B981;
+      --green-glow: rgba(16, 185, 129, 0.2);
+      --amber-warn: #F59E0B;
+      --blue-accent: #38BDF8;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Ambient luxury gradient */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -150px;
+      left: 20%;
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(168, 93, 112, 0.15) 0%, rgba(11, 8, 10, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 24px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      background: rgba(20, 14, 18, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #633C49 0%, #A85D70 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--rose-champagne);
+      box-shadow: 0 4px 14px rgba(168, 93, 112, 0.35);
+    }
+
+    .brand-title h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--rose-champagne);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-title p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .header-pills {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .pill-live {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.08);
+      color: #34D399;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green-live);
+      box-shadow: 0 0 0 0 var(--green-glow);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--rose-champagne);
+    }
+
+    .btn-action:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--wine-accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--wine-primary) 0%, var(--wine-accent) 100%);
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(99, 60, 73, 0.4);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.95;
+      box-shadow: 0 6px 18px rgba(168, 93, 112, 0.5);
+    }
+
+    /* Executive KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--border-active);
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 60px;
+      height: 60px;
+      background: radial-gradient(circle, rgba(168, 93, 112, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      font-family: 'Playfair Display', serif;
+      color: var(--rose-champagne);
+      margin: 8px 0 4px;
+    }
+
+    .kpi-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-card);
+      border-radius: 999px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #633C49 0%, #A85D70 100%);
+      border-radius: 999px;
+      width: 0.1%;
+      transition: width 0.4s ease;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--rose-champagne);
+    }
+
+    .tab-btn.active {
+      color: var(--rose-blush);
+      border-bottom-color: var(--wine-accent);
+      font-weight: 600;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Panels & Tables */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 992px) {
+      .panel-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--rose-champagne);
+    }
+
+    /* Table styling */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(26, 18, 23, 0.4);
+    }
+
+    .data-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .data-table tr:hover td {
+      background: var(--bg-card);
+    }
+
+    .badge-method {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+
+    .method-get {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38BDF8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .method-post {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .method-delete {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Interactive API Sandbox */
+    .sandbox-container {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .sandbox-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sandbox-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .api-item {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .api-item:hover, .api-item.active {
+      border-color: var(--wine-accent);
+      background: var(--bg-card-hover);
+    }
+
+    .api-item-endpoint {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--rose-champagne);
+    }
+
+    .sandbox-editor {
+      background: #080607;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sandbox-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-box {
+      background: #050405;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      color: #E2E8F0;
+      max-height: 400px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: auto;
+      padding: 24px 0 16px;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--wine-accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand-group">
+        <div class="brand-badge">S</div>
+        <div class="brand-title">
+          <h1>ShaadiSnap AI <span style="font-size: 13px; font-weight: 500; font-family: 'Inter'; color: var(--wine-accent); background: rgba(168, 93, 112, 0.15); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(168, 93, 112, 0.3);">BACKEND OS v1.0.0</span></h1>
+          <p>Production Executive Console • CDO • CFO • CTO Operations Center</p>
+        </div>
+      </div>
+
+      <div class="header-pills">
+        <div class="pill pill-live">
+          <div class="pulse-dot"></div>
+          <span>API CORE ONLINE : PORT 5000</span>
+        </div>
+        <div class="pill">
+          <span style="color: var(--wine-accent);">●</span>
+          <span>SQLITE WAL : 16 TABLES</span>
+        </div>
+        <div class="pill" id="mlPill">
+          <span style="color: var(--blue-accent);">●</span>
+          <span id="mlStatusText">ML ENGINE (8001) : CHECKING</span>
+        </div>
+        <a href="http://localhost:3000" target="_blank" class="btn-action">
+          <span>Open Frontend</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+        <a href="http://localhost:3000/admin/photos" target="_blank" class="btn-action btn-primary">
+          <span>Admin Studio</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Executive KPI Row -->
+    <div class="kpi-grid">
+      <!-- CTO Tile -->
+      <div class="kpi-card">
+        <div class="kpi-label">
+          <span>CTO • System Telemetry</span>
+          <span style="color: #34D399;">HEALTHY</span>
+        </div>
+        <div class="kpi-value" id="kpiUptime">99.98%</div>
+        <div class="kpi-desc" id="kpiSystemDetails">Node.js Express • 16 ACID Relational Tables</div>
+      </div>
+
+      <!-- CFO Tile -->
+      <div class="kpi-card">
+        <div class="kpi-label">
+          <span>CFO • Storage & Quota</span>
+          <span id="kpiStoragePercent" style="color: var(--rose-blush);">0.001% Used</span>
+        </div>
+        <div class="kpi-value" id="kpiStorageUsed">1.05 MB</div>
+        <div class="kpi-desc">Allocated: 100.00 GB Enterprise Quota</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="storageProgressBar" style="width: 1%;"></div>
+        </div>
+      </div>
+
+      <!-- AI Microservice Tile -->
+      <div class="kpi-card">
+        <div class="kpi-label">
+          <span>CTO/AI • ArcFace Vector Store</span>
+          <span id="kpiMlBadge" style="color: var(--blue-accent);">512-D NATIVE</span>
+        </div>
+        <div class="kpi-value" id="kpiIndexedFaces">2 Faces</div>
+        <div class="kpi-desc" id="kpiMlDesc">FastAPI Microservice (Port 8001) Active</div>
+      </div>
+
+      <!-- CFO Unit Economics Tile -->
+      <div class="kpi-card">
+        <div class="kpi-label">
+          <span>CFO • AI Cloud Cost Savings</span>
+          <span style="color: var(--green-live);">100% LOCAL</span>
+        </div>
+        <div class="kpi-value" id="kpiCostSavings">$0.00</div>
+        <div class="kpi-desc">Zero external vision API recurring bills</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('endpoints')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+        <span>Decoupled API Directory</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('cto')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        <span>CTO Database & Architecture</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('cfo')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>
+        <span>CFO Storage Economics</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('sandbox')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>Interactive API Sandbox</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: API Directory -->
+    <div id="tab-endpoints" class="tab-content active">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Production REST API Endpoints</div>
+          <span style="font-size: 12px; color: var(--text-muted);">Decoupled Backend Service (Port 5000)</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint Path</th>
+              <th>Description</th>
+              <th>Auth Guard</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/health</code></td>
+              <td>Backend service status, SQLite 16-table health, uptime</td>
+              <td><span style="color: var(--green-live);">Public</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/health')">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/gallery/photos</code></td>
+              <td>Database-driven wedding photo gallery with HMAC-signed URLs</td>
+              <td><span style="color: var(--green-live);">Public</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/gallery/photos?limit=2')">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-post">POST</span></td>
+              <td><code>/api/auth/login</code></td>
+              <td>Scrypt authenticated administrator login & session token creation</td>
+              <td><span style="color: var(--green-live);">Rate-Limited</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/auth/login', 'POST', {email: 'admin@shaadisnap.ai', password: 'Admin@ShaadiSnap2026!'})">Test Auth</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/auth/me</code></td>
+              <td>Returns verified session identity and RBAC role profile</td>
+              <td><span style="color: var(--amber-warn);">Session/Bearer</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/auth/me')">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/admin/events</code></td>
+              <td>Multi-tenant wedding event list, storage allocation & photo metrics</td>
+              <td><span style="color: var(--amber-warn);">SUPER/EVENT_ADMIN</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/admin/events')">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-post">POST</span></td>
+              <td><code>/api/admin/photos/duplicate-check</code></td>
+              <td>SHA-256 pre-flight duplicate photo prevention check</td>
+              <td><span style="color: var(--amber-warn);">Admin</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/admin/photos/duplicate-check', 'POST', {hashes: ['e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855']})">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/google-drive/picker-config</code></td>
+              <td>Google Identity Services & Picker API v3 configuration keys</td>
+              <td><span style="color: var(--green-live);">Public Client</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/google-drive/picker-config')">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/guest/verify-pass</code></td>
+              <td>Passwordless token hash verification for wedding guest entry</td>
+              <td><span style="color: var(--green-live);">Public Guest</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/guest/verify-pass?token=marwaha-gulati-vip')">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-post">POST</span></td>
+              <td><code>/api/rsvp</code></td>
+              <td>Records guest wedding RSVP attendance and dietary notes in SQLite</td>
+              <td><span style="color: var(--green-live);">Public Guest</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/rsvp', 'POST', {guestName: 'Kunal Kapoor', attendanceStatus: 'ATTENDING', attendeeCount: 2})">Test Live</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge-method method-get">GET</span></td>
+              <td><code>/api/admin/rsvp</code></td>
+              <td>Fetches RSVP submissions or exports CSV format (format=csv)</td>
+              <td><span style="color: var(--amber-warn);">Admin</span></td>
+              <td><button class="btn-action" onclick="runSandbox('/api/admin/rsvp')">Test Live</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: CTO Architecture & Database -->
+    <div id="tab-cto" class="tab-content">
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">SQLite Relational Engine Inspector (16 Tables)</div>
+            <span class="pill pill-live">WAL MODE : ACTIVE</span>
+          </div>
+          <table class="data-table" id="dbTableInspector">
+            <thead>
+              <tr>
+                <th>Table Name</th>
+                <th>Entity / Responsibility</th>
+                <th>Rows Count</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dbTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Architecture Topology</div>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+            <div style="padding: 12px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border-subtle);">
+              <div style="font-weight: 600; color: var(--rose-champagne);">1. Frontend Client (Port 3000)</div>
+              <div>Next.js 16 + React 19 • Rose Champagne Luxury Design System • Reverse-proxies <code>/api/*</code> to Backend.</div>
+            </div>
+            <div style="padding: 12px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border-subtle);">
+              <div style="font-weight: 600; color: var(--rose-champagne);">2. Standalone REST API (Port 5000)</div>
+              <div>Express Server + SQLite Relational Engine • Auth, Events, Photos, Google Drive, Moderation, RSVP.</div>
+            </div>
+            <div style="padding: 12px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="font-weight: 600; color: var(--rose-champagne);">3. Python ML Microservice (Port 8001)</div>
+              <div>FastAPI + ArcFace 512-d embeddings + persistent vector indexing in <code>data/indices/</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: CFO Storage Economics -->
+    <div id="tab-cfo" class="tab-content">
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Multi-Tenant Wedding Storage Economics</div>
+            <span class="pill">TIER : 100 GB ENTERPRISE</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            <div style="padding: 16px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="font-size: 12px; color: var(--text-muted);">Master Photos Storage</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--rose-champagne);" id="cfoMasterBytes">1.05 MB</div>
+              <div style="font-size: 11px; color: #34D399;">Permanent App Storage</div>
+            </div>
+            <div style="padding: 16px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="font-size: 12px; color: var(--text-muted);">Available Cloud Quota</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--rose-champagne);">99.99 GB</div>
+              <div style="font-size: 11px; color: var(--text-muted);">99.999% headroom</div>
+            </div>
+            <div style="padding: 16px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="font-size: 12px; color: var(--text-muted);">Active Weddings</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--rose-champagne);" id="cfoEventCount">2 Events</div>
+              <div style="font-size: 11px; color: var(--rose-blush);">Isolated data domains</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">AI Processing ROI Calculator</div>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+            <p style="margin-bottom: 12px;">By running local ArcFace 512-d neural networks on CPU/GPU rather than commercial cloud APIs:</p>
+            <ul style="padding-left: 20px; margin-bottom: 14px;">
+              <li><strong style="color: var(--rose-champagne);">AWS Rekognition:</strong> $0.0010 per face detection</li>
+              <li><strong style="color: var(--rose-champagne);">Google Cloud Vision:</strong> $0.0015 per image feature</li>
+              <li><strong style="color: #34D399;">ShaadiSnap AI Cost:</strong> $0.00 (100% On-Premise)</li>
+            </ul>
+            <div style="padding: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm); color: #34D399; font-weight: 600;">
+              Total Estimated Savings: <span id="cfoSavingsVal">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Interactive API Sandbox -->
+    <div id="tab-sandbox" class="tab-content">
+      <div class="sandbox-container">
+        <div class="sandbox-selector">
+          <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Select Endpoint to Test</div>
+          <div class="api-item active" onclick="selectEndpoint('/api/health', 'GET')">
+            <span class="api-item-endpoint">GET /api/health</span>
+            <span class="badge-method method-get">GET</span>
+          </div>
+          <div class="api-item" onclick="selectEndpoint('/api/gallery/photos?limit=2', 'GET')">
+            <span class="api-item-endpoint">GET /api/gallery/photos</span>
+            <span class="badge-method method-get">GET</span>
+          </div>
+          <div class="api-item" onclick="selectEndpoint('/api/google-drive/picker-config', 'GET')">
+            <span class="api-item-endpoint">GET /api/google-drive/picker-config</span>
+            <span class="badge-method method-get">GET</span>
+          </div>
+          <div class="api-item" onclick="selectEndpoint('/api/guest/verify-pass?token=marwaha-gulati-vip', 'GET')">
+            <span class="api-item-endpoint">GET /api/guest/verify-pass</span>
+            <span class="badge-method method-get">GET</span>
+          </div>
+          <div class="api-item" onclick="selectEndpoint('/api/console/telemetry', 'GET')">
+            <span class="api-item-endpoint">GET /api/console/telemetry</span>
+            <span class="badge-method method-get">GET</span>
+          </div>
+        </div>
+
+        <div class="sandbox-editor">
+          <div class="sandbox-top">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="badge-method method-get" id="sandboxMethod">GET</span>
+              <span style="font-family: monospace; font-size: 14px; color: var(--rose-champagne);" id="sandboxUrl">/api/health</span>
+            </div>
+            <button class="btn-action btn-primary" onclick="executeCurrentSandbox()">
+              <span>Execute Request</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+            <div style="font-size: 12px; color: var(--text-muted);">
+              Status: <span id="sandboxStatus" style="font-weight: 600; color: #34D399;">Ready</span> • Latency: <span id="sandboxLatency">0 ms</span>
+            </div>
+            <button class="btn-action" onclick="copySandboxResponse()" style="padding: 4px 10px; font-size: 11px;">Copy Output</button>
+          </div>
+
+          <div class="code-box" id="sandboxOutput">// Click 'Execute Request' to query the live backend API...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div>ShaadiSnap AI • Decoupled Microservice Architecture • Port 5000 (API) & Port 8001 (ML)</div>
+      <div style="margin-top: 4px;">Powered by Node.js, SQLite Relational Engine, and ArcFace 512-d Biometrics</div>
+    </footer>
+  </div>
+
+  <script>
+    let currentEndpoint = '/api/health';
+    let currentMethod = 'GET';
+    let currentPayload = null;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function selectEndpoint(url, method) {
+      document.querySelectorAll('.api-item').forEach(el => el.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      currentEndpoint = url;
+      currentMethod = method;
+      document.getElementById('sandboxMethod').textContent = method;
+      document.getElementById('sandboxUrl').textContent = url;
+    }
+
+    async function executeCurrentSandbox() {
+      await runSandbox(currentEndpoint, currentMethod, currentPayload);
+    }
+
+    async function runSandbox(url, method = 'GET', body = null) {
+      // Switch to sandbox tab
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn')[3].classList.add('active');
+      document.getElementById('tab-sandbox').classList.add('active');
+
+      document.getElementById('sandboxMethod').textContent = method;
+      document.getElementById('sandboxUrl').textContent = url;
+      document.getElementById('sandboxStatus').textContent = 'Loading...';
+      document.getElementById('sandboxStatus').style.color = '#F59E0B';
+
+      const start = Date.now();
+      try {
+        const opts = { method, headers: { 'Accept': 'application/json' } };
+        if (body) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
+
+        const res = await fetch(url, opts);
+        const latency = Date.now() - start;
+        const json = await res.json();
+
+        document.getElementById('sandboxStatus').textContent = res.status + ' ' + res.statusText;
+        document.getElementById('sandboxStatus').style.color = res.ok ? '#34D399' : '#F87171';
+        document.getElementById('sandboxLatency').textContent = latency + ' ms';
+        document.getElementById('sandboxOutput').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('sandboxStatus').textContent = 'Failed';
+        document.getElementById('sandboxStatus').style.color = '#F87171';
+        document.getElementById('sandboxOutput').textContent = '// Error: ' + err.message;
+      }
+    }
+
+    function copySandboxResponse() {
+      const text = document.getElementById('sandboxOutput').textContent;
+      navigator.clipboard.writeText(text);
+      alert('Response copied to clipboard!');
+    }
+
+    // Live Telemetry Auto-Refresher
+    async function loadTelemetry() {
+      try {
+        const res = await fetch('/api/console/telemetry');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Uptime & System
+        const up = data.system?.uptimeSeconds || 0;
+        const hours = Math.floor(up / 3600);
+        const mins = Math.floor((up % 3600) / 60);
+        const secs = up % 60;
+        document.getElementById('kpiUptime').textContent = `${hours}h ${mins}m ${secs}s`;
+        document.getElementById('kpiSystemDetails').textContent = `Node.js ${data.system?.nodeVersion || 'v26'} • RSS: ${data.system?.memoryRss || 'N/A'}`;
+
+        // Storage
+        document.getElementById('kpiStorageUsed').textContent = data.storage?.totalFormatted || '0 B';
+        document.getElementById('kpiStoragePercent').textContent = `${data.storage?.quotaPercent || '0%'} Used`;
+        document.getElementById('storageProgressBar').style.width = Math.max(1, parseFloat(data.storage?.quotaPercent || 0)) + '%';
+        document.getElementById('cfoMasterBytes').textContent = data.storage?.totalFormatted || '0 B';
+
+        // ML Status
+        if (data.mlEngine?.connected) {
+          document.getElementById('mlStatusText').textContent = 'ML ENGINE (8001) : CONNECTED';
+          document.getElementById('mlPill').classList.add('pill-live');
+          document.getElementById('kpiMlBadge').textContent = 'ONLINE (512-D)';
+          document.getElementById('kpiMlBadge').style.color = '#34D399';
+          document.getElementById('kpiMlDesc').textContent = `FastAPI microservice (${data.mlEngine.latency_ms}ms) • Native loaded`;
+        } else {
+          document.getElementById('mlStatusText').textContent = 'ML ENGINE (8001) : OFFLINE';
+          document.getElementById('kpiMlBadge').textContent = 'OFFLINE';
+          document.getElementById('kpiMlBadge').style.color = '#F59E0B';
+          document.getElementById('kpiMlDesc').textContent = 'Run start-backend.bat to launch';
+        }
+
+        // Indexed Faces
+        const faceRows = data.database?.tables?.['photo_faces'] || 2;
+        document.getElementById('kpiIndexedFaces').textContent = `${faceRows} Faces`;
+
+        // CFO Savings
+        document.getElementById('kpiCostSavings').textContent = data.economics?.faceDetectionsSavedUsd || '$0.00';
+        document.getElementById('cfoSavingsVal').textContent = data.economics?.faceDetectionsSavedUsd || '$0.00';
+        document.getElementById('cfoEventCount').textContent = `${data.events?.count || 2} Events`;
+
+        // Populate Table Inspector
+        const tbody = document.getElementById('dbTableBody');
+        tbody.innerHTML = '';
+        const tableDescriptions = {
+          users: 'User accounts, Super Admin, Photographers & RBAC credentials',
+          organizations: 'Multi-tenant organization structures & storage limits',
+          organization_members: 'Membership roles and access mapping',
+          wedding_events: 'Multi-tenant wedding events (date, couple, venue, cover)',
+          ceremonies: 'Ceremonies (Mehendi, Haldi, Sangeet, Phere, Reception)',
+          albums: 'Curated photo albums associated with ceremonies',
+          photos: 'Master photo records with SHA-256 hashes and dimensions',
+          photo_faces: 'Facial bounding boxes, sharpness & confidence metrics',
+          photo_processing_jobs: 'Async processing queue (PENDING, PROCESSING, COMPLETED)',
+          guest_passes: 'Passwordless guest passes with SHA-256 hashed access tokens',
+          face_search_sessions: 'Guest biometric search audit log & DPDP consent tracking',
+          guest_uploads: 'Guest candid photo submissions awaiting admin moderation',
+          rsvp_responses: 'RSVP responses with attendance counts and dietary preferences',
+          google_drive_connections: 'Google Drive OAuth tokens and picker scopes',
+          storage_usage: 'Per-event storage consumed, thumbnail bytes and photo count',
+          audit_logs: 'Immutable security audit logs for admin actions and logins'
+        };
+
+        if (data.database?.tables) {
+          for (const [table, count] of Object.entries(data.database.tables)) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code style="color: var(--rose-blush);">${table}</code></td>
+              <td>${tableDescriptions[table] || 'System entity table'}</td>
+              <td><strong style="color: var(--rose-champagne);">${count}</strong></td>
+              <td><span style="color: #34D399; font-size: 11px; font-weight: 600;">ACTIVE</span></td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }
+      } catch (err) {
+        console.warn('Telemetry poll error:', err);
+      }
+    }
+
+    // Initial load and periodic telemetry poll
+    loadTelemetry();
+    setInterval(loadTelemetry, 5000);
+  </script>
+</body>
+</html>
+

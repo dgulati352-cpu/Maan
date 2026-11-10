@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 // Load environment variables
@@ -19,6 +20,7 @@ import { driveRouter } from "./routes/drive.routes.js";
 import { guestRouter } from "./routes/guest.routes.js";
 import { proxyRouter } from "./routes/proxy.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { getConsoleTelemetry } from "./telemetry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -53,7 +55,8 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Attach Auth Session extraction middleware
 app.use(authMiddleware);
 
-// Static uploads directory
+// Static uploads & public directory
+app.use(express.static(path.resolve(__dirname, "..", "public")));
 app.use("/uploads", express.static(path.resolve(__dirname, "..", "public", "uploads")));
 
 // Mount API routes
@@ -70,14 +73,56 @@ app.use("/api/rsvp", rsvpRouter);
 app.use("/api/google-drive", driveRouter);
 app.use("/api/image-proxy", proxyRouter);
 
-// Root information endpoint
-app.get("/", (_req, res) => {
+// Console Telemetry for CDO • CFO • CTO Executive Dashboard
+app.get("/api/console/telemetry", async (_req, res) => {
+  try {
+    const telemetry = await getConsoleTelemetry();
+    res.json(telemetry);
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// Helper to serve the Executive Console UI
+function serveConsole(res: express.Response) {
+  const candidatePaths = [
+    path.resolve(__dirname, "..", "public", "console.html"),
+    path.resolve(process.cwd(), "public", "console.html"),
+    path.resolve(process.cwd(), "backend", "public", "console.html"),
+    path.resolve(__dirname, "public", "console.html"),
+  ];
+
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) {
+      return res.sendFile(p);
+    }
+  }
+
+  res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0B080A;color:#FFF8F3;display:flex;align-items:center;justify-content:center;height:100vh;"><div><h1>ShaadiSnap AI Backend Active</h1><p>Please check console.html in public/</p></div></body></html>`);
+}
+
+// Dedicated Dashboard & Console Routes
+app.get("/console", (_req, res) => serveConsole(res));
+app.get("/dashboard", (_req, res) => serveConsole(res));
+app.get("/admin-console", (_req, res) => serveConsole(res));
+
+// Root Endpoint (Intelligent Content Negotiation: HTML for Browser, JSON for API/curl)
+app.get("/", (req, res) => {
+  const acceptsHtml = req.headers.accept?.includes("text/html");
+  const forceJson = req.query.format === "json" || req.headers.accept?.includes("application/json");
+
+  if (acceptsHtml && !forceJson) {
+    return serveConsole(res);
+  }
+
   res.json({
     service: "ShaadiSnap AI - Standalone Backend API",
     version: "1.0.0",
     status: "online",
+    dashboardUi: "/console",
     endpoints: {
       health: "/api/health",
+      telemetry: "/api/console/telemetry",
       auth: "/api/auth/login",
       events: "/api/admin/events",
       photos: "/api/admin/photos",
@@ -90,21 +135,27 @@ app.get("/", (_req, res) => {
   });
 });
 
-// Start listening
-const server = app.listen(PORT, () => {
-  console.log(`=============================================================`);
-  console.log(`  ShaadiSnap AI Backend Server is running on port ${PORT}`);
-  console.log(`  Base URL:  http://localhost:${PORT}`);
-  console.log(`  Health:    http://localhost:${PORT}/api/health`);
-  console.log(`  Gallery:   http://localhost:${PORT}/api/gallery/photos`);
-  console.log(`=============================================================`);
-});
+// Export Express app for Vercel / serverless deployments
+export default app;
+export { app };
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  server.close(() => console.log("Backend server closed gracefully."));
-});
-process.on("SIGINT", () => {
-  server.close(() => console.log("Backend server closed gracefully."));
-});
+// Start listening if executed directly
+if (process.env.NODE_ENV !== "test") {
+  const server = app.listen(PORT, () => {
+    console.log(`=============================================================`);
+    console.log(`  ShaadiSnap AI Backend Server is running on port ${PORT}`);
+    console.log(`  Console UI:  http://localhost:${PORT}/ (or /console)`);
+    console.log(`  Base URL:    http://localhost:${PORT}`);
+    console.log(`  Health:      http://localhost:${PORT}/api/health`);
+    console.log(`  Telemetry:   http://localhost:${PORT}/api/console/telemetry`);
+    console.log(`=============================================================`);
+  });
 
+  // Graceful shutdown
+  process.on("SIGTERM", () => {
+    server.close(() => console.log("Backend server closed gracefully."));
+  });
+  process.on("SIGINT", () => {
+    server.close(() => console.log("Backend server closed gracefully."));
+  });
+}
