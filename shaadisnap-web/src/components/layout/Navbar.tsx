@@ -119,20 +119,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
     if (pathname === "/") {
       e?.preventDefault();
-      const targetId = item.href.includes("#")
-        ? item.href.split("#")[1]
-        : item.tabKey === "search"
-        ? "search"
-        : item.tabKey === "upload"
-        ? "upload"
-        : item.tabKey === "gallery"
-        ? "gallery"
-        : "hero";
-
       onTabChange?.(item.tabKey || "landing");
-      setTimeout(() => {
-        scrollToSection(targetId);
-      }, 50);
+      if (item.href.includes("#schedule")) {
+        setTimeout(() => {
+          scrollToSection("schedule");
+        }, 100);
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
   };
 
@@ -217,7 +211,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 if (pathname === "/") {
                   e.preventDefault();
                   onTabChange?.("search");
-                  scrollToSection("search");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide text-white bg-[#633C49] hover:bg-[#914C60] transition-all shadow-[0_8px_18px_rgba(99,60,73,0.22)] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFF8F3]"
@@ -236,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 if (pathname === "/") {
                   e.preventDefault();
                   onTabChange?.("search");
-                  scrollToSection("search");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
               className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#A85D70] text-white hover:bg-[#914C60] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70]"
@@ -331,7 +325,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   if (pathname === "/") {
                     e.preventDefault();
                     onTabChange?.("search");
-                    setTimeout(() => scrollToSection("search"), 100);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }
                 }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70]"
