@@ -361,7 +361,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           </div>
           <div className="truncate text-left">
             <p className="text-xs font-bold text-[#633C49] truncate">Dhairya Gulati</p>
-            <p className="text-[11px] text-[#947A80] truncate">Mahine & Anand Wedding Celebration</p>
+            <p className="text-[11px] text-[#947A80] truncate">{WEDDING_EVENT.couple} Celebration</p>
           </div>
         </div>
       </aside>
@@ -810,34 +810,82 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                 </div>
 
                 {/* Itinerary Grid */}
-                <div>
-                  <h3 className="font-serif text-base font-bold text-[#633C49] mb-4">
+                <div className="space-y-6">
+                  <h3 className="font-serif text-base font-bold text-[#633C49]">
                     Ceremony Itinerary
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
-                      <span className="font-bold text-[#633C49] block text-sm">Mehendi Ceremony</span>
-                      <p className="text-[#947A80]">Henna rituals, pool deck, live dhol beats</p>
-                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 14 • 11:00 AM</span>
+                  {/* Thursday, Nov 12, 2026 */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-[#EADDE0]" />
+                      <span className="text-xs font-bold uppercase tracking-widest text-[#A85D70]">
+                        Thursday, Nov 12, 2026
+                      </span>
+                      <div className="flex-1 h-px bg-[#EADDE0]" />
                     </div>
 
-                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
-                      <span className="font-bold text-[#633C49] block text-sm">Haldi Celebration</span>
-                      <p className="text-[#947A80]">Turmeric blessings with family & friends</p>
-                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 14 • 4:00 PM</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Kesariya Rasam (Haldi)</span>
+                        <p className="text-[#947A80]">Turmeric blessings with family & friends</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 12 • 11:00 AM</span>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Beats before Vows (Sangeet)</span>
+                        <p className="text-[#947A80]">Dance performances, live music & celebration</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 12 • 6:00 PM</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Friday, Nov 13, 2026 */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-[#EADDE0]" />
+                      <span className="text-xs font-bold uppercase tracking-widest text-[#A85D70]">
+                        Friday, Nov 13, 2026
+                      </span>
+                      <div className="flex-1 h-px bg-[#EADDE0]" />
                     </div>
 
-                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
-                      <span className="font-bold text-[#633C49] block text-sm">Sangeet & Cocktail Night</span>
-                      <p className="text-[#947A80]">Dance performances, dinner & celebrations</p>
-                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 15 • 7:30 PM</span>
-                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Gaana Ceremony</span>
+                        <p className="text-[#947A80] italic">At Groom&apos;s place</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 13 • 10:00 AM</span>
+                      </div>
 
-                    <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
-                      <span className="font-bold text-[#633C49] block text-sm">Varmala & Royal Phere</span>
-                      <p className="text-[#947A80]">Twilight grand wedding rituals at palace lakefront</p>
-                      <span className="text-[11px] font-semibold text-[#A85D70]">Dec 16 • 5:00 PM</span>
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Chooda Ceremony</span>
+                        <p className="text-[#947A80] italic">At Bride&apos;s place</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 13 • 10:00 AM</span>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Sehra Bandi and Band Baja Baraat</span>
+                        <p className="text-[#947A80]">Royal procession & celebration</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 13 • 1:00 PM</span>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Baraat Welcome and Jai Mala</span>
+                        <p className="text-[#947A80]">Grand arrival & garland exchange</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 13 • 3:00 PM</span>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Prem Sankalp (Pheras)</span>
+                        <p className="text-[#947A80]">Sacred wedding vows & holy fire rituals</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 13 • 5:00 PM</span>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-[#FFF8F3] border border-[#EADDE0] space-y-1">
+                        <span className="font-bold text-[#633C49] block text-sm">Wedding Reception</span>
+                        <p className="text-[#947A80]">Grand feast & celebrations</p>
+                        <span className="text-[11px] font-semibold text-[#A85D70]">Nov 13 • 7:00 PM</span>
+                      </div>
                     </div>
                   </div>
                 </div>
