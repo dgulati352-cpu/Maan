@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
-interface PetalItem {
+interface RosePetalItem {
   id: number;
   left: number; // percentage 0 - 100
   size: number; // width in px
@@ -12,34 +12,36 @@ interface PetalItem {
   swayDuration: number; // sway cycle seconds
   opacity: number;
   rotation: number; // initial degree
-  type: "rose" | "blush" | "gold" | "crimson";
+  shapeVariant: 0 | 1 | 2;
+  shadeVariant: "royal-red" | "velvet-crimson" | "deep-scarlet" | "ruby-rose";
 }
 
 export const PetalFlakesOverlay: React.FC = () => {
   const [mounted, setMounted] = useState(false);
-  const [petals, setPetals] = useState<PetalItem[]>([]);
+  const [petals, setPetals] = useState<RosePetalItem[]>([]);
 
   useEffect(() => {
-    // Generate deterministic yet randomized petal trajectories on client mount
-    const count = 28;
-    const types: ("rose" | "blush" | "gold" | "crimson")[] = [
-      "rose",
-      "blush",
-      "gold",
-      "crimson",
+    // Generate deterministic rose petal shower trajectories
+    const count = 30;
+    const shades: RosePetalItem["shadeVariant"][] = [
+      "royal-red",
+      "velvet-crimson",
+      "deep-scarlet",
+      "ruby-rose",
     ];
 
-    const generated: PetalItem[] = Array.from({ length: count }, (_, i) => ({
+    const generated: RosePetalItem[] = Array.from({ length: count }, (_, i) => ({
       id: i,
-      left: Math.round(((i * 3.65 + 1.5) % 96) + 2),
-      size: 14 + (i % 5) * 3, // 14px to 26px
-      duration: 9 + (i % 7) * 1.5, // 9s to 18s gentle floating speed
-      delay: -((i * 1.7) % 15), // negative delay so petals are already mid-flight on first load
-      swayAmp: 25 + (i % 4) * 18, // 25px to 79px sway
-      swayDuration: 3 + (i % 3) * 1.2,
-      opacity: 0.45 + (i % 5) * 0.1, // 0.45 to 0.85
-      rotation: (i * 47) % 360,
-      type: types[i % types.length],
+      left: Math.round(((i * 3.4 + 1.2) % 96) + 2),
+      size: 18 + (i % 5) * 3.5, // 18px to 32px realistic rose petal size
+      duration: 8.5 + (i % 6) * 1.5, // 8.5s to 16s gentle floating speed
+      delay: -((i * 1.6) % 14), // negative delay so petals are already mid-flight on first load
+      swayAmp: 28 + (i % 4) * 16, // 28px to 76px sway
+      swayDuration: 2.8 + (i % 3) * 1.1,
+      opacity: 0.65 + (i % 4) * 0.09, // 0.65 to 0.92 rich velvety opacity
+      rotation: (i * 53) % 360,
+      shapeVariant: (i % 3) as 0 | 1 | 2,
+      shadeVariant: shades[i % shades.length],
     }));
 
     setPetals(generated);
@@ -55,147 +57,197 @@ export const PetalFlakesOverlay: React.FC = () => {
       style={{ perspective: "1000px" }}
     >
       <style jsx global>{`
-        @keyframes luxuryPetalFall {
+        @keyframes rosePetalFall {
           0% {
-            transform: translate3d(0, -40px, 0) rotate(0deg);
+            transform: translate3d(0, -45px, 0) rotate(0deg);
             opacity: 0;
           }
-          10% {
-            opacity: var(--petal-opacity, 0.7);
+          8% {
+            opacity: var(--petal-opacity, 0.85);
           }
-          90% {
-            opacity: var(--petal-opacity, 0.7);
+          92% {
+            opacity: var(--petal-opacity, 0.85);
           }
           100% {
-            transform: translate3d(var(--sway-x, 30px), 108vh, 0) rotate(var(--rot-end, 360deg));
+            transform: translate3d(var(--sway-x, 32px), 108vh, 0) rotate(var(--rot-end, 360deg));
             opacity: 0;
           }
         }
 
-        @keyframes luxuryPetalFlutter {
+        @keyframes rosePetalFlutter {
           0%, 100% {
-            transform: rotateY(0deg) rotateX(0deg) scale(1);
+            transform: rotateY(0deg) rotateX(0deg) rotateZ(0deg) scale(1);
           }
           25% {
-            transform: rotateY(55deg) rotateX(30deg) scale(0.92);
+            transform: rotateY(65deg) rotateX(35deg) rotateZ(15deg) scale(0.92);
           }
           50% {
-            transform: rotateY(180deg) rotateX(60deg) scale(1.05);
+            transform: rotateY(180deg) rotateX(60deg) rotateZ(-10deg) scale(1.04);
           }
           75% {
-            transform: rotateY(290deg) rotateX(25deg) scale(0.95);
+            transform: rotateY(285deg) rotateX(30deg) rotateZ(20deg) scale(0.95);
           }
         }
 
-        .luxury-petal {
+        .rose-petal {
           position: absolute;
-          top: -40px;
+          top: -45px;
           will-change: transform, opacity;
-          animation-name: luxuryPetalFall;
+          animation-name: rosePetalFall;
           animation-timing-function: linear;
           animation-iteration-count: infinite;
         }
 
-        .luxury-petal-inner {
+        .rose-petal-inner {
           will-change: transform;
-          animation-name: luxuryPetalFlutter;
+          animation-name: rosePetalFlutter;
           animation-timing-function: ease-in-out;
           animation-iteration-count: infinite;
         }
       `}</style>
 
+      {/* SVG Definitions for Authentic Red Rose Petal Gradients & Shading */}
+      <svg className="absolute w-0 h-0" aria-hidden="true">
+        <defs>
+          {/* 1. Royal Red Rose (Vibrant Wedding Red) */}
+          <linearGradient id="rose-royal-red" x1="15%" y1="0%" x2="85%" y2="100%">
+            <stop offset="0%" stopColor="#E63956" />
+            <stop offset="45%" stopColor="#C41E3A" />
+            <stop offset="85%" stopColor="#8F1027" />
+            <stop offset="100%" stopColor="#5E0818" />
+          </linearGradient>
+
+          {/* 2. Velvet Crimson (Deep Indian Gulab) */}
+          <linearGradient id="rose-velvet-crimson" x1="20%" y1="0%" x2="80%" y2="100%">
+            <stop offset="0%" stopColor="#D92344" />
+            <stop offset="50%" stopColor="#A8132B" />
+            <stop offset="85%" stopColor="#780D1E" />
+            <stop offset="100%" stopColor="#4A0512" />
+          </linearGradient>
+
+          {/* 3. Deep Scarlet (Lustrous Rose Petal) */}
+          <linearGradient id="rose-deep-scarlet" x1="10%" y1="5%" x2="90%" y2="95%">
+            <stop offset="0%" stopColor="#F04364" />
+            <stop offset="40%" stopColor="#B81432" />
+            <stop offset="80%" stopColor="#850B20" />
+            <stop offset="100%" stopColor="#520513" />
+          </linearGradient>
+
+          {/* 4. Ruby Rose (Bright Wedding Petal Highlight) */}
+          <linearGradient id="rose-ruby-rose" x1="25%" y1="0%" x2="75%" y2="100%">
+            <stop offset="0%" stopColor="#FF4D6D" />
+            <stop offset="50%" stopColor="#C9184A" />
+            <stop offset="85%" stopColor="#800F2F" />
+            <stop offset="100%" stopColor="#590D22" />
+          </linearGradient>
+        </defs>
+      </svg>
+
       {petals.map((p) => {
-        // Luxury palette colors
-        const colors = {
-          rose: {
-            fill: "url(#rose-grad)",
-            stroke: "rgba(168, 93, 112, 0.3)",
-          },
-          blush: {
-            fill: "url(#blush-grad)",
-            stroke: "rgba(241, 213, 213, 0.4)",
-          },
-          gold: {
-            fill: "url(#gold-grad)",
-            stroke: "rgba(217, 183, 160, 0.35)",
-          },
-          crimson: {
-            fill: "url(#crimson-grad)",
-            stroke: "rgba(99, 60, 73, 0.25)",
-          },
-        }[p.type];
+        const fillId = {
+          "royal-red": "url(#rose-royal-red)",
+          "velvet-crimson": "url(#rose-velvet-crimson)",
+          "deep-scarlet": "url(#rose-deep-scarlet)",
+          "ruby-rose": "url(#rose-ruby-rose)",
+        }[p.shadeVariant];
 
         return (
           <div
             key={p.id}
-            className="luxury-petal"
+            className="rose-petal"
             style={
               {
                 left: `${p.left}%`,
                 width: `${p.size}px`,
-                height: `${p.size * 1.3}px`,
+                height: `${p.size * 1.25}px`,
                 animationDuration: `${p.duration}s`,
                 animationDelay: `${p.delay}s`,
                 "--sway-x": `${p.swayAmp * (p.id % 2 === 0 ? 1 : -1)}px`,
-                "--rot-end": `${p.rotation + 360}deg`,
+                "--rot-end": `${p.rotation + (p.id % 2 === 0 ? 360 : -360)}deg`,
                 "--petal-opacity": p.opacity,
               } as React.CSSProperties
             }
           >
             <div
-              className="luxury-petal-inner w-full h-full"
+              className="rose-petal-inner w-full h-full"
               style={{
                 animationDuration: `${p.swayDuration}s`,
-                animationDelay: `${p.delay * 0.5}s`,
+                animationDelay: `${p.delay * 0.6}s`,
               }}
             >
-              <svg
-                viewBox="0 0 30 38"
-                className="w-full h-full drop-shadow-[0_2px_4px_rgba(99,60,73,0.12)]"
-              >
-                <defs>
-                  {/* Rose Champagne Palette Gradients */}
-                  <linearGradient id="rose-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#E892A2" stopOpacity="0.85" />
-                    <stop offset="70%" stopColor="#A85D70" stopOpacity="0.75" />
-                    <stop offset="100%" stopColor="#914C60" stopOpacity="0.65" />
-                  </linearGradient>
+              {/* Variant 0: Full Heart-Cupped Authentic Rose Petal */}
+              {p.shapeVariant === 0 && (
+                <svg
+                  viewBox="0 0 32 38"
+                  className="w-full h-full drop-shadow-[0_2px_5px_rgba(94,8,24,0.32)]"
+                >
+                  <path
+                    d="M16 2.5 C20 0.5, 29 3, 31 14 C32.5 23, 25 33, 16 37 C7 33, -0.5 23, 1 14 C3 3, 12 0.5, 16 2.5 Z"
+                    fill={fillId}
+                    stroke="rgba(255, 120, 140, 0.35)"
+                    strokeWidth="0.6"
+                  />
+                  {/* Subtle Curved Petal Highlight & Shadow Vein */}
+                  <path
+                    d="M16 6 Q18 20 16 34"
+                    stroke="rgba(255, 255, 255, 0.3)"
+                    strokeWidth="0.8"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                  <path
+                    d="M10 13 Q16 19 22 13"
+                    stroke="rgba(255, 180, 200, 0.22)"
+                    strokeWidth="0.6"
+                    fill="none"
+                  />
+                </svg>
+              )}
 
-                  <linearGradient id="blush-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#FFF0EB" stopOpacity="0.9" />
-                    <stop offset="60%" stopColor="#F1D5D5" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#E5B9BA" stopOpacity="0.7" />
-                  </linearGradient>
+              {/* Variant 1: Gently Curved / Fluttering Rose Petal */}
+              {p.shapeVariant === 1 && (
+                <svg
+                  viewBox="0 0 30 38"
+                  className="w-full h-full drop-shadow-[0_2px_5px_rgba(94,8,24,0.32)]"
+                >
+                  <path
+                    d="M14 2 C21 1, 28 6, 29 16 C30 26, 22 34, 15 37 C8 35, 1 27, 1 17 C1 7, 7 3, 14 2 Z"
+                    fill={fillId}
+                    stroke="rgba(255, 120, 140, 0.35)"
+                    strokeWidth="0.6"
+                  />
+                  {/* Natural Rose Petal Curled Edge Accent */}
+                  <path
+                    d="M14 5 C17 14, 17 25, 14 34"
+                    stroke="rgba(255, 255, 255, 0.32)"
+                    strokeWidth="0.75"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </svg>
+              )}
 
-                  <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#FDE6B8" stopOpacity="0.85" />
-                    <stop offset="50%" stopColor="#D9B7A0" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#C49B7F" stopOpacity="0.7" />
-                  </linearGradient>
-
-                  <linearGradient id="crimson-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#A85D70" stopOpacity="0.8" />
-                    <stop offset="75%" stopColor="#633C49" stopOpacity="0.75" />
-                    <stop offset="100%" stopColor="#4A2834" stopOpacity="0.65" />
-                  </linearGradient>
-                </defs>
-
-                {/* Curved Organic Rose Petal Silhouette */}
-                <path
-                  d="M15 1 C21 3, 29 10, 29 20 C29 29, 21 37, 15 37 C9 37, 1 29, 1 20 C1 10, 9 3, 15 1 Z"
-                  fill={colors.fill}
-                  stroke={colors.stroke}
-                  strokeWidth="0.5"
-                />
-
-                {/* Delicate Central Leaf / Petal Vein Accent */}
-                <path
-                  d="M15 6 Q16 19 15 33"
-                  stroke="rgba(255, 255, 255, 0.35)"
-                  strokeWidth="0.75"
-                  fill="none"
-                />
-              </svg>
+              {/* Variant 2: Delicate Inner Rose Bud Petal */}
+              {p.shapeVariant === 2 && (
+                <svg
+                  viewBox="0 0 28 36"
+                  className="w-full h-full drop-shadow-[0_2px_5px_rgba(94,8,24,0.32)]"
+                >
+                  <path
+                    d="M14 1 C19 0.5, 27 5, 27 15 C27 24, 20 32, 14 35 C8 32, 1 24, 1 15 C1 5, 9 0.5, 14 1 Z"
+                    fill={fillId}
+                    stroke="rgba(255, 120, 140, 0.35)"
+                    strokeWidth="0.6"
+                  />
+                  <path
+                    d="M14 4 Q15 18 14 31"
+                    stroke="rgba(255, 255, 255, 0.28)"
+                    strokeWidth="0.7"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </svg>
+              )}
             </div>
           </div>
         );

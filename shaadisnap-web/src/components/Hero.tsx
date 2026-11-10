@@ -130,7 +130,7 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
               <div className="photo-card-sheen relative rounded-[28px] overflow-hidden shadow-[0_30px_70px_-18px_rgba(99,60,73,0.34)] border-[6px] border-white aspect-[4/5] bg-[#F1D5D5]/30">
                 <img
                   src={coupleHeroImage}
-                  alt="Mahine and Anand Royal Wedding Couple"
+                  alt="Marwaha and Gulati Wedding Couple"
                   className="w-full h-full object-cover object-top transform hover:scale-103 transition-transform duration-700"
                 />
 

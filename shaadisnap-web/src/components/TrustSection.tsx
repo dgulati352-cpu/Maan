@@ -34,7 +34,7 @@ export const TrustSection: React.FC = () => {
       title: "Private Royal Wedding Partition",
       subtitle: "Strict Guest-Only Boundary",
       description:
-        "Dedicated isolated event container for Mahine & Anand's royal celebration. Biometric vectors never leak into public models, commercial training corpora, or external search engines.",
+        "Dedicated isolated event container for Marwaha & Gulati's royal celebration. Biometric vectors never leak into public models, commercial training corpora, or external search engines.",
       highlight: "Isolated Event Vault",
     },
   ];
@@ -58,7 +58,7 @@ export const TrustSection: React.FC = () => {
           </h2>
 
           <p className="text-sm sm:text-base text-[#765D62] max-w-2xl mx-auto leading-relaxed">
-            Your privacy is as sacrosanct as the royal celebration. Designed for the high-profile wedding of Mahine &amp; Anand at Deventure Shimla Hills Resort, Solan (HP) with uncompromising security standards.
+            Your privacy is as sacrosanct as the royal celebration. Designed for the high-profile wedding of Marwaha &amp; Gulati at Deventure Shimla Hills Resort, Solan (HP) with uncompromising security standards.
           </p>
         </div>
 

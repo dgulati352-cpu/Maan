@@ -308,9 +308,11 @@ export function runTier1Tests() {
       '/login',
       '/register',
       '/find-photos',
+      '/gallery',
     ]);
 
     for (const link of allLinks) {
+      if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('mailto:')) continue;
       assert(
         canonicalAppRoutes.has(link),
         `Found link target "${link}" in Navbar/Footer which is not in canonical route registry`

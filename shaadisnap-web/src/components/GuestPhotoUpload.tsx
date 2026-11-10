@@ -619,7 +619,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                     Wedding Photo Gallery
                   </h1>
                   <p className="text-sm text-[#765D62] mt-1">
-                    All candid and official photographs from Mahine & Anand&apos;s celebration ({liveStreamPhotos.length} photos).
+                    All candid and official photographs from Marwaha & Gulati&apos;s celebration ({liveStreamPhotos.length} photos).
                   </p>
                 </div>
 

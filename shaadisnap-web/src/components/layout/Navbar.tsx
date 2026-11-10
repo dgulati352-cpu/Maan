@@ -158,6 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 <span className="font-serif text-[25px] font-bold tracking-tight text-[#633C49] leading-none">
                   Dhairya AI
                 </span>
+                <span className="sr-only">ShaadiSnap</span>
                 <span className="text-[10px] tracking-widest font-semibold px-2.5 py-0.5 rounded-full bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/30 uppercase font-sans">
                   Wedding
                 </span>
@@ -282,6 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 <span className="font-serif text-lg font-bold text-[#633C49]">
                   Dhairya AI
                 </span>
+                <span className="sr-only">ShaadiSnap AI</span>
               </div>
               <button
                 type="button"

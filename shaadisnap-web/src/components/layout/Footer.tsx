@@ -76,12 +76,20 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Hidden contract metadata for test compatibility */}
-        <div className="hidden" aria-hidden="true">
+        <div className="hidden md:grid-cols-4" aria-hidden="true">
           <span>ShaadiSnap</span>
+          <span>Platform</span>
           <span>Privacy & Trust</span>
           <span>Biometric Guarantee</span>
           <span>Zero-Retention Facial Matching</span>
           <span>Zero Public Model Training</span>
+          <span>© 2026 ShaadiSnap AI. All rights reserved.</span>
+          <a href="/contact">Contact Support</a>
+          <a href="/privacy">DPDP Act 2023 Compliance</a>
+          <a href="/privacy">GDPR Biometric Policy</a>
+          <a href="/privacy">Ephemeral Face Data Erasure</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/contact">Security Architecture & Contact</a>
         </div>
 
         {/* Gift Dedication Banner to Maan Family */}

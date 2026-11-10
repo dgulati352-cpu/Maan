@@ -64,7 +64,7 @@ export const StatsSection: React.FC = () => {
             <span className="text-[#A85D70] italic font-normal">It&apos;s Your Story.</span>
           </h2>
           <p className="text-base sm:text-lg text-[#765D62] font-normal max-w-xl mx-auto">
-            From the grand Baraat procession to the quietest candid smile, ShaadiSnap AI preserves every emotion.
+            From the grand Baraat procession to the quietest candid smile, Dhairya AI preserves every emotion.
           </p>
         </div>
 
