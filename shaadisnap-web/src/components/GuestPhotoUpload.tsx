@@ -24,6 +24,7 @@ import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, clearUploadedPhotos, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
+import { compressImage, formatBytes } from "@/lib/imageCompression";
 
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
@@ -91,23 +92,38 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     );
   };
 
-  // Upload photo in 100% full original uncompressed master quality (no compression)
+  // Compress image before upload to drastically reduce cloud & Google Drive storage consumption
   const uploadSingleItem = async (item: UploadFileItem) => {
     if (!item.rawFile) return;
 
     setUploadFiles((current) =>
       current.map((f) =>
-        f.id === item.id ? { ...f, progress: 40, status: "uploading" } : f
+        f.id === item.id ? { ...f, progress: 20, status: "uploading" } : f
       )
     );
 
     try {
-      // Send original uncompressed master file directly to API
+      // High-efficiency in-browser compression (scaled to max 1920px 2K, quality 0.82)
+      const compression = await compressImage(item.rawFile);
+      const fileToUpload = compression.file;
+
+      setUploadFiles((current) =>
+        current.map((f) =>
+          f.id === item.id
+            ? {
+                ...f,
+                progress: 50,
+                size: `${formatBytes(compression.compressedSize)} (${compression.savingsPercent}% saved)`,
+              }
+            : f
+        )
+      );
+
       const activeUser = getStoredGoogleUser();
       const uploaderEmail = activeUser?.email || "guest@maan-ai.com";
 
       const formData = new FormData();
-      formData.append("file", item.rawFile);
+      formData.append("file", fileToUpload);
       formData.append("ceremony", selectedCeremony);
       formData.append("eventId", WEDDING_EVENT.id);
       formData.append("uploaderEmail", uploaderEmail);
@@ -551,7 +567,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                             <span className="text-xs text-[#947A80] flex items-center gap-1.5 flex-wrap">
                               <span>{file.size}</span>
                               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#A85D70] bg-[#F1D5D5]/50 px-1.5 py-0.5 rounded border border-[#A85D70]/20">
-                                Original HD
+                                Compressed 2K
                               </span>
                               <span>•</span>
                               <span>{selectedCeremony}</span>
@@ -563,13 +579,13 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                           {file.status === "uploading" && (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#633C49] bg-white px-2.5 py-1 rounded-full border border-[#EADDE0]">
                               <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#A85D70]" />
-                              Uploading...
+                              Compressing & Uploading...
                             </span>
                           )}
                           {file.status === "completed" && (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              Original HD Indexed
+                              Optimized & Stored
                             </span>
                           )}
                           {file.status === "error" && (

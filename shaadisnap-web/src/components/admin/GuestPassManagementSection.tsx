@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { QrCodeSvg } from "@/lib/qrCodeSvg";
 import { addUploadedPhoto } from "@/lib/weddingPhotoStore";
+import { compressImage } from "@/lib/imageCompression";
 
 export interface GuestPassItem {
   id: string;
@@ -279,8 +280,11 @@ export const GuestPassManagementSection: React.FC = () => {
       setUploadProgress((prev) => ({ ...prev, [file.name]: 15 }));
 
       try {
+        const compression = await compressImage(file);
+        const fileToUpload = compression.file;
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", fileToUpload);
         formData.append("ceremony", selectedCeremony);
         formData.append("eventId", eventId);
         formData.append("uploaderEmail", "admin@maan-ai.com");

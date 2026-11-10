@@ -34,6 +34,7 @@ import {
 import { useGooglePicker, GooglePickerItem } from "@/lib/useGooglePicker";
 import { WEDDING_EVENT } from "@/data/mockWeddingData";
 import { addUploadedPhoto, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
+import { compressImage } from "@/lib/imageCompression";
 
 export interface AdminPhotoItem {
   id: string;
@@ -240,8 +241,12 @@ export const AdminPhotoManagementStudio: React.FC<AdminPhotoManagementStudioProp
       );
 
       try {
+        // Compress photo to save cloud / Google Drive storage (proportional max 1920px, 0.82 quality)
+        const compression = await compressImage(task.file);
+        const fileToUpload = compression.file;
+
         const formData = new FormData();
-        formData.append("file", task.file);
+        formData.append("file", fileToUpload);
         formData.append("ceremony", targetCeremony);
         formData.append("album", targetAlbum);
         formData.append("eventId", WEDDING_EVENT.id);
