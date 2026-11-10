@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
+import { PetalFlakesOverlay } from "@/components/PetalFlakesOverlay";
 
 /**
  * Resilient Font Loader Definitions for Offline / Network-Isolated Builds
@@ -160,6 +161,7 @@ export default function RootLayout({
         className="min-h-full flex flex-col bg-[#FFF8F3] text-[#765D62] font-sans antialiased selection:bg-[#F1D5D5] selection:text-[#633C49] overflow-x-hidden"
         style={{ backgroundColor: "#FFF8F3", color: "#765D62" }}
       >
+        <PetalFlakesOverlay />
         <AuthGuard>
           {children}
         </AuthGuard>
