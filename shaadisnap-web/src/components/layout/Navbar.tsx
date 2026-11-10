@@ -11,13 +11,8 @@ import {
   ShieldCheck,
   ChevronRight,
   Share2,
-  User,
-  LogOut,
-  ChevronDown,
 } from "lucide-react";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
-import { getStoredGoogleUser, clearStoredGoogleUser, GoogleDriveUser } from "@/lib/googleAuth";
-import { clearUserSessionPhotos } from "@/lib/weddingPhotoStore";
 
 export interface NavbarProps {
   activeTab?: "landing" | "gallery" | "search" | "upload";
@@ -42,29 +37,9 @@ const NAV_ITEMS: NavItem[] = [
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<GoogleDriveUser | null>(null);
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDivElement>(null);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Sync authenticated user on mount and storage events
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const syncUser = () => setCurrentUser(getStoredGoogleUser());
-    syncUser();
-    window.addEventListener("shaadisnap_google_auth_changed", syncUser);
-    return () => window.removeEventListener("shaadisnap_google_auth_changed", syncUser);
-  }, []);
-
-  const handleLogout = () => {
-    if (currentUser?.email) {
-      clearUserSessionPhotos(currentUser.email);
-    }
-    clearStoredGoogleUser();
-    setUserDropdownOpen(false);
-    window.location.href = "/login";
-  };
 
   // Focus trap, Escape listener, and body scroll lock for mobile drawer
   useEffect(() => {
@@ -228,64 +203,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             </button>
 
             <Link
-              href="/admin"
-              className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#A85D70]/30 bg-[#F1D5D5]/30 hover:bg-[#F1D5D5]/60 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
-              <span>Admin Studio</span>
-            </Link>
-
-            {currentUser ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setUserDropdownOpen((v) => !v)}
-                  className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3 py-1.5 rounded-full border border-[#EADDE0] bg-white/90 hover:bg-white transition-all shadow-2xs flex items-center gap-2 cursor-pointer"
-                >
-                  <span className="w-5 h-5 rounded-full bg-[#F1D5D5] flex items-center justify-center text-[#633C49] font-bold text-[10px] uppercase">
-                    {currentUser.name?.charAt(0) || currentUser.email?.charAt(0) || "U"}
-                  </span>
-                  <span className="max-w-[130px] truncate">{currentUser.email}</span>
-                  <ChevronDown className="w-3 h-3 text-[#947A80]" />
-                </button>
-
-                {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-[#EADDE0] p-2 z-50 text-left animate-fadeIn">
-                    <div className="px-3 py-2 border-b border-[#EADDE0]/60">
-                      <p className="text-[10px] uppercase font-bold text-[#A85D70] tracking-wider">Signed in as</p>
-                      <p className="text-xs font-semibold text-[#633C49] truncate mt-0.5">{currentUser.email}</p>
-                    </div>
-                    <div className="p-1 space-y-1">
-                      <Link
-                        href="/login"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#765D62] hover:text-[#633C49] hover:bg-[#FFF8F3] transition-colors flex items-center gap-2"
-                      >
-                        <User className="w-3.5 h-3.5 text-[#A85D70]" />
-                        <span>Switch Google Account</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 hover:bg-rose-50 transition-colors flex items-center gap-2 cursor-pointer text-left"
-                      >
-                        <LogOut className="w-3.5 h-3.5 text-rose-600" />
-                        <span>Log Out & Clear Local Photos</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                href="/admin"
-                className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#EADDE0] bg-white/70 hover:bg-white transition-all shadow-2xs"
-              >
-                Admin
-              </Link>
-            )}
-
-            <Link
               href="/find-photos"
               onClick={(e) => {
                 if (pathname === "/" && onTabChange) {
@@ -424,57 +341,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#947A80]">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#3D7A5A]" />
                 <span>Private & Ephemeral Biometric Vault</span>
-              </div>
-
-              <div className="pt-2 flex flex-col gap-2 text-center">
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 rounded-full text-xs font-semibold text-[#633C49] bg-[#F1D5D5]/40 hover:bg-[#F1D5D5]/80 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#A85D70]" />
-                  <span>Admin Studio</span>
-                </Link>
-                {currentUser ? (
-                  <div className="p-3 rounded-2xl bg-[#FFF8F3] border border-[#EADDE0] text-left space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-[#F1D5D5] flex items-center justify-center text-[#633C49] font-bold text-xs uppercase">
-                        {currentUser.name?.charAt(0) || currentUser.email?.charAt(0) || "U"}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] text-[#A85D70] font-bold uppercase tracking-wider">Active Account</p>
-                        <p className="text-xs font-semibold text-[#633C49] truncate">{currentUser.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-[#EADDE0]/60">
-                      <Link
-                        href="/admin"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 py-1.5 rounded-lg text-center text-xs font-medium text-[#765D62] bg-white border border-[#EADDE0]"
-                      >
-                        Admin Studio
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          handleLogout();
-                        }}
-                        className="flex-1 py-1.5 rounded-lg text-center text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200"
-                      >
-                        Log Out
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-xs text-[#765D62] hover:text-[#633C49] transition-colors"
-                  >
-                    Admin Studio
-                  </Link>
-                )}
               </div>
             </div>
           </div>
