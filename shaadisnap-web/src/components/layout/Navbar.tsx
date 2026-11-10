@@ -28,8 +28,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { name: "Home", href: "/", tabKey: "landing" },
   { name: "Gallery", href: "/gallery", tabKey: "gallery" },
-  { name: "How It Works", href: "/how-it-works" },
-  { name: "Features", href: "/features" },
   { name: "Find Photos", href: "/find-photos", tabKey: "search" },
   { name: "Upload Photos", href: "/upload-photos", tabKey: "upload" },
 ];
