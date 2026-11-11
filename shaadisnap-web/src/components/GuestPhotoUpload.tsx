@@ -22,7 +22,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, clearUploadedPhotos, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, clearUploadedPhotos, deleteUploadedPhoto } from "@/lib/weddingPhotoStore";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
 import { compressImage, formatBytes } from "@/lib/imageCompression";
@@ -71,18 +71,41 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync photos and auth user
+  // Sync photos and auth user across local storage and live shared Google Drive folder
   useEffect(() => {
+    let active = true;
+
+    const syncShared = async () => {
+      const shared = await fetchSharedGalleryPhotos();
+      if (!active) return;
+      const localScoped = getPhotosForCurrentUser();
+      const merged = [...localScoped];
+      for (const sp of shared) {
+        if (!merged.some((lp) => lp.id === sp.id || (sp.driveFileId && lp.driveFileId === sp.driveFileId))) {
+          merged.push(sp);
+        }
+      }
+      setLiveStreamPhotos(merged);
+    };
+
     const handleSync = () => {
       setLiveStreamPhotos(getPhotosForCurrentUser());
       setActiveUser(getStoredGoogleUser());
+      syncShared();
     };
+
     handleSync();
     window.addEventListener("shaadisnap_photos_updated", handleSync);
     window.addEventListener("shaadisnap_google_auth_changed", handleSync);
+    window.addEventListener("focus", syncShared);
+    const interval = setInterval(syncShared, 15000);
+
     return () => {
+      active = false;
       window.removeEventListener("shaadisnap_photos_updated", handleSync);
       window.removeEventListener("shaadisnap_google_auth_changed", handleSync);
+      window.removeEventListener("focus", syncShared);
+      clearInterval(interval);
     };
   }, []);
 
@@ -686,6 +709,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                         <img
                           src={photo.url || photo.fallbackUrl}
                           alt={photo.title}
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
                               e.currentTarget.src = photo.fallbackUrl;
@@ -791,6 +815,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                     <img
                       src={photo.url || photo.fallbackUrl}
                       alt={photo.title}
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
                           e.currentTarget.src = photo.fallbackUrl;
@@ -880,8 +905,14 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
                     >
                       <img
-                        src={photo.url}
+                        src={photo.url || photo.fallbackUrl}
                         alt={photo.title}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                            e.currentTarget.src = photo.fallbackUrl;
+                          }
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <button
@@ -1063,8 +1094,14 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
             <div className="relative flex-1 bg-black/5 flex items-center justify-center p-4 overflow-hidden">
               <img
-                src={lightboxPhoto.url}
+                src={lightboxPhoto.url || lightboxPhoto.fallbackUrl}
                 alt={lightboxPhoto.title}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  if (lightboxPhoto.fallbackUrl && e.currentTarget.src !== lightboxPhoto.fallbackUrl) {
+                    e.currentTarget.src = lightboxPhoto.fallbackUrl;
+                  }
+                }}
                 className="max-h-[65vh] w-auto object-contain rounded-xl shadow-sm"
               />
             </div>

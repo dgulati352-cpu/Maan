@@ -30,6 +30,7 @@ import {
 import {
   getApprovedWeddingPhotos,
   getPhotosForCurrentUser,
+  fetchSharedGalleryPhotos,
   deleteUploadedPhoto,
   recordActualSearch,
 } from "@/lib/weddingPhotoStore";
@@ -296,8 +297,15 @@ export const GuestSelfieSearch: React.FC = () => {
     setProcessStep("ArcFace 512-d hyperspherical embedding extraction...");
     await new Promise((r) => setTimeout(r, 500));
 
-    // Candidate pool: authentic approved photos + photos uploaded by currently signed-in user
-    const photoPool = getPhotosForCurrentUser();
+    // Candidate pool: shared Google Drive photos + local session uploads
+    const localPool = getPhotosForCurrentUser();
+    const sharedPool = await fetchSharedGalleryPhotos().catch(() => localPool);
+    const photoPool = [...localPool];
+    for (const sp of sharedPool) {
+      if (!photoPool.some((lp) => lp.id === sp.id || (sp.driveFileId && lp.driveFileId === sp.driveFileId))) {
+        photoPool.push(sp);
+      }
+    }
 
     setProcessStep(`Searching ${photoPool.length} photos in event gallery (τ = 0.70)...`);
     recordActualSearch(getSessionGuestId());
@@ -1054,8 +1062,14 @@ export const GuestSelfieSearch: React.FC = () => {
                       >
                         <div className="relative aspect-[4/3] overflow-hidden bg-[#F1D5D5]/30">
                           <img
-                            src={photo.url}
+                            src={photo.url || photo.fallbackUrl}
                             alt={photo.title}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                                e.currentTarget.src = photo.fallbackUrl;
+                              }
+                            }}
                             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                           />
                           {/* Match Badge */}
@@ -1139,8 +1153,14 @@ export const GuestSelfieSearch: React.FC = () => {
               {/* Modal Image */}
               <div className="relative bg-black flex items-center justify-center max-h-[65vh] overflow-hidden">
                 <img
-                  src={selectedPhoto.url}
+                  src={selectedPhoto.url || selectedPhoto.fallbackUrl}
                   alt={selectedPhoto.title}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    if (selectedPhoto.fallbackUrl && e.currentTarget.src !== selectedPhoto.fallbackUrl) {
+                      e.currentTarget.src = selectedPhoto.fallbackUrl;
+                    }
+                  }}
                   className="max-h-[65vh] w-auto object-contain"
                 />
                 <button

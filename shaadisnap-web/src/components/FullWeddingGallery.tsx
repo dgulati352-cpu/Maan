@@ -17,7 +17,7 @@ import {
   Share2,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos, getPhotosForCurrentUser } from "@/lib/weddingPhotoStore";
+import { getApprovedWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos } from "@/lib/weddingPhotoStore";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface FullWeddingGalleryProps {
@@ -42,16 +42,14 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 
   const fetchLiveGallery = useCallback(async () => {
     try {
-      const res = await fetch(
-        `/api/gallery/photos?ceremony=${encodeURIComponent(selectedCeremony)}&search=${encodeURIComponent(searchQuery)}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.photos) && data.photos.length > 0) {
-          setPhotos(data.photos);
-          setIsLoading(false);
-          return;
-        }
+      const livePhotos = await fetchSharedGalleryPhotos({
+        ceremony: selectedCeremony,
+        search: searchQuery,
+      });
+      if (livePhotos.length > 0) {
+        setPhotos(livePhotos);
+        setIsLoading(false);
+        return;
       }
     } catch {
       // Fallback to local client store if offline
@@ -65,9 +63,13 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
     const handleUpdate = () => fetchLiveGallery();
     window.addEventListener("shaadisnap_photos_updated", handleUpdate);
     window.addEventListener("shaadisnap_google_auth_changed", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    const interval = setInterval(fetchLiveGallery, 15000);
     return () => {
       window.removeEventListener("shaadisnap_photos_updated", handleUpdate);
       window.removeEventListener("shaadisnap_google_auth_changed", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+      clearInterval(interval);
     };
   }, [fetchLiveGallery]);
 
@@ -363,6 +365,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                   <img
                     src={photo.url}
                     alt={photo.title}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
                     onError={(e) => {
                       if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
@@ -504,6 +507,12 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               <img
                 src={currentLightboxPhoto.url}
                 alt={currentLightboxPhoto.title}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  if (currentLightboxPhoto.fallbackUrl && e.currentTarget.src !== currentLightboxPhoto.fallbackUrl) {
+                    e.currentTarget.src = currentLightboxPhoto.fallbackUrl;
+                  }
+                }}
                 className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg"
               />
 

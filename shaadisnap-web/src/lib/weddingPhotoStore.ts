@@ -33,7 +33,41 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
   // The authentic couple portrait is always preserved
   if (photo.id === "hero_couple_photo") return false;
 
-  // Genuine live uploads by guests or any photo with a driveFileId are ALWAYS preserved
+  const id = photo.id.toLowerCase();
+  const url = photo.url.toLowerCase();
+  const fallback = (photo.fallbackUrl || "").toLowerCase();
+  const title = (photo.title || "").toLowerCase();
+
+  // Always purge tiny dummy test upload stubs, removed demo photos, expired blob URLs, and legacy mock IDs
+  const dummyStubIds = new Set([
+    "1ocgwqzh1sgacaarbfy60m0d5nborw-gc",
+    "1bitz5kw4ohgvp-2eqlcmoeokotdzdtbx",
+    "1ocnfkbk84jkjaq8fhappz6yk4gk7wlgi",
+    "1-vzek1f3gipeuqhhrk8qk945wsvglbdp",
+    "1rdzubtc4oyxzvq4k_-dwx_o7rkdkhym-",
+    "1wlyogljg_uuxhobw1wit0hv-lfkkyar_",
+    "1bnhczyg3bx8zbwgbrtpfc4ijn5hperju",
+  ]);
+
+  if (
+    dummyStubIds.has(id) ||
+    url.startsWith("blob:") ||
+    id.includes("beach_couple") ||
+    url.includes("beach-couple") ||
+    title.includes("live-test-dhairya") ||
+    title.includes("test_dhairya") ||
+    title.includes("smoke-test") ||
+    title.includes("test-real") ||
+    title.includes("sunset walk") ||
+    /^photo_\d+$/i.test(photo.id) ||
+    id.startsWith("mock_") ||
+    url.includes("unsplash.com") ||
+    fallback.includes("unsplash.com")
+  ) {
+    return true;
+  }
+
+  // Genuine live uploads backed by Google Drive / uploader metadata are preserved
   if (
     photo.photographer === "Guest Live Upload" ||
     photo.driveFileId ||
@@ -41,21 +75,6 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     photo.driveFolderId
   ) {
     return false;
-  }
-
-  const id = photo.id.toLowerCase();
-  const url = photo.url.toLowerCase();
-  const fallback = (photo.fallbackUrl || "").toLowerCase();
-  const title = (photo.title || "").toLowerCase();
-
-  // Legacy mock IDs (photo_01 to photo_08, mock_*)
-  if (/^photo_\d+$/i.test(photo.id) || id.startsWith("mock_")) {
-    return true;
-  }
-
-  // Any Unsplash or stock image URLs
-  if (url.includes("unsplash.com") || fallback.includes("unsplash.com")) {
-    return true;
   }
 
   // Legacy mock photo titles
@@ -73,14 +92,12 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     return true;
   }
 
-  // Purge legacy test mock data and removed demo photos
+  // Purge legacy local-only test mock data
   if (
     id.startsWith("candid_test_") ||
     id.startsWith("guest_test_") ||
     id.includes("1794306") ||
     id.includes("master_test") ||
-    id.includes("beach_couple") ||
-    url.includes("beach-couple") ||
     url.includes("candid_guest") ||
     url.includes("master_test") ||
     fallback.includes("candid_guest") ||
@@ -88,7 +105,6 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     title.includes("candid_guest") ||
     title.includes("master_test") ||
     title.startsWith("win_20261107") ||
-    title.includes("sunset walk") ||
     title.includes("selfie_test")
   ) {
     return true;
@@ -152,12 +168,86 @@ export function getApprovedWeddingPhotos(): WeddingPhoto[] {
   return allPhotos.filter(
     (photo) =>
       !isLegacyMockPhoto(photo) &&
-      (photo.approvalStatus === "approved" || (!photo.approvalStatus && photo.id === "hero_couple_photo"))
+      (photo.approvalStatus === "approved" ||
+        photo.photographer === "Guest Live Upload" ||
+        Boolean(photo.driveFileId) ||
+        (!photo.approvalStatus && photo.id === "hero_couple_photo"))
   );
 }
 
 /**
- * Save an uploaded photo to the top of the live stream (defaults to pending_ceo_approval)
+ * Fetches all live shared photos across devices (Google Drive folder + approved vault),
+ * merged with any recent optimistic local uploads so every device sees every photo immediately.
+ */
+export async function fetchSharedGalleryPhotos(options?: {
+  ceremony?: string;
+  search?: string;
+}): Promise<WeddingPhoto[]> {
+  const fallbackLocal = getApprovedWeddingPhotos();
+  if (typeof window === "undefined") {
+    return fallbackLocal;
+  }
+
+  try {
+    const params = new URLSearchParams({ limit: "100" });
+    if (options?.ceremony && options.ceremony !== "All") {
+      params.set("ceremony", options.ceremony);
+    }
+    if (options?.search) {
+      params.set("search", options.search);
+    }
+
+    const res = await fetch(`/api/gallery/photos?${params.toString()}`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return fallbackLocal;
+    }
+
+    const data = (await res.json()) as { photos?: Partial<WeddingPhoto>[] };
+    if (!Array.isArray(data.photos)) {
+      return fallbackLocal;
+    }
+
+    const serverPhotos: WeddingPhoto[] = data.photos
+      .filter((p): p is WeddingPhoto => Boolean(p && p.id && p.url && !isLegacyMockPhoto(p)))
+      .map((p) => ({
+        ...p,
+        facesCount: p.facesCount || 1,
+        photographer: p.photographer || "Guest Live Upload",
+        approvalStatus: "approved" as const,
+      }));
+
+    // Preserve brand-new optimistic local uploads (within 2 minutes) before Drive list propagation
+    const now = Date.now();
+    const recentOptimistic = getWeddingPhotos().filter((lp) => {
+      if (isLegacyMockPhoto(lp)) return false;
+      if (lp.id === "hero_couple_photo") return false;
+      if (serverPhotos.some((sp) => sp.id === lp.id || (lp.driveFileId && sp.driveFileId === lp.driveFileId))) {
+        return false;
+      }
+      const uploadedMs = lp.uploadedAt ? new Date(lp.uploadedAt).getTime() : 0;
+      return uploadedMs > 0 && now - uploadedMs < 120_000;
+    });
+
+    const merged = [...recentOptimistic, ...serverPhotos];
+
+    // Ensure DEFAULT_COUPLE_PHOTO is always included unless filtered out by ceremony/search
+    const isUnfiltered =
+      (!options?.ceremony || options.ceremony === "All") && !options?.search;
+    if (isUnfiltered && !merged.some((p) => p.id === "hero_couple_photo")) {
+      merged.push(DEFAULT_COUPLE_PHOTO);
+    }
+
+    return merged;
+  } catch {
+    return fallbackLocal;
+  }
+}
+
+/**
+ * Save an uploaded photo to the top of the live stream
  * Dynamically binds upload to the active user's email ID and Google Drive folder.
  */
 export function addUploadedPhoto(photo: {
@@ -181,13 +271,20 @@ export function addUploadedPhoto(photo: {
 
     // Use direct high-speed Google Usercontent CDN link if Drive ID is available
     const directCdnUrl = photo.driveFileId
-      ? `https://lh3.googleusercontent.com/d/${photo.driveFileId}=s0`
+      ? `https://lh3.googleusercontent.com/d/${photo.driveFileId}=w1600`
       : photo.url;
+
+    // Use persistent Drive thumbnail URL across reloads instead of ephemeral blob: URLs
+    const persistentFallbackUrl = photo.driveFileId
+      ? `https://drive.google.com/thumbnail?id=${photo.driveFileId}&sz=w1200`
+      : photo.fallbackUrl?.startsWith("blob:")
+      ? undefined
+      : photo.fallbackUrl;
 
     const newPhoto: WeddingPhoto = {
       id: photo.id || `uploaded_${Date.now()}`,
       url: directCdnUrl,
-      fallbackUrl: photo.fallbackUrl,
+      fallbackUrl: persistentFallbackUrl,
       driveFileId: photo.driveFileId,
       title: photo.title || "Wedding Memory",
       ceremony: (photo.ceremony as WeddingPhoto["ceremony"]) || "Sangeet",
@@ -196,7 +293,7 @@ export function addUploadedPhoto(photo: {
       similarity: 0.96,
       confidenceTier: "high",
       aspectRatio: "portrait",
-      approvalStatus: photo.approvalStatus || "pending_ceo_approval",
+      approvalStatus: photo.approvalStatus || "approved",
       uploadedAt: new Date().toISOString(),
       uploaderEmail: effectiveEmail,
       driveFolderId: effectiveFolder,

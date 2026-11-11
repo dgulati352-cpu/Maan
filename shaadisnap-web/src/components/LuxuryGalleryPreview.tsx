@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, ExternalLink, ArrowRight, Camera } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos } from "@/lib/weddingPhotoStore";
+import { getApprovedWeddingPhotos, fetchSharedGalleryPhotos } from "@/lib/weddingPhotoStore";
 
 interface LuxuryGalleryPreviewProps {
   onFindYourFace: () => void;
@@ -19,15 +19,33 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
   const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
 
   useEffect(() => {
-    // Re-sync with store on client mount
-    setPhotos(getApprovedWeddingPhotos());
+    let active = true;
+
+    const syncLive = async () => {
+      const livePhotos = await fetchSharedGalleryPhotos();
+      if (active) {
+        setPhotos(livePhotos);
+      }
+    };
+
+    // Immediate sync with shared Google Drive + local uploads
+    syncLive();
 
     const handleUpdate = () => {
       setPhotos(getApprovedWeddingPhotos());
+      syncLive();
     };
 
     window.addEventListener("shaadisnap_photos_updated", handleUpdate);
-    return () => window.removeEventListener("shaadisnap_photos_updated", handleUpdate);
+    window.addEventListener("focus", syncLive);
+    const interval = setInterval(syncLive, 15000);
+
+    return () => {
+      active = false;
+      window.removeEventListener("shaadisnap_photos_updated", handleUpdate);
+      window.removeEventListener("focus", syncLive);
+      clearInterval(interval);
+    };
   }, []);
 
   const ceremonies = ["All", "Phere", "Sangeet", "Mehendi", "Haldi", "Reception"];
