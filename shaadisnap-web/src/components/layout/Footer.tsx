@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Heart, Lock, ArrowRight } from "lucide-react";
+import { ShieldCheck, Heart, Lock, ArrowRight, Globe } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
@@ -107,24 +107,31 @@ export const Footer: React.FC = () => {
                 <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-[#A85D70] fill-[#A85D70] animate-pulse shrink-0" />
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-sm sm:text-base text-[#765D62]">
-                <span className="font-normal">Crafted with love by</span>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
+                <span className="text-base sm:text-lg text-[#765D62] font-medium">
+                  Crafted with love by{" "}
+                  <a
+                    href="https://dhairyagulati.co.in"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#633C49] hover:text-[#A85D70] transition-colors underline underline-offset-4 decoration-2 decoration-[#A85D70]/60 hover:decoration-[#A85D70]"
+                  >
+                    Dhairya Gulati
+                  </a>
+                </span>
+
+                <span className="text-[#D9B7A0] hidden sm:inline text-lg">•</span>
+
+                {/* Prominent High-Visibility Domain Button */}
                 <a
                   href="https://dhairyagulati.co.in"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-bold text-[#633C49] hover:text-[#A85D70] transition-colors underline underline-offset-4 decoration-2 decoration-[#A85D70]/60 hover:decoration-[#A85D70]"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base sm:text-lg font-bold text-white bg-gradient-to-r from-[#A85D70] to-[#8F4457] hover:from-[#914C60] hover:to-[#7E3748] shadow-[0_6px_22px_rgba(168,93,112,0.38)] hover:shadow-[0_8px_30px_rgba(168,93,112,0.5)] hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
-                  Dhairya Gulati
-                </a>
-                <span className="text-[#D9B7A0] hidden sm:inline">•</span>
-                <a
-                  href="https://dhairyagulati.co.in"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-[#A85D70] bg-[#F1D5D5]/80 hover:bg-[#F1D5D5] border border-[#A85D70]/40 transition-colors shadow-2xs"
-                >
-                  dhairyagulati.co.in
+                  <Globe className="w-5 h-5 text-white/95" />
+                  <span className="tracking-wide">dhairyagulati.co.in</span>
+                  <ArrowRight className="w-4 h-4 text-white/80" />
                 </a>
               </div>
             </div>
@@ -132,8 +139,9 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-[#947A80] gap-5">
           <p>© 2026 Maan Memories. All rights reserved.</p>
+
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link
               href="/privacy"
@@ -147,17 +155,21 @@ export const Footer: React.FC = () => {
             >
               Terms of Service
             </Link>
+
+            {/* Bottom Bar High-Visibility Pill */}
             <a
               href="https://dhairyagulati.co.in"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#633C49] transition-colors font-semibold text-[#A85D70]"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm sm:text-base font-bold text-[#A85D70] hover:text-white bg-[#F1D5D5] hover:bg-[#A85D70] border border-[#A85D70]/50 transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer"
             >
-              dhairyagulati.co.in
+              <Globe className="w-4 h-4" />
+              <span>dhairyagulati.co.in</span>
             </a>
           </div>
-          <p className="flex items-center gap-1.5 text-xs text-[#765D62]">
-            <span>Made by</span>
+
+          <p className="flex items-center gap-1.5 text-xs sm:text-sm text-[#765D62]">
+            <span>Made with love by</span>
             <a
               href="https://dhairyagulati.co.in"
               target="_blank"
@@ -166,7 +178,7 @@ export const Footer: React.FC = () => {
             >
               Dhairya Gulati
             </a>
-            <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70]" />
+            <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70] animate-pulse" />
           </p>
         </div>
       </div>
