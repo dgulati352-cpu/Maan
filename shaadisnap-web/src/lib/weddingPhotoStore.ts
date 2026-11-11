@@ -18,24 +18,9 @@ const DEFAULT_COUPLE_PHOTO: WeddingPhoto = {
   approvedAt: "2026-11-06T12:00:00Z",
 };
 
-const SUNSET_BEACH_COUPLE_PHOTO: WeddingPhoto = {
-  id: "beach_couple_sunset",
-  url: "/beach-couple.jpg",
-  title: "Marwaha & Gulati — Sunset Walk, Wedding Celebration",
-  ceremony: "Phere",
-  facesCount: 2,
-  photographer: "JMD Studio",
-  confidenceTier: "high",
-  aspectRatio: "landscape",
-  approvalStatus: "approved",
-  approvedBy: "Kabir Marwaha (Chief Executive Officer)",
-  approvedAt: "2026-11-06T13:00:00Z",
-};
-
-// Base curated celebration photos for Marwaha & Gulati wedding
+// Base curated celebration photos for Marwaha & Gulati wedding (strictly authentic couple photo)
 const BASE_APPROVED_PHOTOS: WeddingPhoto[] = [
   DEFAULT_COUPLE_PHOTO,
-  SUNSET_BEACH_COUPLE_PHOTO,
 ];
 
 /**
@@ -45,8 +30,8 @@ const BASE_APPROVED_PHOTOS: WeddingPhoto[] = [
 export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefined): boolean {
   if (!photo || !photo.id || !photo.url) return true;
 
-  // The authentic couple portraits are always preserved
-  if (photo.id === "hero_couple_photo" || photo.id === "beach_couple_sunset") return false;
+  // The authentic couple portrait is always preserved
+  if (photo.id === "hero_couple_photo") return false;
 
   // Genuine live uploads by guests or any photo with a driveFileId are ALWAYS preserved
   if (
@@ -88,12 +73,14 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     return true;
   }
 
-  // Purge legacy test mock data ONLY (keep all genuine WIN_ camera pictures)
+  // Purge legacy test mock data and removed demo photos
   if (
     id.startsWith("candid_test_") ||
     id.startsWith("guest_test_") ||
     id.includes("1794306") ||
     id.includes("master_test") ||
+    id.includes("beach_couple") ||
+    url.includes("beach-couple") ||
     url.includes("candid_guest") ||
     url.includes("master_test") ||
     fallback.includes("candid_guest") ||
@@ -101,6 +88,7 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     title.includes("candid_guest") ||
     title.includes("master_test") ||
     title.startsWith("win_20261107") ||
+    title.includes("sunset walk") ||
     title.includes("selfie_test")
   ) {
     return true;
@@ -164,10 +152,7 @@ export function getApprovedWeddingPhotos(): WeddingPhoto[] {
   return allPhotos.filter(
     (photo) =>
       !isLegacyMockPhoto(photo) &&
-      (photo.approvalStatus === "approved" ||
-        photo.photographer === "Guest Live Upload" ||
-        Boolean(photo.driveFileId) ||
-        (!photo.approvalStatus && (photo.id === "hero_couple_photo" || photo.id === "beach_couple_sunset")))
+      (photo.approvalStatus === "approved" || (!photo.approvalStatus && photo.id === "hero_couple_photo"))
   );
 }
 
@@ -211,7 +196,7 @@ export function addUploadedPhoto(photo: {
       similarity: 0.96,
       confidenceTier: "high",
       aspectRatio: "portrait",
-      approvalStatus: photo.approvalStatus || "approved",
+      approvalStatus: photo.approvalStatus || "pending_ceo_approval",
       uploadedAt: new Date().toISOString(),
       uploaderEmail: effectiveEmail,
       driveFolderId: effectiveFolder,

@@ -419,12 +419,6 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                     </div>
                   </div>
 
-                  {/* Permanent Live Available Badge */}
-                  <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-emerald-400/40 text-white shadow-xs group-hover:opacity-0 transition-opacity duration-200">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-semibold text-emerald-300">Live Available</span>
-                  </div>
-
                   {/* Refined Sliding Editorial Tray on Hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-5 flex flex-col justify-end text-white pointer-events-none">
                     <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] space-y-1.5">
