@@ -157,6 +157,11 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
         // Immediately update liveStreamPhotos so it reflects on screen right away
         setLiveStreamPhotos(getPhotosForCurrentUser());
 
+        // Automatically switch to gallery tab after brief celebration so user immediately sees their photo
+        setTimeout(() => {
+          setActiveSidebarItem("gallery");
+        }, 1200);
+
         setUploadFiles((current) =>
           current.map((f) =>
             f.id === item.id
@@ -533,6 +538,27 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                     <span>Choose From Gallery</span>
                   </button>
                 </div>
+
+                {/* Instant Success Pill inside Dropzone */}
+                {liveStreamPhotos.length > 0 && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveSidebarItem("gallery");
+                    }}
+                    className="mt-5 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-2xl flex items-center justify-between gap-3 max-w-sm w-full transition-all cursor-pointer shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-xs font-semibold text-emerald-900">
+                        {liveStreamPhotos.length} photo{liveStreamPhotos.length > 1 ? "s" : ""} uploaded!
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 underline flex items-center gap-1">
+                      View Photos &rarr;
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Upload Queue */}

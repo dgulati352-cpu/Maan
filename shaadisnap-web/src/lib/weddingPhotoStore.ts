@@ -33,6 +33,16 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
   // The authentic couple portrait is always preserved
   if (photo.id === "hero_couple_photo") return false;
 
+  // Genuine live uploads by guests or any photo with a driveFileId are ALWAYS preserved
+  if (
+    photo.photographer === "Guest Live Upload" ||
+    photo.driveFileId ||
+    photo.uploaderEmail ||
+    photo.driveFolderId
+  ) {
+    return false;
+  }
+
   const id = photo.id.toLowerCase();
   const url = photo.url.toLowerCase();
   const fallback = (photo.fallbackUrl || "").toLowerCase();
@@ -63,28 +73,20 @@ export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefine
     return true;
   }
 
-  // Purge test candid uploads, previous WIN_* webcam captures, and test session selfies
+  // Purge legacy test mock data ONLY (keep all genuine WIN_ camera pictures)
   if (
-    id.startsWith("candid_") ||
-    id.startsWith("test_") ||
-    id.startsWith("guest_test") ||
+    id.startsWith("candid_test_") ||
+    id.startsWith("guest_test_") ||
     id.includes("1794306") ||
     id.includes("master_test") ||
     url.includes("candid_guest") ||
     url.includes("master_test") ||
-    url.includes("/uploads/photos/") ||
-    url.includes("/uploads/thumbnails/") ||
     fallback.includes("candid_guest") ||
     fallback.includes("master_test") ||
-    fallback.includes("/uploads/photos/") ||
-    fallback.includes("/uploads/thumbnails/") ||
     title.includes("candid_guest") ||
     title.includes("master_test") ||
     title.startsWith("win_20261107") ||
-    title.startsWith("win_") ||
-    title.includes("selfie_test") ||
-    url.startsWith("data:") ||
-    fallback.startsWith("data:")
+    title.includes("selfie_test")
   ) {
     return true;
   }

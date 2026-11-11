@@ -116,6 +116,8 @@ export async function POST(req: NextRequest) {
       ceremony: ceremony,
       uploaderEmail: uploaderEmail,
       driveFolderId: driveFolderId,
+      folderId: driveFolderId,
+      folder_id: driveFolderId,
     };
 
     // Forward to Google Apps Script Web App
