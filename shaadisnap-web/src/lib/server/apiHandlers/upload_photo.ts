@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 
 const GOOGLE_APPS_SCRIPT_URL =
   process.env.GOOGLE_APPS_SCRIPT_URL ||
-  "https://script.google.com/macros/s/AKfycbwNSX6iRCcQS_ImqeS9MJ-CZYy02hz39BIfiyRAm20tP9ytxe3FGFMI76rXY6lq-hDQ/exec";
+  "https://script.google.com/macros/s/AKfycbznLjQwqQJOFnmJKhGdSCNe69vnbGd2rSsoeF1A1WnEl5zJH2dt7M_qa54FluIbIVGnmg/exec";
 
 const OFFICIAL_DRIVE_FOLDER_ID =
   process.env.GOOGLE_DRIVE_FOLDER_ID || "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy";
