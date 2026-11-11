@@ -11,8 +11,10 @@ import {
   ShieldCheck,
   ChevronRight,
   Share2,
+  Music,
 } from "lucide-react";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
+import { MUSIC_EVENT_TOGGLE, MUSIC_EVENT_STATE } from "@/components/BackgroundMusicPlayer";
 
 export interface NavbarProps {
   activeTab?: "landing" | "gallery" | "search" | "upload";
@@ -36,9 +38,26 @@ const NAV_ITEMS: NavItem[] = [
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDivElement>(null);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Sync background music state from player
+  useEffect(() => {
+    const handleMusicState = (e: Event) => {
+      const custom = e as CustomEvent<{ isPlaying?: boolean }>;
+      if (typeof custom.detail?.isPlaying === "boolean") {
+        setIsMusicPlaying(custom.detail.isPlaying);
+      }
+    };
+    window.addEventListener(MUSIC_EVENT_STATE, handleMusicState);
+    return () => window.removeEventListener(MUSIC_EVENT_STATE, handleMusicState);
+  }, []);
+
+  const handleMusicToggle = () => {
+    window.dispatchEvent(new Event(MUSIC_EVENT_TOGGLE));
+  };
 
   // Focus trap, Escape listener, and body scroll lock for mobile drawer
   useEffect(() => {
@@ -196,6 +215,31 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
           {/* Desktop Right CTAs */}
           <div className="hidden md:flex items-center gap-2.5">
+            {/* Background Music Toggle Button */}
+            <button
+              type="button"
+              onClick={handleMusicToggle}
+              className={`text-xs font-semibold px-3.5 py-2 rounded-full border transition-all shadow-2xs flex items-center gap-2 cursor-pointer ${
+                isMusicPlaying
+                  ? "text-[#633C49] border-[#A85D70]/40 bg-[#F1D5D5]/60 hover:bg-[#F1D5D5]"
+                  : "text-[#765D62] border-[#EADDE0] bg-white/70 hover:bg-white hover:text-[#633C49]"
+              }`}
+              title={isMusicPlaying ? "Pause Heeriye Background Music" : "Play Heeriye Background Music"}
+              aria-label={isMusicPlaying ? "Pause Heeriye Background Music" : "Play Heeriye Background Music"}
+            >
+              {isMusicPlaying ? (
+                <div className="flex items-end gap-0.5 h-3.5 w-3.5">
+                  <span className="w-0.5 h-2.5 bg-[#A85D70] rounded-full animate-music-bar-1" />
+                  <span className="w-0.5 h-3.5 bg-[#A85D70] rounded-full animate-music-bar-2" />
+                  <span className="w-0.5 h-1.5 bg-[#A85D70] rounded-full animate-music-bar-3" />
+                  <span className="w-0.5 h-3 bg-[#A85D70] rounded-full animate-music-bar-4" />
+                </div>
+              ) : (
+                <Music className="w-3.5 h-3.5 text-[#A85D70]" />
+              )}
+              <span className="text-[11px] font-medium tracking-wide">Heeriye</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShareModalOpen(true)}
@@ -225,6 +269,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
           {/* Mobile Menu Toggle Button */}
           <div className="flex md:hidden items-center gap-2">
+            {/* Mobile Music Toggle */}
+            <button
+              type="button"
+              onClick={handleMusicToggle}
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                isMusicPlaying
+                  ? "bg-[#F1D5D5] text-[#633C49]"
+                  : "text-[#765D62] hover:bg-[#F1D5D5]/40"
+              }`}
+              title={isMusicPlaying ? "Pause Heeriye" : "Play Heeriye"}
+              aria-label="Toggle Heeriye Background Music"
+            >
+              {isMusicPlaying ? (
+                <div className="flex items-end gap-0.5 h-4 w-3.5">
+                  <span className="w-0.5 h-3 bg-[#A85D70] rounded-full animate-music-bar-1" />
+                  <span className="w-0.5 h-4 bg-[#A85D70] rounded-full animate-music-bar-2" />
+                  <span className="w-0.5 h-2 bg-[#A85D70] rounded-full animate-music-bar-3" />
+                </div>
+              ) : (
+                <Music className="w-4 h-4 text-[#A85D70]" />
+              )}
+            </button>
+
             <Link
               href="/find-photos"
               onClick={(e) => {
@@ -347,6 +414,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
               >
                 <Share2 className="w-3.5 h-3.5 text-[#A85D70]" />
                 <span>Share Guest Pass & QR Code</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleMusicToggle}
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl bg-white border border-[#EADDE0] text-xs font-semibold text-[#633C49] shadow-2xs hover:border-[#A85D70] transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-[#A85D70]" />
+                  <span>Heeriye &bull; Jasleen Royal</span>
+                </div>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isMusicPlaying
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {isMusicPlaying ? "Playing ♪" : "Tap to Play"}
+                </span>
               </button>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#947A80]">

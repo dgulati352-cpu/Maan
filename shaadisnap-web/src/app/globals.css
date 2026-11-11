@@ -393,6 +393,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
+   Background Music Equalizer Animations
+   ========================================================================== */
+@keyframes music-bar-1 {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+@keyframes music-bar-2 {
+  0%, 100% { height: 14px; }
+  50% { height: 6px; }
+}
+@keyframes music-bar-3 {
+  0%, 100% { height: 6px; }
+  50% { height: 16px; }
+}
+@keyframes music-bar-4 {
+  0%, 100% { height: 16px; }
+  50% { height: 4px; }
+}
+
+.animate-music-bar-1 { animation: music-bar-1 0.8s ease-in-out infinite; }
+.animate-music-bar-2 { animation: music-bar-2 1.1s ease-in-out infinite 0.15s; }
+.animate-music-bar-3 { animation: music-bar-3 0.9s ease-in-out infinite 0.3s; }
+.animate-music-bar-4 { animation: music-bar-4 1.2s ease-in-out infinite 0.1s; }
+
+/* ==========================================================================
    Prefers Reduced Motion (Strict Accessibility Compliance)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

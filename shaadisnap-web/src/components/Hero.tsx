@@ -155,14 +155,22 @@ export const Hero: React.FC<HeroProps> = ({ onFindPhotos, onUploadPhotos }) => {
                 </div>
               </div>
 
-              {/* A small editorial note makes the hero feel like a magazine cover. */}
-              <div className="absolute -bottom-4 sm:-bottom-7 left-2 sm:-left-8 glass-panel rounded-2xl px-3 py-2 sm:px-4 sm:py-3 z-20 flex items-center gap-2.5 sm:gap-3 max-w-[calc(100%-16px)] sm:max-w-none shadow-md">
+              {/* A small editorial note makes the hero feel like a magazine cover. Click to play Heeriye */}
+              <div
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new Event("shaadisnap_toggle_music"));
+                  }
+                }}
+                className="absolute -bottom-4 sm:-bottom-7 left-2 sm:-left-8 glass-panel rounded-2xl px-3 py-2 sm:px-4 sm:py-3 z-20 flex items-center gap-2.5 sm:gap-3 max-w-[calc(100%-16px)] sm:max-w-none shadow-md cursor-pointer hover:scale-102 transition-transform"
+                title="Play Heeriye Background Music"
+              >
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#633C49] flex items-center justify-center text-white shadow-md shrink-0">
                   <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                 </div>
                 <div>
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.16em] font-bold text-[#A85D70]">A softer way to remember</p>
-                  <p className="font-serif text-xs sm:text-sm font-semibold text-[#633C49] truncate">Made for the moments between poses</p>
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.16em] font-bold text-[#A85D70]">Background Music &bull; Heeriye</p>
+                  <p className="font-serif text-xs sm:text-sm font-semibold text-[#633C49] truncate">Click to play romantic soundtrack</p>
                 </div>
               </div>
 
