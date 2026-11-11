@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/server/db";
 import { generateSignedPhotoUrl } from "@/lib/server/storageService";
-import { listAdminPhotos } from "@/lib/server/adminPhotoManager";
-import { fetchLiveDriveFolderPhotos } from "@/lib/server/googleDriveSync";
+import { listAdminPhotos, deleteAdminPhoto } from "@/lib/server/adminPhotoManager";
+import {
+  fetchLiveDriveFolderPhotos,
+  isDriveFileDeleted,
+  trashDriveFile,
+} from "@/lib/server/googleDriveSync";
 
 export const dynamic = "force-dynamic";
 
@@ -56,8 +60,14 @@ export async function GET(req: NextRequest) {
       { name: "Reception", slug: "reception" },
     ];
 
+    let deletedDbIds = new Set<string>();
+
     try {
       const db = getDatabase();
+      db.exec(`CREATE TABLE IF NOT EXISTS deleted_photos (id TEXT PRIMARY KEY, deleted_at INTEGER NOT NULL)`);
+      const deletedRows = db.prepare(`SELECT id FROM deleted_photos`).all() as Array<{ id: string }>;
+      deletedDbIds = new Set(deletedRows.map((r) => r.id));
+
       dbRows = db
         .prepare(`SELECT * FROM photos WHERE event_id = ? AND approval_status = 'approved' ORDER BY created_at DESC`)
         .all(eventId) as typeof dbRows;
@@ -99,6 +109,7 @@ export async function GET(req: NextRequest) {
     const mergedMap = new Map<string, MergedGalleryRow>();
 
     for (const dp of liveDrivePhotos) {
+      if (deletedDbIds.has(dp.id) || isDriveFileDeleted(dp.id)) continue;
       mergedMap.set(dp.id, {
         id: dp.id,
         driveFileId: dp.driveFileId,
@@ -115,6 +126,7 @@ export async function GET(req: NextRequest) {
     }
 
     for (const dr of dbRows) {
+      if (deletedDbIds.has(dr.id) || isDriveFileDeleted(dr.id)) continue;
       if (!mergedMap.has(dr.id)) {
         mergedMap.set(dr.id, {
           ...dr,
@@ -124,6 +136,7 @@ export async function GET(req: NextRequest) {
     }
 
     for (const vp of vaultRows) {
+      if (deletedDbIds.has(vp.id) || isDriveFileDeleted(vp.id)) continue;
       if (!mergedMap.has(vp.id)) {
         mergedMap.set(vp.id, vp);
       }
@@ -200,6 +213,76 @@ export async function GET(req: NextRequest) {
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to load gallery photos";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/gallery/photos
+ * Deletes a single photo or batch of photos across local DB, AdminVault, and Google Drive.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const body = (await req.json().catch(() => ({}))) as {
+      id?: string;
+      driveFileId?: string;
+      ids?: string[];
+    };
+
+    const candidateIds = new Set<string>();
+    const addCandidate = (val?: string) => {
+      if (val && typeof val === "string" && val.trim() && val !== "hero_couple_photo") {
+        candidateIds.add(val.trim());
+      }
+    };
+
+    addCandidate(body.id || searchParams.get("id") || undefined);
+    addCandidate(body.driveFileId || searchParams.get("driveFileId") || undefined);
+    if (Array.isArray(body.ids)) {
+      body.ids.forEach((item) => addCandidate(item));
+    }
+
+    if (candidateIds.size === 0) {
+      return NextResponse.json(
+        { error: "No deletable photo ID provided" },
+        { status: 400 }
+      );
+    }
+
+    const idsToDelete = Array.from(candidateIds);
+    let driveTrashed = false;
+
+    for (const targetId of idsToDelete) {
+      deleteAdminPhoto(targetId);
+      const res = await trashDriveFile(targetId);
+      if (res.driveTrashed) {
+        driveTrashed = true;
+      }
+    }
+
+    try {
+      const db = getDatabase();
+      db.exec(`CREATE TABLE IF NOT EXISTS deleted_photos (id TEXT PRIMARY KEY, deleted_at INTEGER NOT NULL)`);
+      const now = Date.now();
+      const insertStmt = db.prepare(`INSERT OR REPLACE INTO deleted_photos (id, deleted_at) VALUES (?, ?)`);
+      const delStmt = db.prepare(`DELETE FROM photos WHERE id = ? OR drive_file_id = ?`);
+      for (const targetId of idsToDelete) {
+        insertStmt.run(targetId, now);
+        delStmt.run(targetId, targetId);
+      }
+    } catch {
+      // Non-fatal fallback in restricted serverless sandboxes
+    }
+
+    return NextResponse.json({
+      success: true,
+      deletedIds: idsToDelete,
+      deletedCount: idsToDelete.length,
+      driveTrashed,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to delete photo";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

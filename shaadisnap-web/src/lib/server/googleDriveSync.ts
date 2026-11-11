@@ -27,6 +27,24 @@ const DEFAULT_DRIVE_FOLDER_ID = (
   process.env.GOOGLE_DRIVE_FOLDER_ID || "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy"
 ).trim();
 
+const GOOGLE_APPS_SCRIPT_URL = (
+  process.env.GOOGLE_APPS_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycbznLjQwqQJOFnmJKhGdSCNe69vnbGd2rSsoeF1A1WnEl5zJH2dt7M_qa54FluIbIVGnmg/exec"
+).trim();
+
+// Warm-instance deleted IDs so deleted Drive items never flicker back during propagation
+const serverDeletedDriveIds = new Set<string>();
+
+export function markDriveFileDeleted(fileId: string): void {
+  if (fileId) {
+    serverDeletedDriveIds.add(fileId.trim().toLowerCase());
+  }
+}
+
+export function isDriveFileDeleted(fileId: string): boolean {
+  return Boolean(fileId && serverDeletedDriveIds.has(fileId.trim().toLowerCase()));
+}
+
 const VALID_CEREMONIES = new Set<DriveSyncedPhoto["ceremony"]>([
   "Phere",
   "Sangeet",
@@ -290,8 +308,38 @@ export async function fetchLiveDriveFolderPhotos(
   folderId: string = DEFAULT_DRIVE_FOLDER_ID
 ): Promise<DriveSyncedPhoto[]> {
   const apiPhotos = await fetchViaDriveApiV3(folderId);
-  if (apiPhotos !== null) {
-    return apiPhotos;
+  const raw = apiPhotos !== null ? apiPhotos : await fetchViaEmbeddedFolderView(folderId);
+  return raw.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
+}
+
+/**
+ * Marks a Google Drive photo deleted locally and forwards trash action to Apps Script.
+ */
+export async function trashDriveFile(fileId: string): Promise<{ driveTrashed: boolean }> {
+  markDriveFileDeleted(fileId);
+  if (!fileId || !GOOGLE_APPS_SCRIPT_URL) {
+    return { driveTrashed: false };
   }
-  return fetchViaEmbeddedFolderView(folderId);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "delete",
+        fileId,
+        driveFolderId: DEFAULT_DRIVE_FOLDER_ID,
+      }),
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    const data = (await res.json().catch(() => ({}))) as { status?: string; deleted?: boolean };
+    return { driveTrashed: data.status === "success" || Boolean(data.deleted) };
+  } catch {
+    return { driveTrashed: false };
+  } finally {
+    clearTimeout(timeout);
+  }
 }

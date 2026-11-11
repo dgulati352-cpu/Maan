@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ExternalLink, ArrowRight, Camera } from "lucide-react";
+import { Sparkles, ExternalLink, ArrowRight, Camera, Trash2 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos, fetchSharedGalleryPhotos } from "@/lib/weddingPhotoStore";
+import { getApprovedWeddingPhotos, fetchSharedGalleryPhotos, deletePhotoEverywhere } from "@/lib/weddingPhotoStore";
 
 interface LuxuryGalleryPreviewProps {
   onFindYourFace: () => void;
@@ -163,6 +163,21 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                     }}
                   />
 
+                  {/* Delete Photo Button */}
+                  <button
+                    type="button"
+                    title="Delete photograph"
+                    aria-label="Delete photograph"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+                      deletePhotoEverywhere(photo);
+                    }}
+                    className="absolute top-3 left-3 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-red-50 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 border border-[#EADDE0] shadow-xs opacity-95 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
                   {/* Hover / Tap Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 sm:p-5 flex flex-col justify-between">
                     <div className="flex justify-end">
@@ -256,15 +271,31 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                 </span>
               </span>
 
-              <a
-                href={lightboxPhoto.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-all shadow-xs"
-              >
-                <span>View Full HD</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = lightboxPhoto;
+                    setLightboxPhoto(null);
+                    setPhotos((prev) => prev.filter((p) => p.id !== target.id));
+                    deletePhotoEverywhere(target);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+
+                <a
+                  href={lightboxPhoto.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-all shadow-xs"
+                >
+                  <span>View Full HD</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </div>
           </div>
         </div>

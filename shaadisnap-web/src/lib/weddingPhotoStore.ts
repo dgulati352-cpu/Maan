@@ -3,6 +3,31 @@ import { getStoredGoogleUser } from "@/lib/googleAuth";
 
 const STORAGE_KEY = "shaadisnap_live_wedding_photos";
 const STORAGE_KEY_GUEST_LINK = "shaadisnap_ceo_guest_link_approved";
+const STORAGE_KEY_DELETED = "shaadisnap_deleted_photo_ids";
+
+function getLocallyDeletedIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function recordLocallyDeletedIds(ids: Array<string | undefined>): void {
+  if (typeof window === "undefined") return;
+  try {
+    const set = getLocallyDeletedIds();
+    for (const id of ids) {
+      if (id && id.trim()) set.add(id.trim());
+    }
+    localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(Array.from(set)));
+  } catch (err) {
+    console.error("Failed to record deleted photo IDs:", err);
+  }
+}
 
 const DEFAULT_COUPLE_PHOTO: WeddingPhoto = {
   id: "hero_couple_photo",
@@ -124,9 +149,18 @@ export function getWeddingPhotos(): WeddingPhoto[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const uploaded: WeddingPhoto[] = raw ? JSON.parse(raw) : [];
+    const deletedSet = getLocallyDeletedIds();
 
     const realUploads: WeddingPhoto[] = uploaded
-      .filter((p) => p && p.id && p.url && !isLegacyMockPhoto(p))
+      .filter(
+        (p) =>
+          p &&
+          p.id &&
+          p.url &&
+          !isLegacyMockPhoto(p) &&
+          !deletedSet.has(p.id) &&
+          !(p.driveFileId && deletedSet.has(p.driveFileId))
+      )
       .map((p): WeddingPhoto => {
         // Accurately calibrate facesCount:
         // Windows camera captures (WIN_...) and single selfies are 1 person
@@ -146,9 +180,10 @@ export function getWeddingPhotos(): WeddingPhoto[] {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(realUploads));
     }
 
-    // Merge uploaded photos with base celebration photos (strictly DEFAULT_COUPLE_PHOTO)
+    // Merge uploaded photos with base celebration photos (unless explicitly deleted by user)
     const combined: WeddingPhoto[] = [...realUploads];
     for (const base of BASE_APPROVED_PHOTOS) {
+      if (deletedSet.has(base.id)) continue;
       if (!combined.some((p) => p.id === base.id || p.url === base.url)) {
         combined.push(base);
       }
@@ -234,8 +269,20 @@ export async function fetchSharedGalleryPhotos(options?: {
       return fallbackLocal;
     }
 
+    const deletedSet = getLocallyDeletedIds();
+
     const serverPhotos: WeddingPhoto[] = data.photos
-      .filter((p): p is WeddingPhoto => Boolean(p && p.id && p.url && !isLegacyMockPhoto(p)))
+      .filter(
+        (p): p is WeddingPhoto =>
+          Boolean(
+            p &&
+              p.id &&
+              p.url &&
+              !isLegacyMockPhoto(p) &&
+              !deletedSet.has(p.id) &&
+              !(p.driveFileId && deletedSet.has(p.driveFileId))
+          )
+      )
       .map((p) => ({
         ...p,
         facesCount: p.facesCount || 1,
@@ -247,6 +294,7 @@ export async function fetchSharedGalleryPhotos(options?: {
     const now = Date.now();
     const recentOptimistic = getWeddingPhotos().filter((lp) => {
       if (isLegacyMockPhoto(lp) || lp.approvalStatus === "rejected") return false;
+      if (deletedSet.has(lp.id) || (lp.driveFileId && deletedSet.has(lp.driveFileId))) return false;
       if (lp.id === "hero_couple_photo") return false;
       if (!matchesFilterOptions(lp, options)) return false;
       if (serverPhotos.some((sp) => sp.id === lp.id || (lp.driveFileId && sp.driveFileId === lp.driveFileId))) {
@@ -258,8 +306,9 @@ export async function fetchSharedGalleryPhotos(options?: {
 
     const merged = [...recentOptimistic, ...serverPhotos];
 
-    // Ensure DEFAULT_COUPLE_PHOTO is always included unless filtered out by ceremony/search
+    // Ensure DEFAULT_COUPLE_PHOTO is included unless filtered out or deleted by user
     if (
+      !deletedSet.has(DEFAULT_COUPLE_PHOTO.id) &&
       matchesFilterOptions(DEFAULT_COUPLE_PHOTO, options) &&
       !merged.some((p) => p.id === "hero_couple_photo")
     ) {
@@ -563,18 +612,116 @@ export function getActualSearchCount(): number {
 }
 
 /**
- * Delete a specific photo by ID
+ * Delete a specific photo by ID locally and across the shared gallery backend.
  */
-export function deleteUploadedPhoto(id: string) {
+export function deleteUploadedPhoto(id: string, driveFileId?: string) {
   if (typeof window === "undefined") return;
   try {
+    recordLocallyDeletedIds([id, driveFileId]);
     const current = getWeddingPhotos().filter((p) => !isLegacyMockPhoto(p));
-    const updated = current.filter((p) => p.id !== id);
+    const updated = current.filter(
+      (p) => p.id !== id && (!driveFileId || p.driveFileId !== driveFileId)
+    );
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("shaadisnap_photos_updated"));
+
+    if (id !== "hero_couple_photo") {
+      fetch("/api/gallery/photos", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, driveFileId: driveFileId || id }),
+      }).catch(() => {});
+    }
   } catch (err) {
     console.error("Failed to delete photo:", err);
   }
+}
+
+/**
+ * Deletes a photo everywhere (local state, server DB/vault, and Google Drive Trash if enabled).
+ */
+export async function deletePhotoEverywhere(photo: {
+  id: string;
+  driveFileId?: string;
+}): Promise<{ success: boolean; driveTrashed: boolean }> {
+  if (typeof window === "undefined") {
+    return { success: false, driveTrashed: false };
+  }
+  recordLocallyDeletedIds([photo.id, photo.driveFileId]);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const uploaded: WeddingPhoto[] = raw ? JSON.parse(raw) : [];
+    const updated = uploaded.filter(
+      (p) =>
+        p &&
+        p.id !== photo.id &&
+        (!photo.driveFileId || p.driveFileId !== photo.driveFileId)
+    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event("shaadisnap_photos_updated"));
+  } catch (err) {
+    console.error("Failed to update local photo cache on delete:", err);
+  }
+
+  if (photo.id === "hero_couple_photo") {
+    return { success: true, driveTrashed: false };
+  }
+
+  try {
+    const res = await fetch("/api/gallery/photos", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: photo.id,
+        driveFileId: photo.driveFileId || photo.id,
+      }),
+    });
+    if (!res.ok) return { success: true, driveTrashed: false };
+    const data = (await res.json().catch(() => ({}))) as { driveTrashed?: boolean };
+    return { success: true, driveTrashed: Boolean(data.driveTrashed) };
+  } catch {
+    return { success: true, driveTrashed: false };
+  }
+}
+
+/**
+ * Batch delete multiple photos across local state and server/Drive.
+ */
+export async function batchDeletePhotosEverywhere(
+  photos: Array<{ id: string; driveFileId?: string }>
+): Promise<{ success: boolean }> {
+  if (typeof window === "undefined" || photos.length === 0) {
+    return { success: false };
+  }
+  const allIds: string[] = [];
+  for (const p of photos) {
+    if (p.id) allIds.push(p.id);
+    if (p.driveFileId) allIds.push(p.driveFileId);
+  }
+  recordLocallyDeletedIds(allIds);
+
+  const idSet = new Set(allIds);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const uploaded: WeddingPhoto[] = raw ? JSON.parse(raw) : [];
+    const updated = uploaded.filter(
+      (p) => p && !idSet.has(p.id) && !(p.driveFileId && idSet.has(p.driveFileId))
+    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event("shaadisnap_photos_updated"));
+  } catch {
+    // ignore storage errors
+  }
+
+  const serverIds = allIds.filter((id) => id !== "hero_couple_photo");
+  if (serverIds.length > 0) {
+    await fetch("/api/gallery/photos", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: serverIds }),
+    }).catch(() => {});
+  }
+  return { success: true };
 }
 
 /**
@@ -583,5 +730,6 @@ export function deleteUploadedPhoto(id: string) {
 export function clearUploadedPhotos() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY_DELETED);
   window.dispatchEvent(new Event("shaadisnap_photos_updated"));
 }

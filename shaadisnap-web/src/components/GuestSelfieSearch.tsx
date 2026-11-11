@@ -31,7 +31,7 @@ import {
   getApprovedWeddingPhotos,
   getPhotosForCurrentUser,
   fetchSharedGalleryPhotos,
-  deleteUploadedPhoto,
+  deletePhotoEverywhere,
   recordActualSearch,
 } from "@/lib/weddingPhotoStore";
 import { matchSelfieAgainstPhotos } from "@/lib/faceComparison";
@@ -1103,8 +1103,8 @@ export const GuestSelfieSearch: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteUploadedPhoto(photo.id);
                                 setMatchedPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+                                deletePhotoEverywhere(photo);
                               }}
                               className="p-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
                               title="Delete this photo"
@@ -1192,6 +1192,20 @@ export const GuestSelfieSearch: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = selectedPhoto;
+                      setSelectedPhoto(null);
+                      setMatchedPhotos((prev) => prev.filter((p) => p.id !== target.id));
+                      deletePhotoEverywhere(target);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-3 rounded-full text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+
                   <a
                     href={selectedPhoto.url}
                     target="_blank"
