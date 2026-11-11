@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PetalFlakesOverlay } from "@/components/PetalFlakesOverlay";
-import { BackgroundMusicPlayer } from "@/components/BackgroundMusicPlayer";
 
 /**
  * Resilient Font Loader Definitions for Offline / Network-Isolated Builds
@@ -163,7 +162,6 @@ export default function RootLayout({
         style={{ backgroundColor: "#FFF8F3", color: "#765D62" }}
       >
         <PetalFlakesOverlay />
-        <BackgroundMusicPlayer />
         <AuthGuard>
           {children}
         </AuthGuard>
