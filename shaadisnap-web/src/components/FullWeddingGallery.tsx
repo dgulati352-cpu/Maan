@@ -29,7 +29,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   onFindPhotos,
   onUploadPhotos,
 }) => {
-  const [photos, setPhotos] = useState<WeddingPhoto[]>([]);
+  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getApprovedWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -38,40 +38,47 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const fetchLiveGallery = useCallback(async () => {
-    try {
-      const livePhotos = await fetchSharedGalleryPhotos({
-        ceremony: selectedCeremony,
-        search: searchQuery,
-      });
-      if (livePhotos.length > 0) {
-        setPhotos(livePhotos);
-        setIsLoading(false);
-        return;
-      }
-    } catch {
-      // Fallback to local client store if offline
-    }
-    setPhotos(getPhotosForCurrentUser());
-    setIsLoading(false);
-  }, [selectedCeremony, searchQuery]);
 
   useEffect(() => {
-    fetchLiveGallery();
-    const handleUpdate = () => fetchLiveGallery();
+    let active = true;
+
+    const loadGallery = async () => {
+      try {
+        const livePhotos = await fetchSharedGalleryPhotos({
+          ceremony: selectedCeremony,
+          search: searchQuery,
+        });
+        if (!active) return;
+        if (livePhotos.length > 0) {
+          setPhotos(livePhotos);
+          return;
+        }
+      } catch {
+        // Fallback to local client store if offline
+      }
+      if (active) {
+        setPhotos(getPhotosForCurrentUser());
+      }
+    };
+
+    loadGallery();
+    const handleUpdate = () => {
+      loadGallery();
+    };
+
     window.addEventListener("shaadisnap_photos_updated", handleUpdate);
     window.addEventListener("shaadisnap_google_auth_changed", handleUpdate);
     window.addEventListener("focus", handleUpdate);
-    const interval = setInterval(fetchLiveGallery, 15000);
+    const interval = setInterval(loadGallery, 15000);
+
     return () => {
+      active = false;
       window.removeEventListener("shaadisnap_photos_updated", handleUpdate);
       window.removeEventListener("shaadisnap_google_auth_changed", handleUpdate);
       window.removeEventListener("focus", handleUpdate);
       clearInterval(interval);
     };
-  }, [fetchLiveGallery]);
+  }, [selectedCeremony, searchQuery]);
 
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
