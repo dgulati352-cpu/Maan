@@ -20,7 +20,6 @@ import {
   ExternalLink,
   FlipHorizontal,
   Timer,
-  Trash2,
   Share2,
   ArrowUpDown,
   SlidersHorizontal,
@@ -32,7 +31,6 @@ import {
 import {
   getPhotosForCurrentUser,
   fetchSharedGalleryPhotos,
-  deletePhotoEverywhere,
   recordActualSearch,
 } from "@/lib/weddingPhotoStore";
 import {
@@ -1192,17 +1190,6 @@ export const GuestSelfieSearch: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setMatchedPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-                                deletePhotoEverywhere(photo);
-                              }}
-                              className="p-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                              title="Delete this photo"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
                                 setSelectedPhoto(photo);
                               }}
                               className="p-2 rounded-full bg-[#F1D5D5]/50 hover:bg-[#A85D70] hover:text-white transition-colors text-[#633C49] cursor-pointer"
@@ -1281,20 +1268,6 @@ export const GuestSelfieSearch: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const target = selectedPhoto;
-                      setSelectedPhoto(null);
-                      setMatchedPhotos((prev) => prev.filter((p) => p.id !== target.id));
-                      deletePhotoEverywhere(target);
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-3 rounded-full text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete</span>
-                  </button>
-
                   <a
                     href={selectedPhoto.url}
                     target="_blank"

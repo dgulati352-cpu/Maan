@@ -15,7 +15,6 @@ import {
   ChevronRight,
   CheckCircle2,
   Share2,
-  Trash2,
   ArrowUpDown,
   RefreshCw,
 } from "lucide-react";
@@ -24,8 +23,6 @@ import {
   getApprovedWeddingPhotos,
   getPhotosForCurrentUser,
   fetchSharedGalleryPhotos,
-  deletePhotoEverywhere,
-  batchDeletePhotosEverywhere,
 } from "@/lib/weddingPhotoStore";
 import {
   aiAnalyzeAndSortPhotos,
@@ -393,31 +390,14 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 
             <div className="flex items-center gap-2 flex-wrap">
               {isSelectMode && selectedIds.length > 0 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const targets = filteredPhotos.filter((p) => selectedIds.includes(p.id));
-                      const removeSet = new Set(targets.map((p) => p.id));
-                      setPhotos((prev) => prev.filter((p) => !removeSet.has(p.id)));
-                      setSelectedIds([]);
-                      await batchDeletePhotosEverywhere(targets);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 shadow-xs transition-all cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete Selected ({selectedIds.length})</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDownloadSelected}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-xs transition-all cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download Selected ({selectedIds.length})</span>
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={handleDownloadSelected}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-xs transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Selected ({selectedIds.length})</span>
+                </button>
               )}
 
               <button
@@ -530,22 +510,6 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                           {isSelected ? <CheckCircle2 className="w-5 h-5" /> : <Square className="w-4 h-4 text-[#947A80]" />}
                         </button>
                       )}
-
-                      {/* Delete Photo Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-                          setSelectedIds((prev) => prev.filter((x) => x !== photo.id));
-                          deletePhotoEverywhere(photo);
-                        }}
-                        className="w-8 h-8 rounded-full bg-white/90 hover:bg-red-50 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 shadow-xs opacity-90 hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer"
-                        title="Delete photograph"
-                        aria-label="Delete photograph"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
 
                       {/* Favorite Heart Button with Micro-Bounce */}
                       <button
@@ -696,21 +660,6 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               </span>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = currentLightboxPhoto;
-                    setLightboxIndex(null);
-                    setPhotos((prev) => prev.filter((p) => p.id !== target.id));
-                    setSelectedIds((prev) => prev.filter((x) => x !== target.id));
-                    deletePhotoEverywhere(target);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
-                </button>
-
                 <a
                   href={currentLightboxPhoto.url}
                   download={`${currentLightboxPhoto.title || "wedding_photo"}.jpg`}

@@ -353,3 +353,4 @@ export const BackgroundMusicPlayer: React.FC = () => {
     </aside>
   );
 };
+

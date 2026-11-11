@@ -13,7 +13,6 @@ import {
   X,
   RefreshCw,
   Sliders,
-  Trash2,
   Download,
   MapPin,
   ShieldCheck,
@@ -24,7 +23,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, clearUploadedPhotos, deletePhotoEverywhere } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos } from "@/lib/weddingPhotoStore";
 import { analyzeLocalImageFile, aiAnalyzeAndSortPhotos, sortWeddingPhotos, PhotoSortMode } from "@/lib/faceComparison";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
@@ -820,21 +819,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
 
-                        {/* Delete Photo Button */}
-                        <button
-                          type="button"
-                          title="Delete photograph"
-                          aria-label="Delete photograph"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLiveStreamPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-                            deletePhotoEverywhere(photo);
-                          }}
-                          className="absolute top-2 left-2 w-7 h-7 rounded-full bg-white/90 hover:bg-red-50 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 shadow-xs opacity-90 hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer z-10"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-
                         {/* Favorite Heart Button */}
                         <button
                           type="button"
@@ -872,21 +856,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                     All candid and official photographs from Marwaha & Gulati&apos;s celebration ({liveStreamPhotos.length} photos).
                   </p>
                 </div>
-
-                {liveStreamPhotos.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to clear cached photos?")) {
-                        clearUploadedPhotos();
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-[#765D62] hover:text-red-700 hover:bg-red-50 border border-[#EADDE0] transition-all cursor-pointer self-start sm:self-auto"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Clear Stream</span>
-                  </button>
-                )}
               </div>
 
               {/* Ceremony Filter Tabs & AI Sort Toolbar */}
@@ -968,21 +937,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 
-                    {/* Delete Photo Button */}
-                    <button
-                      type="button"
-                      title="Delete photograph"
-                      aria-label="Delete photograph"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLiveStreamPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-                        deletePhotoEverywhere(photo);
-                      }}
-                      className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-white/90 hover:bg-red-50 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 shadow-xs opacity-90 hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer z-10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-
                     {/* Favorite Heart Button */}
                     <button
                       type="button"
@@ -1060,19 +1014,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                         }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <button
-                        type="button"
-                        title="Delete photograph"
-                        aria-label="Delete photograph"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLiveStreamPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-                          deletePhotoEverywhere(photo);
-                        }}
-                        className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-white/90 hover:bg-red-50 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 shadow-xs cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
 
                       <button
                         type="button"
@@ -1275,32 +1216,16 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                 <span>{favorites.includes(lightboxPhoto.id) ? "Favorited" : "Favorite"}</span>
               </button>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = lightboxPhoto;
-                    setLightboxPhoto(null);
-                    setLiveStreamPhotos((prev) => prev.filter((p) => p.id !== target.id));
-                    deletePhotoEverywhere(target);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
-                </button>
-
-                <a
-                  href={lightboxPhoto.url}
-                  download={`${lightboxPhoto.title || "wedding_photo"}.jpg`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download High-Res</span>
-                </a>
-              </div>
+              <a
+                href={lightboxPhoto.url}
+                download={`${lightboxPhoto.title || "wedding_photo"}.jpg`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download High-Res</span>
+              </a>
             </div>
           </div>
         </div>
