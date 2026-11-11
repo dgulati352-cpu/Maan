@@ -1,5 +1,6 @@
 import path from "path";
 import fsSync from "fs";
+import os from "os";
 
 export interface SqliteStatement {
   run(...params: unknown[]): { changes: number; lastInsertRowid: number | bigint };
@@ -17,26 +18,54 @@ export interface SqliteDb {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { DatabaseSync } = require("node:sqlite");
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-try {
-  if (!fsSync.existsSync(DATA_DIR)) {
-    fsSync.mkdirSync(DATA_DIR, { recursive: true });
+function resolveWritableDbPath(): string {
+  const localDataDir = path.resolve(process.cwd(), "data");
+  const localDbPath = path.join(localDataDir, "shaadisnap.db");
+
+  try {
+    if (!fsSync.existsSync(localDataDir)) {
+      fsSync.mkdirSync(localDataDir, { recursive: true });
+    }
+    fsSync.accessSync(localDataDir, fsSync.constants.W_OK);
+    if (fsSync.existsSync(localDbPath)) {
+      fsSync.accessSync(localDbPath, fsSync.constants.W_OK);
+    }
+    return localDbPath;
+  } catch {
+    // Vercel serverless /var/task is read-only — copy or initialize inside os.tmpdir()
+    const tmpDbPath = path.join(os.tmpdir(), "shaadisnap.db");
+    try {
+      if (!fsSync.existsSync(tmpDbPath) && fsSync.existsSync(localDbPath)) {
+        fsSync.copyFileSync(localDbPath, tmpDbPath);
+      }
+      fsSync.accessSync(os.tmpdir(), fsSync.constants.W_OK);
+      return tmpDbPath;
+    } catch {
+      return ":memory:";
+    }
   }
-} catch {
-  // Read-only filesystem in serverless environments
 }
 
-const DB_PATH = path.join(DATA_DIR, "shaadisnap.db");
+const DB_PATH = resolveWritableDbPath();
 
 // Singleton SQLite Database Instance
 let dbInstance: SqliteDb | null = null;
 
 export function getDatabase(): SqliteDb {
   if (!dbInstance) {
-    dbInstance = new DatabaseSync(DB_PATH);
-    dbInstance!.exec("PRAGMA journal_mode = WAL;");
-    dbInstance!.exec("PRAGMA foreign_keys = ON;");
-    initSchema(dbInstance!);
+    try {
+      dbInstance = new DatabaseSync(DB_PATH);
+      if (DB_PATH !== ":memory:") {
+        dbInstance!.exec("PRAGMA journal_mode = WAL;");
+      }
+      dbInstance!.exec("PRAGMA foreign_keys = ON;");
+      initSchema(dbInstance!);
+    } catch {
+      // Ultimate safe fallback to in-memory SQLite in restricted serverless sandboxes
+      dbInstance = new DatabaseSync(":memory:");
+      dbInstance!.exec("PRAGMA foreign_keys = ON;");
+      initSchema(dbInstance!);
+    }
   }
   return dbInstance!;
 }

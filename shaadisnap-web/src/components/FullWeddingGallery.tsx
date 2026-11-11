@@ -44,20 +44,13 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 
     const loadGallery = async () => {
       try {
-        const livePhotos = await fetchSharedGalleryPhotos({
-          ceremony: selectedCeremony,
-          search: searchQuery,
-        });
+        const livePhotos = await fetchSharedGalleryPhotos();
         if (!active) return;
-        if (livePhotos.length > 0) {
-          setPhotos(livePhotos);
-          return;
-        }
+        setPhotos(livePhotos);
       } catch {
-        // Fallback to local client store if offline
-      }
-      if (active) {
-        setPhotos(getPhotosForCurrentUser());
+        if (active) {
+          setPhotos(getPhotosForCurrentUser());
+        }
       }
     };
 
@@ -78,7 +71,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
       window.removeEventListener("focus", handleUpdate);
       clearInterval(interval);
     };
-  }, [selectedCeremony, searchQuery]);
+  }, []);
 
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -168,7 +161,9 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   }, [lightboxIndex, navigateLightbox]);
 
   const currentLightboxPhoto =
-    lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null;
+    lightboxIndex !== null && lightboxIndex < filteredPhotos.length
+      ? filteredPhotos[lightboxIndex]
+      : null;
 
   return (
     <div className="w-full bg-[#FFF8F3] text-[#765D62] pt-8 pb-20">

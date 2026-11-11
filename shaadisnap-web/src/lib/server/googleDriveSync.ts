@@ -35,7 +35,24 @@ const VALID_CEREMONIES = new Set<DriveSyncedPhoto["ceremony"]>([
   "Reception",
 ]);
 
-function isDummyTestUpload(name: string, sizeBytes?: number): boolean {
+const DUMMY_STUB_IDS = new Set([
+  "1ocgwqzh1sgacaarbfy60m0d5nborw-gc",
+  "1bitz5kw4ohgvp-2eqlcmoeokotdzdtbx",
+  "1ocnfkbk84jkjaq8fhappz6yk4gk7wlgi",
+  "1-vzek1f3gipeuqhhrk8qk945wsvglbdp",
+  "1rdzubtc4oyxzvq4k_-dwx_o7rkdkhym-",
+  "1wlyogljg_uuxhobw1wit0hv-lfkkyar_",
+  "1bnhczyg3bx8zbwgbrtpfc4ijn5hperju",
+]);
+
+function isDummyTestUpload(
+  name: string,
+  sizeBytes?: number,
+  fileId?: string
+): boolean {
+  if (fileId && DUMMY_STUB_IDS.has(fileId.toLowerCase())) {
+    return true;
+  }
   if (typeof sizeBytes === "number" && sizeBytes > 0 && sizeBytes < 500) {
     return true;
   }
@@ -71,10 +88,11 @@ function parseDriveFilename(
     if (VALID_CEREMONIES.has(rawCeremony as DriveSyncedPhoto["ceremony"])) {
       ceremony = rawCeremony as DriveSyncedPhoto["ceremony"];
     }
-    const numericTs = Number(match[2]);
-    if (!Number.isNaN(numericTs) && numericTs > 1_000_000_000_000) {
+    const rawNumeric = Number(match[2]);
+    if (!Number.isNaN(rawNumeric) && rawNumeric > 1_000_000_000) {
+      const normalizedMs = rawNumeric < 1_000_000_000_000 ? rawNumeric * 1000 : rawNumeric;
       if (!parsedTs || Number.isNaN(parsedTs)) {
-        parsedTs = numericTs;
+        parsedTs = normalizedMs;
       }
     }
     title = match[3] || safeName;
@@ -138,58 +156,69 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
 
   const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
   const fields = encodeURIComponent(
-    "files(id,name,mimeType,createdTime,size,thumbnailLink)"
+    "nextPageToken,files(id,name,mimeType,createdTime,size,thumbnailLink)"
   );
-  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=createdTime%20desc&pageSize=100&key=${encodeURIComponent(
-    apiKey
-  )}`;
-
   const rawReferer = (
     process.env.NEXT_PUBLIC_SITE_URL || "https://maan-gulati.vercel.app"
   ).trim();
   const referer = rawReferer.endsWith("/") ? rawReferer : `${rawReferer}/`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 7000);
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        Referer: referer,
-      },
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      files?: Array<{
-        id?: string;
-        name?: string;
-        mimeType?: string;
-        createdTime?: string;
-        size?: string;
-      }>;
-    };
-
-    if (!Array.isArray(data.files)) return null;
-
     const results: DriveSyncedPhoto[] = [];
-    for (const file of data.files) {
-      if (!file.id || !file.name) continue;
-      if (!file.mimeType?.startsWith("image/")) continue;
-      const sizeBytes = Number(file.size || 0);
-      if (isDummyTestUpload(file.name, sizeBytes)) continue;
+    let pageToken = "";
 
-      results.push(
-        buildDrivePhotoRecord(
-          file.id,
-          file.name,
-          folderId,
-          sizeBytes,
-          file.createdTime
-        )
-      );
+    for (let page = 0; page < 5; page++) {
+      const pageParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+      const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=createdTime%20desc&pageSize=100${pageParam}&key=${encodeURIComponent(
+        apiKey
+      )}`;
+
+      const res = await fetch(url, {
+        headers: {
+          Referer: referer,
+        },
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      if (!res.ok) return results.length > 0 ? results : null;
+      const data = (await res.json()) as {
+        nextPageToken?: string;
+        files?: Array<{
+          id?: string;
+          name?: string;
+          mimeType?: string;
+          createdTime?: string;
+          size?: string;
+        }>;
+      };
+
+      if (!Array.isArray(data.files)) {
+        return results.length > 0 ? results : null;
+      }
+
+      for (const file of data.files) {
+        if (!file.id || !file.name) continue;
+        if (!file.mimeType?.startsWith("image/")) continue;
+        const sizeBytes = Number(file.size || 0);
+        if (isDummyTestUpload(file.name, sizeBytes, file.id)) continue;
+
+        results.push(
+          buildDrivePhotoRecord(
+            file.id,
+            file.name,
+            folderId,
+            sizeBytes,
+            file.createdTime
+          )
+        );
+      }
+
+      if (!data.nextPageToken) break;
+      pageToken = data.nextPageToken;
     }
 
     return results;
@@ -238,7 +267,7 @@ async function fetchViaEmbeddedFolderView(
 
       const fileId = idMatch[1].trim();
       const rawTitle = decodeHtmlEntities(titleMatch[1].trim());
-      if (!fileId || !rawTitle || isDummyTestUpload(rawTitle)) continue;
+      if (!fileId || !rawTitle || isDummyTestUpload(rawTitle, 0, fileId)) continue;
 
       results.push(buildDrivePhotoRecord(fileId, rawTitle, folderId, 0));
     }

@@ -165,14 +165,36 @@ export function getWeddingPhotos(): WeddingPhoto[] {
  */
 export function getApprovedWeddingPhotos(): WeddingPhoto[] {
   const allPhotos = getWeddingPhotos();
-  return allPhotos.filter(
-    (photo) =>
-      !isLegacyMockPhoto(photo) &&
-      (photo.approvalStatus === "approved" ||
-        photo.photographer === "Guest Live Upload" ||
-        Boolean(photo.driveFileId) ||
-        (!photo.approvalStatus && photo.id === "hero_couple_photo"))
-  );
+  return allPhotos.filter((photo) => {
+    if (isLegacyMockPhoto(photo)) return false;
+    if (photo.approvalStatus === "rejected") return false;
+    return (
+      photo.approvalStatus === "approved" ||
+      photo.photographer === "Guest Live Upload" ||
+      Boolean(photo.driveFileId) ||
+      (!photo.approvalStatus && photo.id === "hero_couple_photo")
+    );
+  });
+}
+
+function matchesFilterOptions(
+  photo: WeddingPhoto,
+  options?: { ceremony?: string; search?: string }
+): boolean {
+  if (
+    options?.ceremony &&
+    options.ceremony !== "All" &&
+    photo.ceremony.toLowerCase() !== options.ceremony.toLowerCase()
+  ) {
+    return false;
+  }
+  if (options?.search) {
+    const q = options.search.toLowerCase();
+    const matchesTitle = (photo.title || "").toLowerCase().includes(q);
+    const matchesCeremony = (photo.ceremony || "").toLowerCase().includes(q);
+    if (!matchesTitle && !matchesCeremony) return false;
+  }
+  return true;
 }
 
 /**
@@ -183,7 +205,9 @@ export async function fetchSharedGalleryPhotos(options?: {
   ceremony?: string;
   search?: string;
 }): Promise<WeddingPhoto[]> {
-  const fallbackLocal = getApprovedWeddingPhotos();
+  const fallbackLocal = getApprovedWeddingPhotos().filter((p) =>
+    matchesFilterOptions(p, options)
+  );
   if (typeof window === "undefined") {
     return fallbackLocal;
   }
@@ -222,8 +246,9 @@ export async function fetchSharedGalleryPhotos(options?: {
     // Preserve brand-new optimistic local uploads (within 2 minutes) before Drive list propagation
     const now = Date.now();
     const recentOptimistic = getWeddingPhotos().filter((lp) => {
-      if (isLegacyMockPhoto(lp)) return false;
+      if (isLegacyMockPhoto(lp) || lp.approvalStatus === "rejected") return false;
       if (lp.id === "hero_couple_photo") return false;
+      if (!matchesFilterOptions(lp, options)) return false;
       if (serverPhotos.some((sp) => sp.id === lp.id || (lp.driveFileId && sp.driveFileId === lp.driveFileId))) {
         return false;
       }
@@ -234,9 +259,10 @@ export async function fetchSharedGalleryPhotos(options?: {
     const merged = [...recentOptimistic, ...serverPhotos];
 
     // Ensure DEFAULT_COUPLE_PHOTO is always included unless filtered out by ceremony/search
-    const isUnfiltered =
-      (!options?.ceremony || options.ceremony === "All") && !options?.search;
-    if (isUnfiltered && !merged.some((p) => p.id === "hero_couple_photo")) {
+    if (
+      matchesFilterOptions(DEFAULT_COUPLE_PHOTO, options) &&
+      !merged.some((p) => p.id === "hero_couple_photo")
+    ) {
       merged.push(DEFAULT_COUPLE_PHOTO);
     }
 
@@ -354,8 +380,9 @@ export function getPhotosForCurrentUser(): WeddingPhoto[] {
   const currentUser = getStoredGoogleUser();
 
   if (!currentUser || !currentUser.email) {
-    // Unauthenticated guest: return approved wedding photos PLUS any photos uploaded in this browser
+    // Unauthenticated guest: return approved wedding photos PLUS any non-rejected photos uploaded in this browser
     return allPhotos.filter((p) => {
+      if (p.approvalStatus === "rejected") return false;
       if (p.id === "hero_couple_photo") return true;
       if (p.approvalStatus === "approved") return true;
       if (p.photographer === "Guest Live Upload" || p.uploaderEmail === "guest@maan-ai.com" || p.driveFileId) return true;

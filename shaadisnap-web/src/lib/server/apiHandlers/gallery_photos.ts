@@ -26,18 +26,19 @@ export async function GET(req: NextRequest) {
     const eventId = searchParams.get("eventId") || "marwaha-gulati-2026";
     const ceremony = searchParams.get("ceremony") || "All";
     const search = searchParams.get("search")?.toLowerCase();
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "60", 10)));
+    const parsedPage = parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = parseInt(searchParams.get("limit") || "60", 10);
+    const page = Math.max(1, Number.isNaN(parsedPage) ? 1 : parsedPage);
+    const limit = Math.max(1, Math.min(100, Number.isNaN(parsedLimit) ? 60 : parsedLimit));
 
-    const db = getDatabase();
+    // Scope official Drive folder sync strictly to primary wedding event (or default)
+    const drivePhotosPromise =
+      eventId === "marwaha-gulati-2026"
+        ? fetchLiveDriveFolderPhotos().catch(() => [])
+        : Promise.resolve([]);
 
-    // Start Google Drive live folder sync in parallel with local DB/vault read
-    const drivePhotosPromise = fetchLiveDriveFolderPhotos().catch(() => []);
-
-    // Query SQLite database for approved photos
-    const dbRows = db
-      .prepare(`SELECT * FROM photos WHERE event_id = ? AND approval_status = 'approved' ORDER BY created_at DESC`)
-      .all(eventId) as Array<{
+    // Query SQLite database safely for approved photos
+    let dbRows: Array<{
       id: string;
       filename: string;
       ceremony_name: string;
@@ -46,33 +47,55 @@ export async function GET(req: NextRequest) {
       faces_count: number;
       size_bytes: number;
       created_at: number;
-    }>;
+    }> = [];
+    let ceremonies: Array<{ name: string; slug: string }> = [
+      { name: "Phere", slug: "phere" },
+      { name: "Sangeet", slug: "sangeet" },
+      { name: "Mehendi", slug: "mehendi" },
+      { name: "Haldi", slug: "haldi" },
+      { name: "Reception", slug: "reception" },
+    ];
 
-    // Fallback: Include approved photos from admin vault (e.g., hero_couple_photo)
-    const vaultRows: MergedGalleryRow[] =
-      dbRows.length > 0
-        ? dbRows.map((p) => ({
-            ...p,
-            photographer: "JMD Studio",
-          }))
-        : listAdminPhotos(eventId)
-            .filter((p) => p.approvalStatus === "approved" || p.id === "hero_couple_photo")
-            .map((p) => ({
-              id: p.id,
-              filename: p.filename,
-              ceremony_name: p.ceremony,
-              url: p.url,
-              thumbnail_url: p.thumbnailUrl,
-              fallback_url: p.fallbackUrl,
-              faces_count: p.facesIndexed || p.facesDetected || 1,
-              size_bytes: p.sizeBytes,
-              created_at: new Date(p.createdAt).getTime(),
-              photographer: "JMD Studio",
-            }));
+    try {
+      const db = getDatabase();
+      dbRows = db
+        .prepare(`SELECT * FROM photos WHERE event_id = ? AND approval_status = 'approved' ORDER BY created_at DESC`)
+        .all(eventId) as typeof dbRows;
+      const dbCeremonies = db
+        .prepare("SELECT name, slug FROM ceremonies WHERE event_id = ?")
+        .all(eventId) as Array<{ name: string; slug: string }>;
+      if (dbCeremonies.length > 0) {
+        ceremonies = Array.from(
+          new Map(dbCeremonies.map((c) => [c.name, c])).values()
+        );
+      }
+    } catch {
+      // Non-fatal fallback in restricted serverless sandboxes
+    }
+
+    // Collect approved photos from admin vault as well as SQLite
+    const vaultRows: MergedGalleryRow[] = listAdminPhotos(eventId)
+      .filter((p) => p.approvalStatus === "approved" || p.id === "hero_couple_photo")
+      .map((p) => {
+        const ts = new Date(p.createdAt).getTime();
+        return {
+          id: p.id,
+          driveFileId: p.driveFileId,
+          filename: p.filename,
+          ceremony_name: p.ceremony,
+          url: p.url,
+          thumbnail_url: p.thumbnailUrl,
+          fallback_url: p.fallbackUrl,
+          faces_count: p.facesIndexed || p.facesDetected || 1,
+          size_bytes: p.sizeBytes,
+          created_at: Number.isFinite(ts) ? ts : 0,
+          photographer: "JMD Studio",
+        };
+      });
 
     const liveDrivePhotos = await drivePhotosPromise;
 
-    // Merge Drive photos first (newest cross-device uploads), then local/vault photos (deduped)
+    // Merge Drive photos first, then SQLite DB rows, then admin vault photos (deduped)
     const mergedMap = new Map<string, MergedGalleryRow>();
 
     for (const dp of liveDrivePhotos) {
@@ -89,6 +112,15 @@ export async function GET(req: NextRequest) {
         created_at: dp.createdAtMs,
         photographer: dp.photographer,
       });
+    }
+
+    for (const dr of dbRows) {
+      if (!mergedMap.has(dr.id)) {
+        mergedMap.set(dr.id, {
+          ...dr,
+          photographer: "JMD Studio",
+        });
+      }
     }
 
     for (const vp of vaultRows) {
@@ -126,8 +158,12 @@ export async function GET(req: NextRequest) {
         ? generateSignedPhotoUrl(p.id, 86400) // 24h validity
         : p.url;
       const signedThumb = p.thumbnail_url.startsWith("/uploads/thumbnails/")
-        ? generateSignedPhotoUrl(`thumb_${p.id}`, 86400)
+        ? generateSignedPhotoUrl(p.id, 86400)
         : p.thumbnail_url;
+      const safeTimestamp =
+        typeof p.created_at === "number" && Number.isFinite(p.created_at) && p.created_at > 0
+          ? p.created_at
+          : Date.now();
 
       return {
         id: p.id,
@@ -142,12 +178,9 @@ export async function GET(req: NextRequest) {
         photographer: p.photographer || "JMD Studio",
         approvalStatus: "approved" as const,
         sizeBytes: p.size_bytes,
-        createdAt: new Date(p.created_at).toISOString(),
+        createdAt: new Date(safeTimestamp).toISOString(),
       };
     });
-
-    // Query ceremony list for event
-    const ceremonies = db.prepare("SELECT name, slug FROM ceremonies WHERE event_id = ?").all(eventId) as Array<{ name: string; slug: string }>;
 
     return NextResponse.json(
       {

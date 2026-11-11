@@ -185,6 +185,10 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           setActiveSidebarItem("gallery");
         }, 1200);
 
+        if (item.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+
         setUploadFiles((current) =>
           current.map((f) =>
             f.id === item.id
@@ -268,7 +272,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const startBatchUpload = async () => {
     setIsBatchUploading(true);
     for (const item of uploadFiles) {
-      if (item.status !== "completed") {
+      if (item.status !== "completed" && item.status !== "uploading") {
         await uploadSingleItem(item);
       }
     }
@@ -276,7 +280,13 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   };
 
   const removeFile = (id: string) => {
-    setUploadFiles((prev) => prev.filter((f) => f.id !== id));
+    setUploadFiles((prev) => {
+      const target = prev.find((f) => f.id === id);
+      if (target && target.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((f) => f.id !== id);
+    });
   };
 
   const filteredGalleryPhotos =
@@ -627,6 +637,15 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                           <img
                             src={file.previewUrl}
                             alt="Preview"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              if (file.driveFileId) {
+                                const thumb = `https://drive.google.com/thumbnail?id=${file.driveFileId}&sz=w1200`;
+                                if (e.currentTarget.src !== thumb) {
+                                  e.currentTarget.src = thumb;
+                                }
+                              }
+                            }}
                             className="w-12 h-12 rounded-lg object-cover border border-[#EADDE0]"
                           />
                           <div>
