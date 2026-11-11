@@ -11,6 +11,9 @@ const GOOGLE_APPS_SCRIPT_URL =
   process.env.GOOGLE_APPS_SCRIPT_URL ||
   "https://script.google.com/macros/s/AKfycbwNSX6iRCcQS_ImqeS9MJ-CZYy02hz39BIfiyRAm20tP9ytxe3FGFMI76rXY6lq-hDQ/exec";
 
+const OFFICIAL_DRIVE_FOLDER_ID =
+  process.env.GOOGLE_DRIVE_FOLDER_ID || "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy";
+
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
@@ -70,7 +73,11 @@ export async function POST(req: NextRequest) {
     const ceremony = (formData.get("ceremony") as string) || "Sangeet";
     const eventId = (formData.get("eventId") as string) || "marwaha-gulati-2026";
     const uploaderEmail = (formData.get("uploaderEmail") as string) || (formData.get("email") as string) || "guest@maan-ai.com";
-    const driveFolderId = (formData.get("driveFolderId") as string) || "";
+    const rawDriveFolderId = (formData.get("driveFolderId") as string) || "";
+    const driveFolderId =
+      rawDriveFolderId && !rawDriveFolderId.startsWith("drive_folder_")
+        ? rawDriveFolderId
+        : OFFICIAL_DRIVE_FOLDER_ID;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });

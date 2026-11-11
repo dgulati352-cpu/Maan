@@ -139,7 +139,7 @@ export function switchActiveUser(
   driveFolderId?: string
 ): GoogleDriveUser {
   const sanitizedName = name || email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const folderId = driveFolderId || `drive_folder_${encodeURIComponent(email.split("@")[0])}_wedding`;
+  const folderId = driveFolderId || "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy";
   
   const updatedUser: GoogleDriveUser = {
     id: `user_${email.replace(/[^a-zA-Z0-9]/g, "_")}`,
