@@ -92,23 +92,42 @@ export const Footer: React.FC = () => {
           <a href="/contact">Security Architecture & Contact</a>
         </div>
 
-        {/* Gift Dedication Banner to Maan Family */}
-        <div className="mt-10 pt-6 border-t border-[#EADDE0]/60 flex flex-col items-center justify-center text-center space-y-2">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white/90 border border-[#D9B7A0]/70 shadow-[0_4px_16px_rgba(99,60,73,0.06)] backdrop-blur-xs">
-            <Heart className="w-3.5 h-3.5 text-[#A85D70] fill-[#A85D70] animate-pulse" />
-            <span className="text-xs sm:text-sm font-serif italic font-medium text-[#633C49]">
-              &ldquo;A small gift to Maan Family&rdquo;
-            </span>
-            <span className="text-[#D9B7A0] hidden sm:inline">•</span>
-            <span className="text-xs text-[#765D62]">Crafted with love by</span>
-            <a
-              href="https://dhairyagulati.co.in"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-bold text-[#A85D70] hover:text-[#914C60] transition-colors underline decoration-[#A85D70]/40 hover:decoration-[#914C60]"
-            >
-              Dhairya Gulati
-            </a>
+        {/* Gift Dedication Banner to Maan Family (Prominent & Luxury Showcase) */}
+        <div className="mt-14 pt-8 border-t border-[#EADDE0] flex flex-col items-center justify-center text-center">
+          <div className="relative group max-w-3xl w-full mx-auto px-6 py-6 sm:px-10 sm:py-8 rounded-[28px] bg-gradient-to-b from-white via-[#FFF8F3] to-[#FFF0EA] border-2 border-[#D9B7A0] shadow-[0_12px_45px_rgba(168,93,112,0.18)] backdrop-blur-md transition-all duration-300 hover:shadow-[0_18px_55px_rgba(168,93,112,0.25)] hover:border-[#A85D70]">
+            {/* Subtle Royal Accent Glow */}
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#F1D5D5] via-[#D9B7A0]/50 to-[#F1D5D5] rounded-[32px] blur-xl opacity-50 group-hover:opacity-85 transition duration-500 pointer-events-none -z-10" />
+
+            <div className="flex flex-col items-center justify-center space-y-3.5">
+              <div className="flex items-center justify-center gap-3">
+                <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-[#A85D70] fill-[#A85D70] animate-pulse shrink-0" />
+                <h3 className="font-serif italic text-2xl sm:text-3xl md:text-4xl font-bold text-[#633C49] tracking-tight">
+                  &ldquo;A small gift to Maan Family&rdquo;
+                </h3>
+                <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-[#A85D70] fill-[#A85D70] animate-pulse shrink-0" />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-sm sm:text-base text-[#765D62]">
+                <span className="font-normal">Crafted with love by</span>
+                <a
+                  href="https://dhairyagulati.co.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-[#633C49] hover:text-[#A85D70] transition-colors underline underline-offset-4 decoration-2 decoration-[#A85D70]/60 hover:decoration-[#A85D70]"
+                >
+                  Dhairya Gulati
+                </a>
+                <span className="text-[#D9B7A0] hidden sm:inline">•</span>
+                <a
+                  href="https://dhairyagulati.co.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-[#A85D70] bg-[#F1D5D5]/80 hover:bg-[#F1D5D5] border border-[#A85D70]/40 transition-colors shadow-2xs"
+                >
+                  dhairyagulati.co.in
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
