@@ -717,6 +717,12 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                           <Heart className={`w-3.5 h-3.5 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
                         </button>
 
+                        {/* Permanent Live Available Badge */}
+                        <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md border border-emerald-400/40 text-white shadow-xs group-hover:opacity-0 transition-opacity">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-[10px] font-semibold text-emerald-300">Live Available</span>
+                        </div>
+
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2.5 flex flex-col justify-end text-white">
                           <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
                             {photo.ceremony}
@@ -821,6 +827,12 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                     >
                       <Heart className={`w-4 h-4 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
                     </button>
+
+                    {/* Permanent Live Available Badge */}
+                    <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-emerald-400/40 text-white shadow-xs group-hover:opacity-0 transition-opacity">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-semibold text-emerald-300">Live Available</span>
+                    </div>
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
                       <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">

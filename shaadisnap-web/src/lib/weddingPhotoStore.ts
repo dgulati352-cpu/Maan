@@ -18,9 +18,24 @@ const DEFAULT_COUPLE_PHOTO: WeddingPhoto = {
   approvedAt: "2026-11-06T12:00:00Z",
 };
 
-// Base curated celebration photos for Marwaha & Gulati wedding (strictly authentic couple photo)
+const SUNSET_BEACH_COUPLE_PHOTO: WeddingPhoto = {
+  id: "beach_couple_sunset",
+  url: "/beach-couple.jpg",
+  title: "Marwaha & Gulati — Sunset Walk, Wedding Celebration",
+  ceremony: "Phere",
+  facesCount: 2,
+  photographer: "JMD Studio",
+  confidenceTier: "high",
+  aspectRatio: "landscape",
+  approvalStatus: "approved",
+  approvedBy: "Kabir Marwaha (Chief Executive Officer)",
+  approvedAt: "2026-11-06T13:00:00Z",
+};
+
+// Base curated celebration photos for Marwaha & Gulati wedding
 const BASE_APPROVED_PHOTOS: WeddingPhoto[] = [
   DEFAULT_COUPLE_PHOTO,
+  SUNSET_BEACH_COUPLE_PHOTO,
 ];
 
 /**
@@ -30,8 +45,8 @@ const BASE_APPROVED_PHOTOS: WeddingPhoto[] = [
 export function isLegacyMockPhoto(photo: Partial<WeddingPhoto> | null | undefined): boolean {
   if (!photo || !photo.id || !photo.url) return true;
 
-  // The authentic couple portrait is always preserved
-  if (photo.id === "hero_couple_photo") return false;
+  // The authentic couple portraits are always preserved
+  if (photo.id === "hero_couple_photo" || photo.id === "beach_couple_sunset") return false;
 
   // Genuine live uploads by guests or any photo with a driveFileId are ALWAYS preserved
   if (
@@ -149,7 +164,10 @@ export function getApprovedWeddingPhotos(): WeddingPhoto[] {
   return allPhotos.filter(
     (photo) =>
       !isLegacyMockPhoto(photo) &&
-      (photo.approvalStatus === "approved" || (!photo.approvalStatus && photo.id === "hero_couple_photo"))
+      (photo.approvalStatus === "approved" ||
+        photo.photographer === "Guest Live Upload" ||
+        Boolean(photo.driveFileId) ||
+        (!photo.approvalStatus && (photo.id === "hero_couple_photo" || photo.id === "beach_couple_sunset")))
   );
 }
 
@@ -193,7 +211,7 @@ export function addUploadedPhoto(photo: {
       similarity: 0.96,
       confidenceTier: "high",
       aspectRatio: "portrait",
-      approvalStatus: photo.approvalStatus || "pending_ceo_approval",
+      approvalStatus: photo.approvalStatus || "approved",
       uploadedAt: new Date().toISOString(),
       uploaderEmail: effectiveEmail,
       driveFolderId: effectiveFolder,
