@@ -18,6 +18,9 @@ export interface WeddingPhoto {
   uploadedAt?: string;
   uploaderEmail?: string;
   driveFolderId?: string;
+  shotType?: "solo" | "couple" | "group" | "scenic";
+  qualityScore?: number;
+  aiSorted?: boolean;
 }
 
 export interface DemoSelfie {

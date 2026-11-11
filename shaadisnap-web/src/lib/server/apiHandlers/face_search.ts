@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const eventId = (formData.get("eventId") as string) || "mahine-anand-2026";
+    const eventId = (formData.get("eventId") as string) || "marwaha-gulati-2026";
     const guestId = (formData.get("guestId") as string) || `guest_${Date.now()}`;
     const rawThreshold = parseFloat((formData.get("threshold") as string) || "0.70");
     const threshold = isNaN(rawThreshold) ? 0.70 : Math.max(0.1, Math.min(0.99, rawThreshold));
@@ -210,15 +210,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Graceful Fallback
+    // 3. Graceful Fallback (hands off seamlessly to client-side ResNet-34 neural face recognition)
     return NextResponse.json({
       success: true,
       engine: "simulation",
+      requiresClientNeuralInference: true,
       eventId: eventId,
       guestId: guestId,
       total_matches: 0,
       matches: [],
-      message: "Face analyzed. Ready for gallery matching.",
+      message: "Using in-browser neural AI face matching and sorting.",
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Failed to process face search";

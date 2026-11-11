@@ -4,6 +4,83 @@ import { getStoredGoogleUser } from "@/lib/googleAuth";
 const STORAGE_KEY = "shaadisnap_live_wedding_photos";
 const STORAGE_KEY_GUEST_LINK = "shaadisnap_ceo_guest_link_approved";
 const STORAGE_KEY_DELETED = "shaadisnap_deleted_photo_ids";
+const STORAGE_KEY_AI_META = "shaadisnap_ai_photo_meta";
+
+export interface AiPhotoMeta {
+  facesCount?: number;
+  shotType?: "solo" | "couple" | "group" | "scenic";
+  qualityScore?: number;
+  ceremony?: WeddingPhoto["ceremony"];
+  aiSorted?: boolean;
+}
+
+export function getAiPhotoMetaMap(): Record<string, AiPhotoMeta> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_AI_META);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveAiPhotoMetaBatch(
+  entries: Array<{ id: string; driveFileId?: string } & AiPhotoMeta>
+): void {
+  if (typeof window === "undefined" || entries.length === 0) return;
+  try {
+    const map = getAiPhotoMetaMap();
+    for (const item of entries) {
+      const meta: AiPhotoMeta = {
+        facesCount: item.facesCount,
+        shotType: item.shotType,
+        qualityScore: item.qualityScore,
+        ceremony: item.ceremony,
+        aiSorted: item.aiSorted,
+      };
+      if (item.id) map[item.id] = { ...map[item.id], ...meta };
+      if (item.driveFileId) map[item.driveFileId] = { ...map[item.driveFileId], ...meta };
+    }
+    localStorage.setItem(STORAGE_KEY_AI_META, JSON.stringify(map));
+
+    // Sync into cached local upload list if entries exist there
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const uploaded: WeddingPhoto[] = JSON.parse(raw);
+      const updated = uploaded.map((p) => {
+        const meta = map[p.id] || (p.driveFileId ? map[p.driveFileId] : undefined);
+        if (!meta) return p;
+        return {
+          ...p,
+          facesCount: typeof meta.facesCount === "number" ? meta.facesCount : p.facesCount,
+          shotType: meta.shotType ?? p.shotType,
+          qualityScore: meta.qualityScore ?? p.qualityScore,
+          ceremony: meta.ceremony ?? p.ceremony,
+          aiSorted: meta.aiSorted ?? p.aiSorted,
+        };
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    }
+
+    window.dispatchEvent(new Event("shaadisnap_photos_updated"));
+  } catch (err) {
+    console.error("Failed to persist AI photo metadata:", err);
+  }
+}
+
+function applyAiMeta(photo: WeddingPhoto, metaMap: Record<string, AiPhotoMeta>): WeddingPhoto {
+  const meta = metaMap[photo.id] || (photo.driveFileId ? metaMap[photo.driveFileId] : undefined);
+  if (!meta) return photo;
+  return {
+    ...photo,
+    facesCount: typeof meta.facesCount === "number" ? meta.facesCount : photo.facesCount,
+    shotType: meta.shotType ?? photo.shotType,
+    qualityScore: typeof meta.qualityScore === "number" ? meta.qualityScore : photo.qualityScore,
+    ceremony: meta.ceremony ?? photo.ceremony,
+    aiSorted: meta.aiSorted ?? photo.aiSorted,
+  };
+}
 
 function getLocallyDeletedIds(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -150,6 +227,7 @@ export function getWeddingPhotos(): WeddingPhoto[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     const uploaded: WeddingPhoto[] = raw ? JSON.parse(raw) : [];
     const deletedSet = getLocallyDeletedIds();
+    const metaMap = getAiPhotoMetaMap();
 
     const realUploads: WeddingPhoto[] = uploaded
       .filter(
@@ -162,17 +240,19 @@ export function getWeddingPhotos(): WeddingPhoto[] {
           !(p.driveFileId && deletedSet.has(p.driveFileId))
       )
       .map((p): WeddingPhoto => {
-        // Accurately calibrate facesCount:
-        // Windows camera captures (WIN_...) and single selfies are 1 person
-        const isSinglePerson =
-          p.title?.startsWith("WIN_") ||
-          p.title?.toLowerCase().includes("selfie") ||
-          p.photographer === "Guest Live Upload";
-        return {
-          ...p,
-          facesCount: isSinglePerson ? 1 : p.facesCount || 1,
-          approvalStatus: (p.approvalStatus || (p.id === "hero_couple_photo" ? "approved" : "pending_ceo_approval")) as "approved" | "pending_ceo_approval" | "rejected",
-        };
+        const enriched = applyAiMeta(
+          {
+            ...p,
+            facesCount: typeof p.facesCount === "number" ? p.facesCount : 1,
+            approvalStatus: (p.approvalStatus ||
+              (p.id === "hero_couple_photo" ? "approved" : "pending_ceo_approval")) as
+              | "approved"
+              | "pending_ceo_approval"
+              | "rejected",
+          },
+          metaMap
+        );
+        return enriched;
       });
 
     // Clean up localStorage cache if legacy mock photos were detected and pruned
@@ -185,7 +265,7 @@ export function getWeddingPhotos(): WeddingPhoto[] {
     for (const base of BASE_APPROVED_PHOTOS) {
       if (deletedSet.has(base.id)) continue;
       if (!combined.some((p) => p.id === base.id || p.url === base.url)) {
-        combined.push(base);
+        combined.push(applyAiMeta(base, metaMap));
       }
     }
     return combined;
@@ -270,6 +350,7 @@ export async function fetchSharedGalleryPhotos(options?: {
     }
 
     const deletedSet = getLocallyDeletedIds();
+    const metaMap = getAiPhotoMetaMap();
 
     const serverPhotos: WeddingPhoto[] = data.photos
       .filter(
@@ -283,12 +364,18 @@ export async function fetchSharedGalleryPhotos(options?: {
               !(p.driveFileId && deletedSet.has(p.driveFileId))
           )
       )
-      .map((p) => ({
-        ...p,
-        facesCount: p.facesCount || 1,
-        photographer: p.photographer || "Guest Live Upload",
-        approvalStatus: "approved" as const,
-      }));
+      .map((p) =>
+        applyAiMeta(
+          {
+            ...p,
+            facesCount: typeof p.facesCount === "number" ? p.facesCount : 1,
+            photographer: p.photographer || "Guest Live Upload",
+            approvalStatus: "approved" as const,
+          },
+          metaMap
+        )
+      )
+      .filter((p) => matchesFilterOptions(p, options));
 
     // Preserve brand-new optimistic local uploads (within 2 minutes) before Drive list propagation
     const now = Date.now();
@@ -307,12 +394,13 @@ export async function fetchSharedGalleryPhotos(options?: {
     const merged = [...recentOptimistic, ...serverPhotos];
 
     // Ensure DEFAULT_COUPLE_PHOTO is included unless filtered out or deleted by user
+    const enrichedCouple = applyAiMeta(DEFAULT_COUPLE_PHOTO, metaMap);
     if (
-      !deletedSet.has(DEFAULT_COUPLE_PHOTO.id) &&
-      matchesFilterOptions(DEFAULT_COUPLE_PHOTO, options) &&
+      !deletedSet.has(enrichedCouple.id) &&
+      matchesFilterOptions(enrichedCouple, options) &&
       !merged.some((p) => p.id === "hero_couple_photo")
     ) {
-      merged.push(DEFAULT_COUPLE_PHOTO);
+      merged.push(enrichedCouple);
     }
 
     return merged;
@@ -336,6 +424,10 @@ export function addUploadedPhoto(photo: {
   approvalStatus?: "pending_ceo_approval" | "approved" | "rejected";
   uploaderEmail?: string;
   driveFolderId?: string;
+  facesCount?: number;
+  qualityScore?: number;
+  shotType?: "solo" | "couple" | "group" | "scenic";
+  aiSorted?: boolean;
 }) {
   if (typeof window === "undefined") return;
   try {
@@ -363,7 +455,7 @@ export function addUploadedPhoto(photo: {
       driveFileId: photo.driveFileId,
       title: photo.title || "Wedding Memory",
       ceremony: (photo.ceremony as WeddingPhoto["ceremony"]) || "Sangeet",
-      facesCount: 1,
+      facesCount: typeof photo.facesCount === "number" ? photo.facesCount : 1,
       photographer: photo.photographer || "Guest Live Upload",
       similarity: 0.96,
       confidenceTier: "high",
@@ -372,7 +464,29 @@ export function addUploadedPhoto(photo: {
       uploadedAt: new Date().toISOString(),
       uploaderEmail: effectiveEmail,
       driveFolderId: effectiveFolder,
+      qualityScore: photo.qualityScore,
+      shotType: photo.shotType,
+      aiSorted: photo.aiSorted,
     };
+
+    if (
+      typeof photo.facesCount === "number" ||
+      typeof photo.qualityScore === "number" ||
+      photo.shotType ||
+      photo.aiSorted
+    ) {
+      const map = getAiPhotoMetaMap();
+      const meta: AiPhotoMeta = {
+        facesCount: newPhoto.facesCount,
+        shotType: photo.shotType,
+        qualityScore: photo.qualityScore,
+        ceremony: newPhoto.ceremony,
+        aiSorted: photo.aiSorted,
+      };
+      if (newPhoto.id) map[newPhoto.id] = meta;
+      if (newPhoto.driveFileId) map[newPhoto.driveFileId] = meta;
+      localStorage.setItem(STORAGE_KEY_AI_META, JSON.stringify(map));
+    }
 
     // Filter out duplicate IDs if any, and insert newest at the top
     const updated = [newPhoto, ...current.filter((p) => p.id !== newPhoto.id)];
@@ -731,5 +845,6 @@ export function clearUploadedPhotos() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(STORAGE_KEY_DELETED);
+  localStorage.removeItem(STORAGE_KEY_AI_META);
   window.dispatchEvent(new Event("shaadisnap_photos_updated"));
 }

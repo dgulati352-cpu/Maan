@@ -20,9 +20,12 @@ import {
   AlertCircle,
   FolderOpen,
   ExternalLink,
+  Sparkles,
+  ArrowUpDown,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, clearUploadedPhotos, deletePhotoEverywhere } from "@/lib/weddingPhotoStore";
+import { analyzeLocalImageFile, aiAnalyzeAndSortPhotos, sortWeddingPhotos, PhotoSortMode } from "@/lib/faceComparison";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
 import { compressImage, formatBytes } from "@/lib/imageCompression";
@@ -40,6 +43,7 @@ interface UploadFileItem {
   status: "pending" | "compressing" | "uploading" | "completed" | "error";
   facesDetected?: number;
   sharpness?: number;
+  detectedCeremony?: string;
   rawFile?: File;
   compressedFile?: File;
   compressionRatio?: string;
@@ -54,8 +58,11 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const [activeSidebarItem, setActiveSidebarItem] = useState<"upload" | "gallery" | "favorites" | "details">("upload");
   const [uploadFiles, setUploadFiles] = useState<UploadFileItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedCeremony, setSelectedCeremony] = useState("Sangeet");
+  const [selectedCeremony, setSelectedCeremony] = useState("AI Auto");
   const [galleryCeremony, setGalleryCeremony] = useState("All");
+  const [sortBy, setSortBy] = useState<PhotoSortMode>("newest");
+  const [isAiSorting, setIsAiSorting] = useState(false);
+  const [aiSortStatus, setAiSortStatus] = useState<string | null>(null);
   const [isBatchUploading, setIsBatchUploading] = useState(false);
   const [activeUser, setActiveUser] = useState<GoogleDriveUser | null>(() =>
     typeof window !== "undefined" ? getStoredGoogleUser() : null
@@ -127,6 +134,40 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     );
 
     try {
+      // Run real in-browser AI face count, sharpness & ceremony classification
+      let aiMeta: {
+        facesDetected: number;
+        sharpness: number;
+        qualityScore: number;
+        shotType: "solo" | "couple" | "group" | "scenic";
+        predictedCeremony: WeddingPhoto["ceremony"];
+      } = {
+        facesDetected: 1,
+        sharpness: 85,
+        qualityScore: 80,
+        shotType: "solo",
+        predictedCeremony:
+          selectedCeremony === "AI Auto"
+            ? "Sangeet"
+            : (selectedCeremony as WeddingPhoto["ceremony"]),
+      };
+
+      try {
+        aiMeta = await analyzeLocalImageFile(
+          item.rawFile,
+          selectedCeremony === "AI Auto"
+            ? "Sangeet"
+            : (selectedCeremony as WeddingPhoto["ceremony"])
+        );
+      } catch {
+        // Fallback smoothly if browser cannot decode format (e.g., HEIC)
+      }
+
+      const effectiveCeremony =
+        selectedCeremony === "AI Auto"
+          ? aiMeta.predictedCeremony
+          : selectedCeremony;
+
       // High-efficiency in-browser compression (scaled to max 1920px 2K, quality 0.82)
       const compression = await compressImage(item.rawFile);
       const fileToUpload = compression.file;
@@ -137,6 +178,9 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
             ? {
                 ...f,
                 progress: 50,
+                facesDetected: aiMeta.facesDetected,
+                sharpness: aiMeta.sharpness,
+                detectedCeremony: effectiveCeremony,
                 size: `${formatBytes(compression.compressedSize)} (${compression.savingsPercent}% saved)`,
               }
             : f
@@ -148,7 +192,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
-      formData.append("ceremony", selectedCeremony);
+      formData.append("ceremony", effectiveCeremony);
       formData.append("eventId", WEDDING_EVENT.id);
       formData.append("uploaderEmail", uploaderEmail);
       const effectiveFolderId =
@@ -171,10 +215,14 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           fallbackUrl: item.previewUrl,
           driveFileId: data.fileId,
           title: item.name,
-          ceremony: selectedCeremony,
+          ceremony: effectiveCeremony,
           photographer: "Guest Live Upload",
           uploaderEmail: uploaderEmail,
           driveFolderId: effectiveFolderId,
+          facesCount: aiMeta.facesDetected,
+          qualityScore: aiMeta.qualityScore,
+          shotType: aiMeta.shotType,
+          aiSorted: selectedCeremony === "AI Auto",
         });
 
         // Immediately update liveStreamPhotos so it reflects on screen right away
@@ -260,8 +308,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
       previewUrl: URL.createObjectURL(f),
       progress: 0,
       status: "pending",
-      facesDetected: Math.floor(Math.random() * 3) + 1,
-      sharpness: Math.floor(Math.random() * 15) + 85,
       rawFile: f,
     }));
 
@@ -289,10 +335,33 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     });
   };
 
-  const filteredGalleryPhotos =
+  const handleAiAutoSortGallery = async () => {
+    if (isAiSorting || liveStreamPhotos.length === 0) return;
+    setIsAiSorting(true);
+    setAiSortStatus("Running neural face detection & ceremony sorting...");
+    try {
+      const sorted = await aiAnalyzeAndSortPhotos(liveStreamPhotos, {
+        sortMode: "ai-smart",
+        autoTagCeremonies: true,
+        onProgress: (_done, _total, msg) => setAiSortStatus(msg),
+      });
+      setLiveStreamPhotos(sorted);
+      setSortBy("ai-smart");
+      setAiSortStatus(`AI sorted ${sorted.length} photo${sorted.length === 1 ? "" : "s"}!`);
+      setTimeout(() => setAiSortStatus(null), 4500);
+    } catch {
+      setAiSortStatus("AI Sort encountered an error. Please try again.");
+      setTimeout(() => setAiSortStatus(null), 3500);
+    } finally {
+      setIsAiSorting(false);
+    }
+  };
+
+  const ceremonyFilteredPhotos =
     galleryCeremony === "All"
       ? liveStreamPhotos
       : liveStreamPhotos.filter((p) => p.ceremony === galleryCeremony);
+  const filteredGalleryPhotos = sortWeddingPhotos(ceremonyFilteredPhotos, sortBy);
 
   const favoritePhotosList = liveStreamPhotos.filter((p) => favorites.includes(p.id));
 
@@ -481,18 +550,19 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   <span>Tag Ceremony:</span>
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto">
-                  {["Mehendi", "Haldi", "Sangeet", "Phere", "Reception"].map((c) => (
+                  {["AI Auto", "Mehendi", "Haldi", "Sangeet", "Phere", "Reception"].map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setSelectedCeremony(c)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer inline-flex items-center gap-1 ${
                         selectedCeremony === c
                           ? "bg-[#A85D70] text-white shadow-xs"
                           : "bg-[#FFF8F3] text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
                       }`}
                     >
-                      {c}
+                      {c === "AI Auto" && <Sparkles className="w-3 h-3" />}
+                      <span>{c}</span>
                     </button>
                   ))}
                 </div>
@@ -658,7 +728,13 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                                 Compressed 2K
                               </span>
                               <span>•</span>
-                              <span>{selectedCeremony}</span>
+                              <span>{file.detectedCeremony || (selectedCeremony === "AI Auto" ? "AI Detecting..." : selectedCeremony)}</span>
+                              {typeof file.facesDetected === "number" && (
+                                <>
+                                  <span>•</span>
+                                  <span>{file.facesDetected} {file.facesDetected === 1 ? "Face" : "Faces"}</span>
+                                </>
+                              )}
                             </span>
                           </div>
                         </div>
@@ -806,23 +882,64 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                 )}
               </div>
 
-              {/* Ceremony Filter Tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                {["All", "Phere", "Sangeet", "Mehendi", "Haldi", "Reception"].map((c) => (
+              {/* Ceremony Filter Tabs & AI Sort Toolbar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                  {["All", "Phere", "Sangeet", "Mehendi", "Haldi", "Reception"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setGalleryCeremony(c)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                        galleryCeremony === c
+                          ? "bg-[#A85D70] text-white shadow-xs"
+                          : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
                   <button
-                    key={c}
                     type="button"
-                    onClick={() => setGalleryCeremony(c)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                      galleryCeremony === c
-                        ? "bg-[#A85D70] text-white shadow-xs"
-                        : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
-                    }`}
+                    onClick={handleAiAutoSortGallery}
+                    disabled={isAiSorting || liveStreamPhotos.length === 0}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] disabled:opacity-50 transition-all shadow-2xs cursor-pointer"
                   >
-                    {c}
+                    {isAiSorting ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    <span>{isAiSorting ? "AI Sorting..." : "AI Auto-Sort"}</span>
                   </button>
-                ))}
+
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#EADDE0] text-xs font-semibold text-[#633C49]">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-[#A85D70]" />
+                    <select
+                      aria-label="Sort my gallery photos"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as PhotoSortMode)}
+                      className="bg-transparent outline-none cursor-pointer pr-1"
+                    >
+                      <option value="newest">Newest</option>
+                      <option value="ai-smart">AI Best Quality</option>
+                      <option value="ceremony">Ceremony Order</option>
+                      <option value="faces-desc">Most Faces</option>
+                      <option value="oldest">Oldest</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+
+              {aiSortStatus && (
+                <div className="p-2.5 rounded-xl bg-[#F1D5D5]/40 border border-[#A85D70]/30 text-xs font-medium text-[#633C49] flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-[#A85D70] shrink-0" />
+                  <span>{aiSortStatus}</span>
+                </div>
+              )}
 
               {/* Photos Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

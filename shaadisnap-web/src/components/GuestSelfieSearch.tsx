@@ -22,19 +22,24 @@ import {
   Timer,
   Trash2,
   Share2,
+  ArrowUpDown,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   WeddingPhoto,
   WEDDING_EVENT,
 } from "@/data/mockWeddingData";
 import {
-  getApprovedWeddingPhotos,
   getPhotosForCurrentUser,
   fetchSharedGalleryPhotos,
   deletePhotoEverywhere,
   recordActualSearch,
 } from "@/lib/weddingPhotoStore";
-import { matchSelfieAgainstPhotos } from "@/lib/faceComparison";
+import {
+  matchSelfieAgainstPhotosWithDiagnostics,
+  sortWeddingPhotos,
+  PhotoSortMode,
+} from "@/lib/faceComparison";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface ApiFaceMatch {
@@ -62,6 +67,13 @@ export const GuestSelfieSearch: React.FC = () => {
   const [matchedPhotos, setMatchedPhotos] = useState<WeddingPhoto[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<WeddingPhoto | null>(null);
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
+  const [matchThreshold, setMatchThreshold] = useState<number>(0.70);
+  const [sortBy, setSortBy] = useState<PhotoSortMode>("similarity");
+  const [scanSummary, setScanSummary] = useState<{
+    scannedCount: number;
+    totalGalleryFaces: number;
+    engineLabel: string;
+  } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasConsent, setHasConsent] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -275,27 +287,28 @@ export const GuestSelfieSearch: React.FC = () => {
     });
   };
 
-  // Run AI Search (with live CompreFace / ML API integration)
-  const runSearchSimulation = async (bypassConsent = false) => {
+  // Run AI Search (Server ArcFace when online + real ResNet-34 / SSD MobileNet browser neural matching)
+  const runSearchSimulation = async (
+    bypassConsent = false,
+    overrideThreshold?: number
+  ) => {
     // Non-bypassable biometric consent gating under DPDP Act 2023 & GDPR
     if (!hasConsent && !bypassConsent) {
       setErrorMessage("Biometric consent is required under DPDP Act 2023 & GDPR to scan and discover your photos. Please check the consent box below.");
       return;
     }
 
+    const activeThreshold = overrideThreshold ?? matchThreshold;
+    if (typeof overrideThreshold === "number") {
+      setMatchThreshold(overrideThreshold);
+    }
+
     setIsProcessing(true);
     setHasSearched(false);
     setErrorMessage(null);
+    setScanSummary(null);
 
-    // Staged progress updates
-    setProcessStep("Detecting 5 facial landmarks (eyes, nose, mouth)...");
-    await new Promise((r) => setTimeout(r, 400));
-
-    setProcessStep("Aligning to canonical coordinate frame...");
-    await new Promise((r) => setTimeout(r, 400));
-
-    setProcessStep("ArcFace 512-d hyperspherical embedding extraction...");
-    await new Promise((r) => setTimeout(r, 500));
+    setProcessStep("Syncing shared wedding photo gallery...");
 
     // Candidate pool: shared Google Drive photos + local session uploads
     const localPool = getPhotosForCurrentUser();
@@ -307,10 +320,10 @@ export const GuestSelfieSearch: React.FC = () => {
       }
     }
 
-    setProcessStep(`Searching ${photoPool.length} photos in event gallery (τ = 0.70)...`);
+    setProcessStep(`Preparing neural scan across ${photoPool.length} gallery photos (τ = ${activeThreshold.toFixed(2)})...`);
     recordActualSearch(getSessionGuestId());
 
-    // Live AI API Call
+    // Live AI API Call (Server ArcFace / CompreFace when hosted locally)
     let apiMatches: ApiFaceMatch[] = [];
     try {
       if (selfieImage) {
@@ -322,7 +335,7 @@ export const GuestSelfieSearch: React.FC = () => {
         fd.append("hasConsent", "true");
         fd.append("consentToken", getSessionConsentToken());
         fd.append("guestId", getSessionGuestId());
-        fd.append("threshold", "0.70");
+        fd.append("threshold", activeThreshold.toString());
 
         const res = await fetch("/api/face-search", {
           method: "POST",
@@ -339,6 +352,9 @@ export const GuestSelfieSearch: React.FC = () => {
     }
 
     let results: WeddingPhoto[] = [];
+    let engineLabel = "ArcFace Verified";
+    let scannedCount = photoPool.length;
+    let totalGalleryFaces = 0;
 
     if (apiMatches.length > 0) {
       const matchMap = new Map<string, { similarity: number }>();
@@ -355,40 +371,49 @@ export const GuestSelfieSearch: React.FC = () => {
         .map((p) => {
           const matchInfo = matchMap.get(p.id) || (p.driveFileId ? matchMap.get(p.driveFileId) : undefined);
           const sim = matchInfo?.similarity ?? 0.85;
+          totalGalleryFaces += p.facesCount || 1;
           return {
             ...p,
-            similarity: Math.min(0.99, Math.max(0.70, Number(sim.toFixed(3)))),
-            confidenceTier: sim >= 0.75 ? ("high" as const) : ("medium" as const),
+            similarity: Math.min(0.99, Math.max(activeThreshold, Number(sim.toFixed(3)))),
+            confidenceTier: sim >= 0.78 ? ("high" as const) : ("medium" as const),
           };
         });
-    } else {
-      results = [];
-    }
-
-    // Client-side AI fallback: Match selfie against candidate photos when server returns zero matches
-    if (results.length === 0 && selfieImage && photoPool.length > 0) {
-      setProcessStep("Calibrating perceptual face likeness across ceremony photos...");
+    } else if (selfieImage && photoPool.length > 0) {
+      // Real In-Browser Neural Matching (SSD MobileNet v1 + 68-Landmark Alignment + ResNet-34 128-d)
+      engineLabel = "Neural ResNet-34 Verified";
       try {
-        const clientMatches = await matchSelfieAgainstPhotos(selfieImage, photoPool, 0.70);
-        results = clientMatches;
+        const diagnostics = await matchSelfieAgainstPhotosWithDiagnostics(
+          selfieImage,
+          photoPool,
+          activeThreshold,
+          (_done, _total, statusText) => {
+            setProcessStep(statusText);
+          }
+        );
+        results = diagnostics.matches;
+        scannedCount = diagnostics.scannedCount;
+        totalGalleryFaces = diagnostics.totalGalleryFaces;
+        if (diagnostics.selfieFacesDetected === 0 && diagnostics.errorReason) {
+          setErrorMessage(diagnostics.errorReason);
+        }
       } catch (err) {
-        console.warn("Client-side face matching error:", err);
+        console.warn("Neural face matching error:", err);
+        setErrorMessage("Could not run AI face analysis on this browser. Please check image format or reload.");
       }
     }
 
-    // Sort strictly by highest similarity first (descending)
-    results.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+    // Sort matches cleanly using active sort mode (default descending similarity)
+    const sortedResults = sortWeddingPhotos(results, sortBy);
 
     setIsProcessing(false);
     setHasSearched(true);
-
-    setMatchedPhotos(results);
+    setScanSummary({ scannedCount, totalGalleryFaces, engineLabel });
+    setMatchedPhotos(sortedResults);
 
     // Trigger celebratory confetti if matches found (dual royal cannons)
-    if (results.length > 0) {
+    if (sortedResults.length > 0) {
       if (typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         const roseChampagneColors = ["#A85D70", "#633C49", "#D9B7A0", "#F1D5D5"];
-        // Left royal cannon
         confetti({
           particleCount: 55,
           angle: 60,
@@ -400,7 +425,6 @@ export const GuestSelfieSearch: React.FC = () => {
           scalar: 0.95,
           disableForReducedMotion: true,
         });
-        // Right royal cannon
         confetti({
           particleCount: 55,
           angle: 120,
@@ -416,11 +440,12 @@ export const GuestSelfieSearch: React.FC = () => {
     }
   };
 
-  // Filter matched photos by ceremony
-  const filteredPhotos =
+  // Filter and sort matched photos dynamically
+  const ceremonyFilteredPhotos =
     selectedCeremony === "All"
       ? matchedPhotos
       : matchedPhotos.filter((p) => p.ceremony === selectedCeremony);
+  const filteredPhotos = sortWeddingPhotos(ceremonyFilteredPhotos, sortBy);
 
   return (
     <div className="w-full bg-[#FFF8F3] py-10 lg:py-16 text-[#765D62]">
@@ -807,6 +832,34 @@ export const GuestSelfieSearch: React.FC = () => {
                   </div>
                 )}
 
+                {/* Search Sensitivity Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-3 rounded-xl bg-[#FFF8F3] border border-[#EADDE0]">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#633C49]">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#A85D70]" />
+                    <span>AI Match Sensitivity:</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      { label: "Strict (78%)", val: 0.78 },
+                      { label: "Balanced (70%)", val: 0.70 },
+                      { label: "Broad (62%)", val: 0.62 },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() => setMatchThreshold(opt.val)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
+                          Math.abs(matchThreshold - opt.val) < 0.01
+                            ? "bg-[#A85D70] text-white shadow-2xs"
+                            : "bg-white text-[#765D62] border border-[#EADDE0] hover:border-[#A85D70]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Search Trigger Button & Retake Options */}
                 <div className="space-y-3">
                   <button
@@ -919,13 +972,20 @@ export const GuestSelfieSearch: React.FC = () => {
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F1D5D5]/40 border border-[#EADDE0] text-xs font-semibold text-[#633C49]">
                     <span>Biometric Resemblance Verification</span>
                     <span>•</span>
-                    <span>τ = 0.70</span>
+                    <span>τ = {matchThreshold.toFixed(2)}</span>
+                    {scanSummary && (
+                      <>
+                        <span>•</span>
+                        <span>{scanSummary.totalGalleryFaces} faces scanned across {scanSummary.scannedCount} photos</span>
+                      </>
+                    )}
                   </div>
                   <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#633C49]">
                     No Matching Photos Found
                   </h3>
                   <p className="text-sm text-[#765D62] max-w-lg mx-auto leading-relaxed">
-                    We searched the authentic wedding gallery against your facial embedding. Under our calibrated biometric threshold (τ = 0.70), no verified matches were detected. To ensure absolute privacy and genuine results, we never display arbitrary or unverified photos.
+                    We scanned the wedding gallery with neural facial recognition at threshold τ = {matchThreshold.toFixed(2)} and found no verified matches above this cutoff.
+                    {matchThreshold > 0.63 ? " If lighting or glasses varied, try Broad Sensitivity (62%) below." : ""}
                   </p>
                 </div>
 
@@ -968,7 +1028,19 @@ export const GuestSelfieSearch: React.FC = () => {
                 </div>
 
                 {/* Call-to-Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 pt-2">
+                  {matchThreshold > 0.63 && selfieImage && (
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => runSearchSimulation(true, 0.62)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Try Broad Sensitivity (62%)</span>
+                    </button>
+                  )}
+
                   <Link
                     href="/gallery"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold text-white bg-[#633C49] hover:bg-[#914C60] transition-colors shadow-sm"
@@ -1010,12 +1082,13 @@ export const GuestSelfieSearch: React.FC = () => {
                 {/* Results Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        ArcFace Verified
+                        {scanSummary?.engineLabel || "ArcFace Verified"}
                       </span>
                       <span className="text-xs text-[#765D62]">
-                        Threshold: τ = 0.70 • Strict Resemblance Match
+                        Threshold: τ = {matchThreshold.toFixed(2)}
+                        {scanSummary ? ` • Scanned ${scanSummary.scannedCount} photos (${scanSummary.totalGalleryFaces} faces)` : " • Strict Resemblance Match"}
                       </span>
                     </div>
                     <h2 className="font-serif text-3xl font-bold text-[#633C49] mt-1">
@@ -1023,8 +1096,24 @@ export const GuestSelfieSearch: React.FC = () => {
                     </h2>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-3">
+                  {/* Sort & Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-[#EADDE0] text-xs font-semibold text-[#633C49]">
+                      <ArrowUpDown className="w-3.5 h-3.5 text-[#A85D70]" />
+                      <select
+                        aria-label="Sort matched photos"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as PhotoSortMode)}
+                        className="bg-transparent outline-none cursor-pointer pr-1"
+                      >
+                        <option value="similarity">Sort: Best AI Match</option>
+                        <option value="ceremony">Sort: Ceremony Order</option>
+                        <option value="faces-desc">Sort: Most Faces</option>
+                        <option value="newest">Sort: Newest First</option>
+                        <option value="oldest">Sort: Oldest First</option>
+                      </select>
+                    </div>
+
                     <button
                       onClick={handleDownloadAll}
                       className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-sm transition-all cursor-pointer"

@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   Share2,
   Trash2,
+  ArrowUpDown,
+  RefreshCw,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import {
@@ -25,6 +27,11 @@ import {
   deletePhotoEverywhere,
   batchDeletePhotosEverywhere,
 } from "@/lib/weddingPhotoStore";
+import {
+  aiAnalyzeAndSortPhotos,
+  sortWeddingPhotos,
+  PhotoSortMode,
+} from "@/lib/faceComparison";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
 interface FullWeddingGalleryProps {
@@ -38,6 +45,10 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 }) => {
   const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getApprovedWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
+  const [subjectFilter, setSubjectFilter] = useState<"All" | "Solo" | "Couple" | "Group">("All");
+  const [sortBy, setSortBy] = useState<PhotoSortMode>("newest");
+  const [isAiSorting, setIsAiSorting] = useState<boolean>(false);
+  const [aiSortProgress, setAiSortProgress] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -94,17 +105,53 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
     );
   };
 
+  const handleAiAutoSort = async () => {
+    if (isAiSorting || photos.length === 0) return;
+    setIsAiSorting(true);
+    setAiSortProgress("Loading AI face & ceremony sorting models...");
+    try {
+      const sorted = await aiAnalyzeAndSortPhotos(photos, {
+        sortMode: "ai-smart",
+        autoTagCeremonies: true,
+        onProgress: (_done, _total, statusText) => {
+          setAiSortProgress(statusText);
+        },
+      });
+      setPhotos(sorted);
+      setSortBy("ai-smart");
+      const detectedFaces = sorted.reduce((acc, p) => acc + (p.facesCount || 0), 0);
+      setAiSortProgress(
+        `AI sorted ${sorted.length} photo${sorted.length === 1 ? "" : "s"} (${detectedFaces} face${detectedFaces === 1 ? "" : "s"} detected across ceremonies).`
+      );
+      setTimeout(() => setAiSortProgress(null), 5000);
+    } catch (err) {
+      console.warn("AI Auto-Sort failed:", err);
+      setAiSortProgress("Could not complete AI Auto-Sort. Please try again.");
+      setTimeout(() => setAiSortProgress(null), 4000);
+    } finally {
+      setIsAiSorting(false);
+    }
+  };
+
   const ceremonies = ["All", "Phere", "Sangeet", "Mehendi", "Haldi", "Reception"];
 
-  const filteredPhotos = photos.filter((photo) => {
+  const matchingPhotos = photos.filter((photo) => {
     const ceremonyMatch =
       selectedCeremony === "All" || photo.ceremony === selectedCeremony;
+    const faces = photo.facesCount || 0;
+    const subjectMatch =
+      subjectFilter === "All" ||
+      (subjectFilter === "Solo" && faces === 1) ||
+      (subjectFilter === "Couple" && faces === 2) ||
+      (subjectFilter === "Group" && faces >= 3);
     const queryMatch =
       !searchQuery ||
       photo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       photo.ceremony.toLowerCase().includes(searchQuery.toLowerCase());
-    return ceremonyMatch && queryMatch;
+    return ceremonyMatch && subjectMatch && queryMatch;
   });
+
+  const filteredPhotos = sortWeddingPhotos(matchingPhotos, sortBy);
 
   const handleSelectAll = () => {
     if (selectedIds.length === filteredPhotos.length) {
@@ -260,9 +307,57 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
             </div>
           </div>
 
-          {/* Batch Actions Toolbar */}
+          {/* Batch Actions, Subject Filter & AI Sort Toolbar */}
           <div className="pt-3 border-t border-[#EADDE0]/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleAiAutoSort}
+                disabled={isAiSorting || photos.length === 0}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] disabled:opacity-50 transition-all shadow-2xs cursor-pointer"
+                title="Analyze faces, visual ceremony colors, and image sharpness to sort & tag automatically"
+              >
+                {isAiSorting ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                <span>{isAiSorting ? "AI Sorting..." : "AI Auto-Sort & Tag"}</span>
+              </button>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF8F3] border border-[#EADDE0] font-semibold text-[#633C49]">
+                <ArrowUpDown className="w-3.5 h-3.5 text-[#A85D70]" />
+                <select
+                  aria-label="Sort gallery photos"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as PhotoSortMode)}
+                  className="bg-transparent outline-none cursor-pointer pr-1"
+                >
+                  <option value="newest">Sort: Newest</option>
+                  <option value="ai-smart">Sort: AI Best Quality</option>
+                  <option value="ceremony">Sort: Ceremony Flow</option>
+                  <option value="faces-desc">Sort: Most Faces</option>
+                  <option value="oldest">Sort: Oldest</option>
+                </select>
+              </div>
+
+              <div className="hidden sm:flex items-center gap-1 bg-[#FFF8F3] p-0.5 rounded-full border border-[#EADDE0]">
+                {(["All", "Solo", "Couple", "Group"] as const).map((subj) => (
+                  <button
+                    key={subj}
+                    type="button"
+                    onClick={() => setSubjectFilter(subj)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
+                      subjectFilter === subj
+                        ? "bg-[#633C49] text-white"
+                        : "text-[#765D62] hover:text-[#633C49]"
+                    }`}
+                  >
+                    {subj}
+                  </button>
+                ))}
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
@@ -337,7 +432,13 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
             </div>
           </div>
 
-          {/* Download Toast Notification */}
+          {/* AI Auto-Sort Progress & Download Toast Notifications */}
+          {aiSortProgress && (
+            <div className="p-2.5 rounded-xl bg-[#F1D5D5]/40 border border-[#A85D70]/30 text-xs font-medium text-[#633C49] flex items-center gap-2 animate-fadeIn">
+              <Sparkles className="w-3.5 h-3.5 text-[#A85D70] shrink-0" />
+              <span>{aiSortProgress}</span>
+            </div>
+          )}
           {downloadProgress && (
             <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-800 flex items-center gap-2 animate-fadeIn">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
