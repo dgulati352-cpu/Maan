@@ -154,6 +154,9 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           driveFolderId: effectiveFolderId,
         });
 
+        // Immediately update liveStreamPhotos so it reflects on screen right away
+        setLiveStreamPhotos(getPhotosForCurrentUser());
+
         setUploadFiles((current) =>
           current.map((f) =>
             f.id === item.id
@@ -624,6 +627,83 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   </div>
                 </div>
               )}
+              {/* Recently Uploaded Memories (Shown Directly on Upload Tab) */}
+              {liveStreamPhotos.length > 0 && (
+                <div className="space-y-4 pt-4 border-t border-[#EADDE0]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#633C49] tracking-tight">
+                        Your Uploaded Photos ({liveStreamPhotos.length})
+                      </h2>
+                      <p className="text-xs text-[#947A80]">
+                        Photographs you have added to this wedding celebration.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveSidebarItem("gallery")}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#A85D70] hover:text-[#914C60] bg-[#F1D5D5]/60 hover:bg-[#F1D5D5] transition-colors border border-[#A85D70]/30 shadow-2xs cursor-pointer self-start sm:self-auto"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>View My Gallery ({liveStreamPhotos.length}) &rarr;</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 sm:gap-4">
+                    {liveStreamPhotos.map((photo) => (
+                      <div
+                        key={photo.id}
+                        onClick={() => setLightboxPhoto(photo)}
+                        className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
+                      >
+                        <img
+                          src={photo.url || photo.fallbackUrl}
+                          alt={photo.title}
+                          onError={(e) => {
+                            if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                              e.currentTarget.src = photo.fallbackUrl;
+                            }
+                          }}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+
+                        {/* Delete Photo Button */}
+                        <button
+                          type="button"
+                          title="Remove photograph"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteUploadedPhoto(photo.id);
+                            setLiveStreamPhotos(getPhotosForCurrentUser());
+                          }}
+                          className="absolute top-2 left-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-red-500 hover:text-red-700 shadow-xs opacity-90 hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer z-10"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Favorite Heart Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => toggleFavorite(photo.id, e)}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer z-10"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
+                        </button>
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2.5 flex flex-col justify-end text-white">
+                          <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
+                            {photo.ceremony}
+                          </span>
+                          <p className="text-xs font-bold truncate">
+                            {photo.title}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -683,8 +763,13 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                     className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
                   >
                     <img
-                      src={photo.url}
+                      src={photo.url || photo.fallbackUrl}
                       alt={photo.title}
+                      onError={(e) => {
+                        if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                          e.currentTarget.src = photo.fallbackUrl;
+                        }
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 

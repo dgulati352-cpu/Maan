@@ -252,8 +252,13 @@ export function getPhotosForCurrentUser(): WeddingPhoto[] {
   const currentUser = getStoredGoogleUser();
 
   if (!currentUser || !currentUser.email) {
-    // Unauthenticated / Logged-out guest: strictly public approved photos
-    return getApprovedWeddingPhotos();
+    // Unauthenticated guest: return approved wedding photos PLUS any photos uploaded in this browser
+    return allPhotos.filter((p) => {
+      if (p.id === "hero_couple_photo") return true;
+      if (p.approvalStatus === "approved") return true;
+      if (p.photographer === "Guest Live Upload" || p.uploaderEmail === "guest@maan-ai.com" || p.driveFileId) return true;
+      return false;
+    });
   }
 
   const userEmail = currentUser.email.toLowerCase();
