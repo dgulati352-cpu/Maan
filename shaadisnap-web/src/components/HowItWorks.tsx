@@ -50,7 +50,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onGetStarted }) => {
             Effortless Experience
           </span>
           <h2 className="font-serif text-4xl sm:text-5xl font-bold text-[#633C49] tracking-[-0.03em]">
-            How Dhairya AI Works
+            How Maan Memories Works
           </h2>
           <p className="text-base sm:text-lg text-[#765D62] font-normal leading-relaxed">
             From upload to unforgettable memories — in just a few simple steps.

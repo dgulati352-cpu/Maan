@@ -65,14 +65,14 @@ export const viewport: Viewport = {
  */
 export const metadata: Metadata = {
   title: {
-    default: "Dhairya AI — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP)",
-    template: "%s | Dhairya AI",
+    default: "Maan Memories — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP)",
+    template: "%s | Maan Memories",
   },
   description:
     "Experience the Rose Champagne luxury wedding photo discovery platform. Find every photograph featuring you in seconds using private, privacy-first AI face matching complying with DPDP Act 2023 & GDPR.",
-  applicationName: "Dhairya AI",
+  applicationName: "Maan Memories",
   keywords: [
-    "Dhairya AI",
+    "Maan Memories",
     "wedding photo discovery",
     "AI face recognition wedding",
     "Indian wedding photography",
@@ -81,9 +81,9 @@ export const metadata: Metadata = {
     "DPDP compliant wedding AI",
     "biometric photo search",
   ],
-  authors: [{ name: "Dhairya AI" }],
-  creator: "Dhairya AI",
-  publisher: "Dhairya AI",
+  authors: [{ name: "Maan Memories" }],
+  creator: "Maan Memories",
+  publisher: "Maan Memories",
   formatDetection: {
     email: false,
     address: false,
@@ -96,17 +96,17 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Dhairya AI — Luxury Wedding Photo Discovery",
+    title: "Maan Memories — Luxury Wedding Photo Discovery",
     description:
       "Find and download all your wedding memories instantly with private, privacy-first AI face matching.",
     url: "https://maan-gulati.vercel.app",
-    siteName: "Dhairya AI",
+    siteName: "Maan Memories",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dhairya AI — Luxury Wedding Photo Discovery",
+    title: "Maan Memories — Luxury Wedding Photo Discovery",
     description:
       "Find and download all your wedding memories instantly with private, privacy-first AI face matching.",
   },

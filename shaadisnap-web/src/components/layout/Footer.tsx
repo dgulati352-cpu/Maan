@@ -18,17 +18,17 @@ export const Footer: React.FC = () => {
               className="inline-flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A85D70] rounded-lg"
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#A85D70]/40 shadow-xs flex items-center justify-center flex-shrink-0">
-                <img src="/hero-couple.jpg" alt="Dhairya AI — Marwaha & Gulati Wedding" className="w-full h-full object-cover object-top" />
+                <img src="/hero-couple.jpg" alt="Maan Memories — Marwaha & Gulati Wedding" className="w-full h-full object-cover object-top" />
               </div>
               <span className="font-serif text-2xl font-bold tracking-tight text-[#633C49]">
-                Dhairya AI
+                Maan Memories
               </span>
               <span className="text-[10px] tracking-widest font-semibold px-2 py-0.5 rounded-full bg-[#F1D5D5] text-[#633C49] border border-[#A85D70]/30 uppercase font-sans">
                 Wedding
               </span>
             </Link>
             <p className="text-xs text-[#765D62] leading-relaxed max-w-sm">
-              Dhairya AI — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP). Luxury AI-powered wedding photo discovery designed for modern Indian celebrations.
+              Maan Memories — Marwaha & Gulati Wedding @ Deventure Shimla Hills Resort, Solan (HP). Luxury AI-powered wedding photo discovery designed for modern Indian celebrations.
             </p>
           </div>
 
@@ -114,7 +114,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#947A80] gap-4">
-          <p>© 2026 Dhairya AI. All rights reserved.</p>
+          <p>© 2026 Maan Memories. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link
               href="/privacy"
