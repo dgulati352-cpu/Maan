@@ -344,9 +344,34 @@ export async function fetchSharedGalleryPhotos(options?: {
       return fallbackLocal;
     }
 
-    const data = (await res.json()) as { photos?: Partial<WeddingPhoto>[] };
+    const data = (await res.json()) as {
+      photos?: Partial<WeddingPhoto>[];
+      deletedIds?: string[];
+    };
     if (!Array.isArray(data.photos)) {
       return fallbackLocal;
+    }
+
+    if (Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
+      recordLocallyDeletedIds(data.deletedIds);
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const uploaded: WeddingPhoto[] = JSON.parse(raw);
+          const delIds = new Set(data.deletedIds.map((s) => s.toLowerCase().trim()));
+          const pruned = uploaded.filter(
+            (p) =>
+              p &&
+              !delIds.has(p.id.toLowerCase().trim()) &&
+              !(p.driveFileId && delIds.has(p.driveFileId.toLowerCase().trim()))
+          );
+          if (pruned.length !== uploaded.length) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
+          }
+        }
+      } catch {
+        // ignore storage errors
+      }
     }
 
     const deletedSet = getLocallyDeletedIds();

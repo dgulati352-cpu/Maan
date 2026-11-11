@@ -86,10 +86,17 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
       const shared = await fetchSharedGalleryPhotos();
       if (!active) return;
       const localScoped = getPhotosForCurrentUser();
-      const merged = [...localScoped];
-      for (const sp of shared) {
-        if (!merged.some((lp) => lp.id === sp.id || (sp.driveFileId && lp.driveFileId === sp.driveFileId))) {
-          merged.push(sp);
+      const sharedIds = new Set(
+        shared.flatMap((p) => [p.id, p.driveFileId].filter(Boolean) as string[])
+      );
+      const merged = [...shared];
+      for (const lp of localScoped) {
+        const isDriveBacked = Boolean(lp.driveFileId);
+        if (isDriveBacked && !sharedIds.has(lp.id) && !(lp.driveFileId && sharedIds.has(lp.driveFileId))) {
+          continue; // Photo was deleted from Drive on another device
+        }
+        if (!merged.some((mp) => mp.id === lp.id || (lp.driveFileId && mp.driveFileId === lp.driveFileId))) {
+          merged.push(lp);
         }
       }
       setLiveStreamPhotos(merged);

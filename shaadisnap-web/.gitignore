@@ -42,3 +42,7 @@ next-env.d.ts
 
 .vercel
 .env*
+
+data/*.db*
+*.db-wal
+*.db-shm

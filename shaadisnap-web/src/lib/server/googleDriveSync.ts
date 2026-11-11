@@ -45,6 +45,51 @@ export function isDriveFileDeleted(fileId: string): boolean {
   return Boolean(fileId && serverDeletedDriveIds.has(fileId.trim().toLowerCase()));
 }
 
+export function getServerDeletedDriveIds(): string[] {
+  return Array.from(serverDeletedDriveIds);
+}
+
+let lastDeletedSyncMs = 0;
+
+export async function fetchAppsScriptDeletedIds(): Promise<string[]> {
+  const now = Date.now();
+  if (now - lastDeletedSyncMs < 6000 && serverDeletedDriveIds.size > 0) {
+    return Array.from(serverDeletedDriveIds);
+  }
+  if (!GOOGLE_APPS_SCRIPT_URL) {
+    return Array.from(serverDeletedDriveIds);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=deleted_ids&t=${now}`, {
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    if (res.ok) {
+      const data = (await res.json().catch(() => ({}))) as {
+        deletedIds?: string[];
+      };
+      if (Array.isArray(data.deletedIds)) {
+        for (const id of data.deletedIds) {
+          if (id && typeof id === "string") {
+            serverDeletedDriveIds.add(id.trim().toLowerCase());
+          }
+        }
+      }
+      lastDeletedSyncMs = now;
+    }
+  } catch {
+    // Non-fatal if network timeout
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  return Array.from(serverDeletedDriveIds);
+}
+
 const VALID_CEREMONIES = new Set<DriveSyncedPhoto["ceremony"]>([
   "Phere",
   "Sangeet",
@@ -307,6 +352,9 @@ async function fetchViaEmbeddedFolderView(
 export async function fetchLiveDriveFolderPhotos(
   folderId: string = DEFAULT_DRIVE_FOLDER_ID
 ): Promise<DriveSyncedPhoto[]> {
+  // Synchronize globally deleted photo IDs across all serverless containers
+  await fetchAppsScriptDeletedIds().catch(() => []);
+
   const apiPhotos = await fetchViaDriveApiV3(folderId);
   const raw = apiPhotos !== null ? apiPhotos : await fetchViaEmbeddedFolderView(folderId);
   return raw.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
@@ -322,7 +370,7 @@ export async function trashDriveFile(fileId: string): Promise<{ driveTrashed: bo
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 7000);
   try {
     const res = await fetch(GOOGLE_APPS_SCRIPT_URL, {
       method: "POST",
@@ -335,8 +383,15 @@ export async function trashDriveFile(fileId: string): Promise<{ driveTrashed: bo
       redirect: "follow",
       signal: controller.signal,
     });
-    const data = (await res.json().catch(() => ({}))) as { status?: string; deleted?: boolean };
-    return { driveTrashed: data.status === "success" || Boolean(data.deleted) };
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      deleted?: boolean;
+      trashed?: boolean;
+    };
+    return {
+      driveTrashed:
+        data.status === "success" || Boolean(data.deleted) || Boolean(data.trashed),
+    };
   } catch {
     return { driveTrashed: false };
   } finally {

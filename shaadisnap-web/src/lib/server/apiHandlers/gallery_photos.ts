@@ -6,6 +6,7 @@ import {
   fetchLiveDriveFolderPhotos,
   isDriveFileDeleted,
   trashDriveFile,
+  getServerDeletedDriveIds,
 } from "@/lib/server/googleDriveSync";
 
 export const dynamic = "force-dynamic";
@@ -195,6 +196,9 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const globalDeletedIds = getServerDeletedDriveIds();
+    const allDeletedIds = Array.from(new Set([...deletedDbIds, ...globalDeletedIds]));
+
     return NextResponse.json(
       {
         success: true,
@@ -203,6 +207,7 @@ export async function GET(req: NextRequest) {
         page,
         totalPages,
         ceremonies: ["All", ...ceremonies.map((c) => c.name)],
+        deletedIds: allDeletedIds,
         photos: pagedPhotos,
       },
       {
