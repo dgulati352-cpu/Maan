@@ -19,6 +19,9 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
   const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
 
   useEffect(() => {
+    // Re-sync with store on client mount
+    setPhotos(getApprovedWeddingPhotos());
+
     const handleUpdate = () => {
       setPhotos(getApprovedWeddingPhotos());
     };
