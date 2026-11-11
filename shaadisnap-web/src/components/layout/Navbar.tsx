@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Share2,
+  Music,
 } from "lucide-react";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 
@@ -198,6 +199,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
           <div className="hidden md:flex items-center gap-2.5">
             <button
               type="button"
+              onClick={() => window.dispatchEvent(new Event("shaadisnap_music_toggle"))}
+              className="p-2.5 rounded-full border border-[#A85D70]/40 bg-white/70 hover:bg-[#F1D5D5]/60 text-[#633C49] hover:text-[#A85D70] transition-all shadow-2xs flex items-center justify-center cursor-pointer group"
+              title="Play / Pause 'Heeriye' Wedding Music"
+              aria-label="Toggle Heeriye Wedding Music"
+            >
+              <Music className="w-3.5 h-3.5 text-[#A85D70] group-hover:scale-110 transition-transform" />
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShareModalOpen(true)}
               className="text-xs font-semibold text-[#633C49] hover:text-[#A85D70] px-3.5 py-2 rounded-full border border-[#A85D70]/40 bg-[#F1D5D5]/50 hover:bg-[#F1D5D5] transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
               title="Share Guest Facial Pass & QR Code"
@@ -224,7 +235,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
           </div>
 
           {/* Mobile Menu Toggle Button */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("shaadisnap_music_toggle"))}
+              className="p-1.5 rounded-full border border-[#A85D70]/40 bg-white/70 hover:bg-[#F1D5D5]/60 text-[#633C49] hover:text-[#A85D70] transition-all shadow-2xs flex items-center justify-center cursor-pointer"
+              title="Play / Pause 'Heeriye' Wedding Music"
+              aria-label="Toggle Heeriye Wedding Music"
+            >
+              <Music className="w-3.5 h-3.5 text-[#A85D70]" />
+            </button>
+
             <Link
               href="/find-photos"
               onClick={(e) => {
