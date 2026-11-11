@@ -18,8 +18,12 @@ export interface SqliteDb {
 const { DatabaseSync } = require("node:sqlite");
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
-if (!fsSync.existsSync(DATA_DIR)) {
-  fsSync.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  if (!fsSync.existsSync(DATA_DIR)) {
+    fsSync.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem in serverless environments
 }
 
 const DB_PATH = path.join(DATA_DIR, "shaadisnap.db");

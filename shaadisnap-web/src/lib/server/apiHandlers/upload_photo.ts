@@ -121,7 +121,17 @@ export async function POST(req: NextRequest) {
       redirect: "follow",
     });
 
-    const data = await response.json();
+    let data: { status?: string; id?: string; message?: string; folderId?: string } = {};
+    try {
+      data = await response.json();
+    } catch {
+      const errText = await response.text().catch(() => "");
+      console.error("Non-JSON response from Google Apps Script:", errText);
+      return NextResponse.json(
+        { error: "Google Drive service temporarily returned an invalid response. Please try again." },
+        { status: 502 }
+      );
+    }
 
     if (data.status === "error" || !data.id) {
       return NextResponse.json(

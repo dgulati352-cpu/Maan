@@ -9,15 +9,41 @@ import { calculateBufferHash, formatBytes } from "./adminPhotoManager";
 
 const execFileAsync = promisify(execFile);
 
-const UPLOADS_DIR = path.resolve(process.cwd(), "public", "uploads", "photos");
-const THUMBNAILS_DIR = path.resolve(process.cwd(), "public", "uploads", "thumbnails");
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
-// Ensure permanent storage directories exist
-if (!fsSync.existsSync(UPLOADS_DIR)) {
-  fsSync.mkdirSync(UPLOADS_DIR, { recursive: true });
+export let UPLOADS_DIR = isServerless
+  ? path.join(os.tmpdir(), "uploads", "photos")
+  : path.resolve(process.cwd(), "public", "uploads", "photos");
+
+export let THUMBNAILS_DIR = isServerless
+  ? path.join(os.tmpdir(), "uploads", "thumbnails")
+  : path.resolve(process.cwd(), "public", "uploads", "thumbnails");
+
+// Ensure storage directories exist safely without throwing on read-only serverless filesystems
+try {
+  if (!fsSync.existsSync(UPLOADS_DIR)) {
+    fsSync.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch {
+  UPLOADS_DIR = path.join(os.tmpdir(), "uploads", "photos");
+  try {
+    fsSync.mkdirSync(UPLOADS_DIR, { recursive: true });
+  } catch {
+    // Ignore in read-only environment
+  }
 }
-if (!fsSync.existsSync(THUMBNAILS_DIR)) {
-  fsSync.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+
+try {
+  if (!fsSync.existsSync(THUMBNAILS_DIR)) {
+    fsSync.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+  }
+} catch {
+  THUMBNAILS_DIR = path.join(os.tmpdir(), "uploads", "thumbnails");
+  try {
+    fsSync.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+  } catch {
+    // Ignore in read-only environment
+  }
 }
 
 async function resolvePythonExecutable(): Promise<string> {
@@ -130,11 +156,16 @@ export async function processAndStoreImageBuffer(
   const permanentFilePath = path.join(UPLOADS_DIR, storedFilename);
   const thumbnailFilePath = path.join(THUMBNAILS_DIR, `thumb_${storedFilename}`);
 
-  // Write permanent master file
-  await fs.writeFile(permanentFilePath, buffer);
-
-  // Write thumbnail file (copy or optimized)
-  await fs.writeFile(thumbnailFilePath, buffer);
+  // Write master and thumbnail files safely (handles read-only production filesystems)
+  try {
+    await fs.writeFile(permanentFilePath, buffer);
+    await fs.writeFile(thumbnailFilePath, buffer);
+  } catch {
+    const tmpUploadPath = path.join(os.tmpdir(), storedFilename);
+    const tmpThumbPath = path.join(os.tmpdir(), `thumb_${storedFilename}`);
+    await fs.writeFile(tmpUploadPath, buffer).catch(() => {});
+    await fs.writeFile(tmpThumbPath, buffer).catch(() => {});
+  }
 
   const permanentUrl = `/uploads/photos/${storedFilename}`;
   const thumbnailUrl = `/uploads/thumbnails/thumb_${storedFilename}`;
