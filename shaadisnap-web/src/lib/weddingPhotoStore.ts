@@ -453,6 +453,11 @@ export function addUploadedPhoto(photo: {
   qualityScore?: number;
   shotType?: "solo" | "couple" | "group" | "scenic";
   aiSorted?: boolean;
+  mediaType?: "image" | "video";
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  durationFormatted?: string;
 }) {
   if (typeof window === "undefined") return;
   try {
@@ -492,6 +497,11 @@ export function addUploadedPhoto(photo: {
       qualityScore: photo.qualityScore,
       shotType: photo.shotType,
       aiSorted: photo.aiSorted,
+      mediaType: photo.mediaType || (photo.url && /\.(mp4|mov|webm|m4v|3gp)/i.test(photo.url) ? "video" : "image"),
+      videoUrl: photo.videoUrl || (photo.mediaType === "video" ? photo.url : undefined),
+      thumbnailUrl: photo.thumbnailUrl || persistentFallbackUrl,
+      duration: photo.duration,
+      durationFormatted: photo.durationFormatted,
     };
 
     if (

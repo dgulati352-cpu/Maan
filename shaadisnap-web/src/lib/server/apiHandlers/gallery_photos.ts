@@ -23,6 +23,8 @@ interface MergedGalleryRow {
   size_bytes: number;
   created_at: number;
   photographer?: string;
+  media_type?: "image" | "video";
+  video_url?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -123,6 +125,8 @@ export async function GET(req: NextRequest) {
         size_bytes: dp.sizeBytes,
         created_at: dp.createdAtMs,
         photographer: dp.photographer,
+        media_type: dp.mediaType || (/\.(mp4|mov|webm|m4v|3gp)/i.test(dp.url || dp.title) ? "video" : "image"),
+        video_url: dp.videoUrl,
       });
     }
 
@@ -193,6 +197,8 @@ export async function GET(req: NextRequest) {
         approvalStatus: "approved" as const,
         sizeBytes: p.size_bytes,
         createdAt: new Date(safeTimestamp).toISOString(),
+        mediaType: p.media_type || (/\.(mp4|mov|webm|m4v|3gp)/i.test(p.url || p.filename) ? "video" : "image"),
+        videoUrl: p.video_url || (p.media_type === "video" ? p.url : undefined),
       };
     });
 

@@ -21,6 +21,11 @@ export interface WeddingPhoto {
   shotType?: "solo" | "couple" | "group" | "scenic";
   qualityScore?: number;
   aiSorted?: boolean;
+  mediaType?: "image" | "video";
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  durationFormatted?: string;
 }
 
 export interface DemoSelfie {

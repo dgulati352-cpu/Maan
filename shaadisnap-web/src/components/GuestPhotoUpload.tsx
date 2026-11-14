@@ -7,6 +7,8 @@ import {
   Home,
   Search,
   Image as ImageIcon,
+  Video,
+  Play,
   Heart,
   Calendar,
   CheckCircle2,
@@ -28,10 +30,18 @@ import { analyzeLocalImageFile, aiAnalyzeAndSortPhotos, sortWeddingPhotos, Photo
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
 import { compressImage, formatBytes } from "@/lib/imageCompression";
+import { generateVideoThumbnail, isVideoFile } from "@/lib/videoThumbnail";
 
-const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
-const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MB
+const ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
+const ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".mov", ".webm", ".m4v", ".3gp"];
+const ALLOWED_EXTENSIONS = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS];
+
+const ALLOWED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+const ALLOWED_VIDEO_MIMES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v", "video/3gpp"];
+const ALLOWED_MIME_TYPES = [...ALLOWED_IMAGE_MIMES, ...ALLOWED_VIDEO_MIMES];
+
+const MAX_IMAGE_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
 
 interface UploadFileItem {
   id: string;
@@ -47,6 +57,10 @@ interface UploadFileItem {
   compressedFile?: File;
   compressionRatio?: string;
   driveFileId?: string;
+  isVideo?: boolean;
+  duration?: number;
+  durationFormatted?: string;
+  thumbnailUrl?: string;
 }
 
 interface GuestPhotoUploadProps {
@@ -59,6 +73,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCeremony, setSelectedCeremony] = useState("AI Auto");
   const [galleryCeremony, setGalleryCeremony] = useState("All");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "photos" | "videos">("all");
   const [sortBy, setSortBy] = useState<PhotoSortMode>("newest");
   const [isAiSorting, setIsAiSorting] = useState(false);
   const [aiSortStatus, setAiSortStatus] = useState<string | null>(null);
@@ -76,6 +91,8 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const videoRecordRef = useRef<HTMLInputElement>(null);
 
   // Sync photos and auth user across local storage and live shared Google Drive folder
   useEffect(() => {
@@ -129,7 +146,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     );
   };
 
-  // Compress image before upload to drastically reduce cloud & Google Drive storage consumption
+  // Compress image before upload (or extract thumbnail for video) to drastically reduce cloud & Google Drive storage consumption
   const uploadSingleItem = async (item: UploadFileItem) => {
     if (!item.rawFile) return;
 
@@ -140,58 +157,92 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     );
 
     try {
-      // Run real in-browser AI face count, sharpness & ceremony classification
+      const isVideo = Boolean(item.isVideo || isVideoFile(item.rawFile));
+
+      let effectiveCeremony = selectedCeremony === "AI Auto" ? "Sangeet" : selectedCeremony;
       let aiMeta: {
         facesDetected: number;
         sharpness: number;
         qualityScore: number;
         shotType: "solo" | "couple" | "group" | "scenic";
-        predictedCeremony: WeddingPhoto["ceremony"];
       } = {
         facesDetected: 1,
         sharpness: 85,
         qualityScore: 80,
         shotType: "solo",
-        predictedCeremony:
-          selectedCeremony === "AI Auto"
-            ? "Sangeet"
-            : (selectedCeremony as WeddingPhoto["ceremony"]),
       };
 
-      try {
-        aiMeta = await analyzeLocalImageFile(
-          item.rawFile,
-          selectedCeremony === "AI Auto"
-            ? "Sangeet"
-            : (selectedCeremony as WeddingPhoto["ceremony"])
+      let fileToUpload: File = item.rawFile;
+
+      if (!isVideo) {
+        // Run real in-browser AI face count, sharpness & ceremony classification for photos
+        try {
+          const analyzed = await analyzeLocalImageFile(
+            item.rawFile,
+            selectedCeremony === "AI Auto"
+              ? "Sangeet"
+              : (selectedCeremony as WeddingPhoto["ceremony"])
+          );
+          aiMeta = analyzed;
+          effectiveCeremony =
+            selectedCeremony === "AI Auto"
+              ? analyzed.predictedCeremony
+              : selectedCeremony;
+        } catch {
+          // Fallback smoothly if browser cannot decode format
+        }
+
+        // High-efficiency in-browser compression (scaled to max 1920px 2K, quality 0.82)
+        const compression = await compressImage(item.rawFile);
+        fileToUpload = compression.file;
+
+        setUploadFiles((current) =>
+          current.map((f) =>
+            f.id === item.id
+              ? {
+                  ...f,
+                  progress: 50,
+                  facesDetected: aiMeta.facesDetected,
+                  sharpness: aiMeta.sharpness,
+                  detectedCeremony: effectiveCeremony,
+                  size: `${formatBytes(compression.compressedSize)} (${compression.savingsPercent}% saved)`,
+                }
+              : f
+          )
         );
-      } catch {
-        // Fallback smoothly if browser cannot decode format (e.g., HEIC)
+      } else {
+        // Video processing: ensure thumbnail frame is captured
+        let thumbUrl = item.thumbnailUrl;
+        let durFormatted = item.durationFormatted;
+        let durSec = item.duration;
+
+        if (!thumbUrl) {
+          try {
+            const meta = await generateVideoThumbnail(item.rawFile);
+            thumbUrl = meta.thumbnailUrl;
+            durFormatted = meta.durationFormatted;
+            durSec = meta.duration;
+          } catch {
+            // non-fatal
+          }
+        }
+
+        setUploadFiles((current) =>
+          current.map((f) =>
+            f.id === item.id
+              ? {
+                  ...f,
+                  progress: 50,
+                  isVideo: true,
+                  thumbnailUrl: thumbUrl || f.thumbnailUrl,
+                  durationFormatted: durFormatted || f.durationFormatted,
+                  duration: durSec || f.duration,
+                  detectedCeremony: effectiveCeremony,
+                }
+              : f
+          )
+        );
       }
-
-      const effectiveCeremony =
-        selectedCeremony === "AI Auto"
-          ? aiMeta.predictedCeremony
-          : selectedCeremony;
-
-      // High-efficiency in-browser compression (scaled to max 1920px 2K, quality 0.82)
-      const compression = await compressImage(item.rawFile);
-      const fileToUpload = compression.file;
-
-      setUploadFiles((current) =>
-        current.map((f) =>
-          f.id === item.id
-            ? {
-                ...f,
-                progress: 50,
-                facesDetected: aiMeta.facesDetected,
-                sharpness: aiMeta.sharpness,
-                detectedCeremony: effectiveCeremony,
-                size: `${formatBytes(compression.compressedSize)} (${compression.savingsPercent}% saved)`,
-              }
-            : f
-        )
-      );
 
       const activeUser = getStoredGoogleUser();
       const uploaderEmail = activeUser?.email || "guest@maan-ai.com";
@@ -218,28 +269,33 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
         addUploadedPhoto({
           id: data.fileId,
           url: data.url,
-          fallbackUrl: item.previewUrl,
+          fallbackUrl: item.thumbnailUrl || item.previewUrl,
           driveFileId: data.fileId,
           title: item.name,
           ceremony: effectiveCeremony,
           photographer: "Guest Live Upload",
           uploaderEmail: uploaderEmail,
           driveFolderId: effectiveFolderId,
-          facesCount: aiMeta.facesDetected,
-          qualityScore: aiMeta.qualityScore,
-          shotType: aiMeta.shotType,
+          facesCount: isVideo ? 0 : aiMeta.facesDetected,
+          qualityScore: isVideo ? 92 : aiMeta.qualityScore,
+          shotType: isVideo ? "scenic" : aiMeta.shotType,
           aiSorted: selectedCeremony === "AI Auto",
+          mediaType: isVideo ? "video" : "image",
+          videoUrl: isVideo ? data.videoUrl || data.url : undefined,
+          thumbnailUrl: item.thumbnailUrl,
+          duration: item.duration,
+          durationFormatted: item.durationFormatted,
         });
 
         // Immediately update liveStreamPhotos so it reflects on screen right away
         setLiveStreamPhotos(getPhotosForCurrentUser());
 
-        // Automatically switch to gallery tab after brief celebration so user immediately sees their photo
+        // Automatically switch to gallery tab after brief celebration so user immediately sees their photo/video
         setTimeout(() => {
           setActiveSidebarItem("gallery");
         }, 1200);
 
-        if (item.previewUrl.startsWith("blob:")) {
+        if (item.previewUrl.startsWith("blob:") && !isVideo) {
           URL.revokeObjectURL(item.previewUrl);
         }
 
@@ -250,7 +306,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   ...f,
                   progress: 100,
                   status: "completed",
-                  previewUrl: data.url,
+                  previewUrl: f.thumbnailUrl || data.url,
                   driveFileId: data.fileId,
                 }
               : f
@@ -272,31 +328,33 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     }
   };
 
-  // Batch file processor with validation
-  const handleFiles = (files: FileList | null) => {
+  // Batch file processor with validation for both photos and videos
+  const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const validFiles: File[] = [];
+    const validFiles: Array<{ file: File; isVideo: boolean }> = [];
     const errors: string[] = [];
 
     Array.from(files).forEach((file) => {
       const ext = "." + file.name.split(".").pop()?.toLowerCase();
+      const isVideo = Boolean((file.type && file.type.startsWith("video/")) || ALLOWED_VIDEO_EXTENSIONS.includes(ext));
       const isMimeValid = ALLOWED_MIME_TYPES.includes(file.type);
       const isExtValid = ALLOWED_EXTENSIONS.includes(ext);
 
       if (!isExtValid || (file.type && !isMimeValid)) {
-        errors.push(`${file.name}: Invalid image format (JPG, PNG, WebP, HEIC supported).`);
+        errors.push(`${file.name}: Invalid format. Supported formats: JPG, PNG, WebP, HEIC, MP4, MOV, WebM.`);
         return;
       }
       if (file.size === 0) {
         errors.push(`${file.name}: File is empty.`);
         return;
       }
-      if (file.size > MAX_UPLOAD_SIZE) {
-        errors.push(`${file.name}: Exceeds 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+      const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+      if (file.size > maxSize) {
+        errors.push(`${file.name}: Exceeds ${isVideo ? "100MB" : "25MB"} limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
         return;
       }
-      validFiles.push(file);
+      validFiles.push({ file, isVideo });
     });
 
     if (errors.length > 0) {
@@ -307,15 +365,41 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
     if (validFiles.length === 0) return;
 
-    const newItems: UploadFileItem[] = validFiles.map((f) => ({
-      id: `up_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: f.name,
-      size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
-      previewUrl: URL.createObjectURL(f),
-      progress: 0,
-      status: "pending",
-      rawFile: f,
-    }));
+    const newItems: UploadFileItem[] = [];
+
+    for (const item of validFiles) {
+      const f = item.file;
+      const isVideo = item.isVideo;
+      const previewUrl = URL.createObjectURL(f);
+      let thumbUrl = "";
+      let durSec = 0;
+      let durFormatted = "";
+
+      if (isVideo) {
+        try {
+          const meta = await generateVideoThumbnail(f);
+          thumbUrl = meta.thumbnailUrl;
+          durSec = meta.duration;
+          durFormatted = meta.durationFormatted;
+        } catch {
+          // fallback
+        }
+      }
+
+      newItems.push({
+        id: `up_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        name: f.name,
+        size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+        previewUrl: thumbUrl || previewUrl,
+        progress: 0,
+        status: "pending",
+        rawFile: f,
+        isVideo,
+        duration: durSec,
+        durationFormatted: durFormatted,
+        thumbnailUrl: thumbUrl,
+      });
+    }
 
     setUploadFiles((prev) => [...newItems, ...prev]);
     newItems.forEach((item) => uploadSingleItem(item));
@@ -367,7 +451,15 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     galleryCeremony === "All"
       ? liveStreamPhotos
       : liveStreamPhotos.filter((p) => p.ceremony === galleryCeremony);
-  const filteredGalleryPhotos = sortWeddingPhotos(ceremonyFilteredPhotos, sortBy);
+
+  const mediaTypeFilteredPhotos = ceremonyFilteredPhotos.filter((p) => {
+    const isVideo = p.mediaType === "video" || isVideoFile(p.url || p.title);
+    if (mediaTypeFilter === "photos") return !isVideo;
+    if (mediaTypeFilter === "videos") return isVideo;
+    return true;
+  });
+
+  const filteredGalleryPhotos = sortWeddingPhotos(mediaTypeFilteredPhotos, sortBy);
 
   const favoritePhotosList = liveStreamPhotos.filter((p) => favorites.includes(p.id));
 
@@ -597,7 +689,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/jpeg,image/png,image/webp,image/heic"
+                  accept="image/jpeg,image/png,image/webp,image/heic,video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,image/*,video/*"
                   className="hidden"
                   onChange={(e) => handleFiles(e.target.files)}
                 />
@@ -611,15 +703,33 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   onChange={(e) => handleFiles(e.target.files)}
                 />
 
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  multiple
+                  accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,video/*"
+                  className="hidden"
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+
+                <input
+                  ref={videoRecordRef}
+                  type="file"
+                  accept="video/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+
                 <div className="w-16 h-16 rounded-full bg-[#F1D5D5]/50 flex items-center justify-center mb-4 border border-[#EADDE0] shadow-xs">
                   <UploadCloud className="w-8 h-8 text-[#A85D70]" />
                 </div>
 
                 <h3 className="font-serif text-2xl font-bold text-[#633C49] mb-1.5">
-                  Add Wedding Photos
+                  Add Wedding Photos &amp; Videos
                 </h3>
                 <p className="text-sm text-[#947A80] mb-6 max-w-md">
-                  Snap new candid photos on your camera or select high-resolution images from your device gallery.
+                  Snap new candid photos, record wedding video clips, or select photos and videos from your phone gallery.
                 </p>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
@@ -629,10 +739,34 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       e.stopPropagation();
                       cameraInputRef.current?.click();
                     }}
-                    className="px-6 py-3 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>Open Camera</span>
+                    <span>Take Photo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      videoRecordRef.current?.click();
+                    }}
+                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#633C49] hover:bg-[#4E2E39] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Video className="w-4 h-4 text-[#D9B7A0]" />
+                    <span>Record Video</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      videoInputRef.current?.click();
+                    }}
+                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[#633C49] bg-[#FFF8F3] hover:bg-[#F1D5D5]/50 border border-[#A85D70]/40 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-[#A85D70] text-[#A85D70]" />
+                    <span>Add Videos</span>
                   </button>
 
                   <button
@@ -641,7 +775,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       e.stopPropagation();
                       fileInputRef.current?.click();
                     }}
-                    className="px-6 py-3 rounded-full text-sm font-semibold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all flex items-center gap-2 cursor-pointer shadow-xs"
                   >
                     <ImageIcon className="w-4 h-4 text-[#A85D70]" />
                     <span>Choose From Gallery</span>
@@ -801,43 +935,66 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 sm:gap-4">
-                    {liveStreamPhotos.map((photo) => (
-                      <div
-                        key={photo.id}
-                        onClick={() => setLightboxPhoto(photo)}
-                        className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
-                      >
-                        <img
-                          src={photo.url || photo.fallbackUrl}
-                          alt={photo.title}
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
-                              e.currentTarget.src = photo.fallbackUrl;
-                            }
-                          }}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-
-                        {/* Favorite Heart Button */}
-                        <button
-                          type="button"
-                          onClick={(e) => toggleFavorite(photo.id, e)}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer z-10"
+                    {liveStreamPhotos.map((photo) => {
+                      const isVideo = photo.mediaType === "video" || isVideoFile(photo.url || photo.title);
+                      return (
+                        <div
+                          key={photo.id}
+                          onClick={() => setLightboxPhoto(photo)}
+                          className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
                         >
-                          <Heart className={`w-3.5 h-3.5 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
-                        </button>
+                          <img
+                            src={photo.thumbnailUrl || photo.url || photo.fallbackUrl}
+                            alt={photo.title}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                                e.currentTarget.src = photo.fallbackUrl;
+                              }
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
 
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2.5 flex flex-col justify-end text-white">
-                          <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
-                            {photo.ceremony}
-                          </span>
-                          <p className="text-xs font-bold truncate">
-                            {photo.title}
-                          </p>
+                          {/* Video Indicator Badge */}
+                          {isVideo && (
+                            <>
+                              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[9px] font-bold flex items-center gap-1 z-10 shadow-xs">
+                                <Video className="w-2.5 h-2.5 text-[#D9B7A0]" />
+                                <span>Video</span>
+                              </div>
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-9 h-9 rounded-full bg-black/55 backdrop-blur-md text-white border border-white/50 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                                  <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
+                                </div>
+                              </div>
+                              {photo.durationFormatted && (
+                                <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-[10px] font-mono font-medium z-10">
+                                  {photo.durationFormatted}
+                                </span>
+                              )}
+                            </>
+                          )}
+
+                          {/* Favorite Heart Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => toggleFavorite(photo.id, e)}
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer z-10"
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
+                          </button>
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2.5 flex flex-col justify-end text-white">
+                            <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
+                              {photo.ceremony}
+                            </span>
+                            <p className="text-xs font-bold truncate">
+                              {photo.title}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -850,11 +1007,50 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#633C49] tracking-tight">
-                    Wedding Photo Gallery
+                    Wedding Photo &amp; Video Gallery
                   </h1>
                   <p className="text-sm text-[#765D62] mt-1">
-                    All candid and official photographs from Marwaha & Gulati&apos;s celebration ({liveStreamPhotos.length} photos).
+                    All candid photographs and video clips from Marwaha &amp; Gulati&apos;s celebration ({liveStreamPhotos.length} items).
                   </p>
+                </div>
+
+                {/* Media Type Filter Tabs */}
+                <div className="inline-flex items-center p-1 rounded-full bg-white border border-[#EADDE0] shadow-xs self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setMediaTypeFilter("all")}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      mediaTypeFilter === "all"
+                        ? "bg-[#A85D70] text-white shadow-xs"
+                        : "text-[#765D62] hover:text-[#633C49]"
+                    }`}
+                  >
+                    All Media
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaTypeFilter("photos")}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      mediaTypeFilter === "photos"
+                        ? "bg-[#A85D70] text-white shadow-xs"
+                        : "text-[#765D62] hover:text-[#633C49]"
+                    }`}
+                  >
+                    <ImageIcon className="w-3 h-3" />
+                    <span>Photos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaTypeFilter("videos")}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      mediaTypeFilter === "videos"
+                        ? "bg-[#A85D70] text-white shadow-xs"
+                        : "text-[#765D62] hover:text-[#633C49]"
+                    }`}
+                  >
+                    <Video className="w-3 h-3" />
+                    <span>Videos</span>
+                  </button>
                 </div>
               </div>
 
@@ -919,47 +1115,72 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
               {/* Photos Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {filteredGalleryPhotos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    onClick={() => setLightboxPhoto(photo)}
-                    className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <img
-                      src={photo.url || photo.fallbackUrl}
-                      alt={photo.title}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
-                          e.currentTarget.src = photo.fallbackUrl;
-                        }
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-
-                    {/* Favorite Heart Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => toggleFavorite(photo.id, e)}
-                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer z-10"
+                {filteredGalleryPhotos.map((photo) => {
+                  const isVideo = photo.mediaType === "video" || isVideoFile(photo.url || photo.title);
+                  return (
+                    <div
+                      key={photo.id}
+                      onClick={() => setLightboxPhoto(photo)}
+                      className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-white border border-[#EADDE0] shadow-rose-sm hover:shadow-md transition-all cursor-pointer"
                     >
-                      <Heart className={`w-4 h-4 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
-                    </button>
+                      <img
+                        src={photo.thumbnailUrl || photo.url || photo.fallbackUrl}
+                        alt={photo.title}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                            e.currentTarget.src = photo.fallbackUrl;
+                          }
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
-                      <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
-                        {photo.ceremony}
-                      </span>
-                      <p className="text-xs font-bold truncate">
-                        {photo.title}
-                      </p>
-                      <span className="text-[10px] text-emerald-300 flex items-center gap-1 mt-0.5 font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {photo.facesCount === 1 ? "1 Person Available" : `${photo.facesCount || 1} Persons Available`}
-                      </span>
+                      {/* Video Indicator Badge */}
+                      {isVideo && (
+                        <>
+                          <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[9px] font-bold flex items-center gap-1 z-10 shadow-xs">
+                            <Video className="w-2.5 h-2.5 text-[#D9B7A0]" />
+                            <span>Video</span>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-10 h-10 rounded-full bg-black/55 backdrop-blur-md text-white border border-white/50 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                              <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
+                            </div>
+                          </div>
+                          {photo.durationFormatted && (
+                            <span className="absolute bottom-2.5 right-2.5 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-[10px] font-mono font-medium z-10">
+                              {photo.durationFormatted}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Favorite Heart Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => toggleFavorite(photo.id, e)}
+                        className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-[#A85D70] shadow-xs opacity-90 hover:scale-110 transition-transform cursor-pointer z-10"
+                      >
+                        <Heart className={`w-4 h-4 ${favorites.includes(photo.id) ? "fill-[#A85D70] text-[#A85D70]" : "text-[#A85D70]"}`} />
+                      </button>
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-white">
+                        <span className="text-[10px] font-semibold text-[#D9B7A0] uppercase tracking-wider">
+                          {photo.ceremony}
+                        </span>
+                        <p className="text-xs font-bold truncate">
+                          {photo.title}
+                        </p>
+                        {!isVideo && (
+                          <span className="text-[10px] text-emerald-300 flex items-center gap-1 mt-0.5 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            {photo.facesCount === 1 ? "1 Person Available" : `${photo.facesCount || 1} Persons Available`}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1192,18 +1413,29 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
               </button>
             </div>
 
-            <div className="relative flex-1 bg-black/5 flex items-center justify-center p-4 overflow-hidden">
-              <img
-                src={lightboxPhoto.url || lightboxPhoto.fallbackUrl}
-                alt={lightboxPhoto.title}
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  if (lightboxPhoto.fallbackUrl && e.currentTarget.src !== lightboxPhoto.fallbackUrl) {
-                    e.currentTarget.src = lightboxPhoto.fallbackUrl;
-                  }
-                }}
-                className="max-h-[65vh] w-auto object-contain rounded-xl shadow-sm"
-              />
+            <div className="relative flex-1 bg-black flex items-center justify-center p-2 min-h-[320px] max-h-[65vh] overflow-hidden">
+              {lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.videoUrl || lightboxPhoto.url || lightboxPhoto.title) ? (
+                <video
+                  src={lightboxPhoto.videoUrl || lightboxPhoto.url}
+                  poster={lightboxPhoto.thumbnailUrl || lightboxPhoto.fallbackUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-[65vh] w-auto max-w-full rounded-xl shadow-lg"
+                />
+              ) : (
+                <img
+                  src={lightboxPhoto.url || lightboxPhoto.fallbackUrl}
+                  alt={lightboxPhoto.title}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    if (lightboxPhoto.fallbackUrl && e.currentTarget.src !== lightboxPhoto.fallbackUrl) {
+                      e.currentTarget.src = lightboxPhoto.fallbackUrl;
+                    }
+                  }}
+                  className="max-h-[65vh] w-auto object-contain rounded-xl shadow-sm"
+                />
+              )}
             </div>
 
             <div className="p-4 border-t border-[#EADDE0] flex items-center justify-between gap-2 bg-[#FFF8F3]">
@@ -1217,14 +1449,14 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
               </button>
 
               <a
-                href={lightboxPhoto.url}
-                download={`${lightboxPhoto.title || "wedding_photo"}.jpg`}
+                href={lightboxPhoto.videoUrl || lightboxPhoto.url}
+                download={lightboxPhoto.title || (lightboxPhoto.mediaType === "video" ? "wedding_clip.mp4" : "wedding_photo.jpg")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download High-Res</span>
+                <span>{lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.videoUrl || lightboxPhoto.url) ? "Download Video" : "Download High-Res"}</span>
               </a>
             </div>
           </div>

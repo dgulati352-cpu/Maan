@@ -17,6 +17,9 @@ import {
   Share2,
   ArrowUpDown,
   RefreshCw,
+  Video,
+  Play,
+  Image as ImageIcon,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import {
@@ -30,6 +33,7 @@ import {
   PhotoSortMode,
 } from "@/lib/faceComparison";
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
+import { isVideoFile } from "@/lib/videoThumbnail";
 
 interface FullWeddingGalleryProps {
   onFindPhotos?: () => void;
@@ -42,6 +46,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 }) => {
   const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getApprovedWeddingPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<"All" | "Photos" | "Videos">("All");
   const [subjectFilter, setSubjectFilter] = useState<"All" | "Solo" | "Couple" | "Group">("All");
   const [sortBy, setSortBy] = useState<PhotoSortMode>("newest");
   const [isAiSorting, setIsAiSorting] = useState<boolean>(false);
@@ -135,6 +140,11 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   const matchingPhotos = photos.filter((photo) => {
     const ceremonyMatch =
       selectedCeremony === "All" || photo.ceremony === selectedCeremony;
+    const isVideo = photo.mediaType === "video" || isVideoFile(photo.url || photo.title);
+    const mediaMatch =
+      mediaTypeFilter === "All" ||
+      (mediaTypeFilter === "Photos" && !isVideo) ||
+      (mediaTypeFilter === "Videos" && isVideo);
     const faces = photo.facesCount || 0;
     const subjectMatch =
       subjectFilter === "All" ||
@@ -145,7 +155,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
       !searchQuery ||
       photo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       photo.ceremony.toLowerCase().includes(searchQuery.toLowerCase());
-    return ceremonyMatch && subjectMatch && queryMatch;
+    return ceremonyMatch && mediaMatch && subjectMatch && queryMatch;
   });
 
   const filteredPhotos = sortWeddingPhotos(matchingPhotos, sortBy);
@@ -263,12 +273,33 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#EADDE0] shadow-rose-sm flex flex-col space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
-            {/* Ceremony Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            {/* Ceremony & Media Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
               <span className="text-xs font-bold text-[#633C49] mr-1 hidden sm:inline-flex items-center gap-1">
                 <Sliders className="w-3.5 h-3.5 text-[#A85D70]" />
-                <span>Ceremony:</span>
+                <span>Filter:</span>
               </span>
+
+              {/* Media Type Segment */}
+              <div className="inline-flex items-center p-0.5 rounded-full bg-[#FFF8F3] border border-[#EADDE0] mr-1">
+                {(["All", "Photos", "Videos"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMediaTypeFilter(m)}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      mediaTypeFilter === m
+                        ? "bg-[#633C49] text-white shadow-xs"
+                        : "text-[#765D62] hover:text-[#633C49]"
+                    }`}
+                  >
+                    {m === "Videos" && <Video className="w-3 h-3 text-[#D9B7A0]" />}
+                    {m === "Photos" && <ImageIcon className="w-3 h-3" />}
+                    <span>{m === "All" ? "All Media" : m}</span>
+                  </button>
+                ))}
+              </div>
+
               {ceremonies.map((c) => (
                 <button
                   key={c}
@@ -449,6 +480,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               const isCenterfold = (index % 6 === 0 && index !== 0) || photo.title.toLowerCase().includes("royal") || photo.title.toLowerCase().includes("grand");
               const isSelected = selectedIds.includes(photo.id);
 
+              const isVideo = photo.mediaType === "video" || isVideoFile(photo.url || photo.title);
               return (
                 <div
                   key={photo.id}
@@ -470,7 +502,7 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                   }`}
                 >
                   <img
-                    src={photo.url}
+                    src={photo.thumbnailUrl || photo.url}
                     alt={photo.title}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
@@ -481,6 +513,22 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                     }}
                   />
 
+                  {/* Video Play Badge Overlay */}
+                  {isVideo && (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-11 h-11 rounded-full bg-black/55 backdrop-blur-md text-white border border-white/50 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
+                        </div>
+                      </div>
+                      {photo.durationFormatted && (
+                        <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[10px] font-mono font-medium z-10">
+                          {photo.durationFormatted}
+                        </span>
+                      )}
+                    </>
+                  )}
+
                   {/* Top Overlay Controls */}
                   <div className="absolute top-3 inset-x-3 flex items-center justify-between z-10 pointer-events-none">
                     {/* Ceremony / Centerfold Pill */}
@@ -490,8 +538,9 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                           Centerfold Spread
                         </span>
                       )}
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/80 backdrop-blur-md text-[#633C49] border border-white/40">
-                        {photo.ceremony}
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/80 backdrop-blur-md text-[#633C49] border border-white/40 flex items-center gap-1">
+                        {isVideo && <Video className="w-2.5 h-2.5 text-[#A85D70]" />}
+                        <span>{photo.ceremony}</span>
                       </span>
                     </div>
 
@@ -609,19 +658,30 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               </div>
             </div>
 
-            {/* Modal Image with Carousel Arrows */}
+            {/* Modal Image/Video with Carousel Arrows */}
             <div className="relative flex-1 overflow-hidden bg-black flex items-center justify-center p-2 min-h-[320px] max-h-[65vh]">
-              <img
-                src={currentLightboxPhoto.url}
-                alt={currentLightboxPhoto.title}
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  if (currentLightboxPhoto.fallbackUrl && e.currentTarget.src !== currentLightboxPhoto.fallbackUrl) {
-                    e.currentTarget.src = currentLightboxPhoto.fallbackUrl;
-                  }
-                }}
-                className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg"
-              />
+              {currentLightboxPhoto.mediaType === "video" || isVideoFile(currentLightboxPhoto.videoUrl || currentLightboxPhoto.url || currentLightboxPhoto.title) ? (
+                <video
+                  src={currentLightboxPhoto.videoUrl || currentLightboxPhoto.url}
+                  poster={currentLightboxPhoto.thumbnailUrl || currentLightboxPhoto.fallbackUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-[65vh] w-auto max-w-full rounded-lg shadow-xl"
+                />
+              ) : (
+                <img
+                  src={currentLightboxPhoto.url}
+                  alt={currentLightboxPhoto.title}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    if (currentLightboxPhoto.fallbackUrl && e.currentTarget.src !== currentLightboxPhoto.fallbackUrl) {
+                      e.currentTarget.src = currentLightboxPhoto.fallbackUrl;
+                    }
+                  }}
+                  className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg"
+                />
+              )}
 
               {/* Prev Button */}
               {filteredPhotos.length > 1 && (
@@ -653,22 +713,29 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
               <span className="text-xs text-[#765D62] flex items-center gap-2">
                 <span>{currentLightboxPhoto.photographer || "Guest Live Upload"}</span>
                 <span>•</span>
-                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {currentLightboxPhoto.facesCount === 1 ? "1 Person Available" : `${currentLightboxPhoto.facesCount || 1} Persons Available`}
-                </span>
+                {currentLightboxPhoto.mediaType === "video" || isVideoFile(currentLightboxPhoto.url) ? (
+                  <span className="inline-flex items-center gap-1 text-[#633C49] font-semibold bg-[#F1D5D5]/50 px-2 py-0.5 rounded-full border border-[#A85D70]/30">
+                    <Video className="w-3 h-3 text-[#A85D70]" />
+                    <span>Video Clip</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {currentLightboxPhoto.facesCount === 1 ? "1 Person Available" : `${currentLightboxPhoto.facesCount || 1} Persons Available`}
+                  </span>
+                )}
               </span>
 
               <div className="flex items-center gap-2">
                 <a
-                  href={currentLightboxPhoto.url}
-                  download={`${currentLightboxPhoto.title || "wedding_photo"}.jpg`}
+                  href={currentLightboxPhoto.videoUrl || currentLightboxPhoto.url}
+                  download={currentLightboxPhoto.title || (currentLightboxPhoto.mediaType === "video" ? "wedding_video.mp4" : "wedding_photo.jpg")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-all shadow-xs cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download Master HD</span>
+                  <span>{currentLightboxPhoto.mediaType === "video" || isVideoFile(currentLightboxPhoto.url) ? "Download Video" : "Download Master HD"}</span>
                 </a>
               </div>
             </div>

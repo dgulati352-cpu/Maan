@@ -14,8 +14,16 @@ const GOOGLE_APPS_SCRIPT_URL =
 const OFFICIAL_DRIVE_FOLDER_ID =
   process.env.GOOGLE_DRIVE_FOLDER_ID || "1G53zacxOMhcxh7EDhnL37oRgN3awVJsy";
 
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+const ALLOWED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+const ALLOWED_VIDEO_MIMES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v", "video/3gpp"];
+const ALLOWED_MIME_TYPES = [...ALLOWED_IMAGE_MIMES, ...ALLOWED_VIDEO_MIMES];
+
+const ALLOWED_IMAGE_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
+const ALLOWED_VIDEO_EXTS = [".mp4", ".mov", ".webm", ".m4v", ".3gp"];
+const ALLOWED_EXTENSIONS = [...ALLOWED_IMAGE_EXTS, ...ALLOWED_VIDEO_EXTS];
+
+const MAX_IMAGE_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
 
 async function resolvePythonExecutable(): Promise<string> {
   const envPy = process.env.PYTHON_PATH || process.env.PYTHON_BIN;
@@ -87,19 +95,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File is empty" }, { status: 400 });
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    const isVideo = (file.type && file.type.startsWith("video/")) || ALLOWED_VIDEO_EXTS.includes(ext);
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+
+    if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "File exceeds 20MB maximum allowed size limit" },
+        { error: `File exceeds maximum allowed size limit (${isVideo ? "100MB for video" : "25MB for photo"})` },
         { status: 400 }
       );
     }
 
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
     const isMimeValid = file.type ? ALLOWED_MIME_TYPES.includes(file.type) : false;
-    const isExtValid = [".jpg", ".jpeg", ".png", ".webp", ".heic"].includes(ext);
+    const isExtValid = ALLOWED_EXTENSIONS.includes(ext);
     if (!isExtValid || (file.type && !isMimeValid)) {
       return NextResponse.json(
-        { error: "Invalid file type. Allowed formats: JPG, PNG, WebP, HEIC" },
+        { error: "Invalid file type. Allowed formats: JPG, PNG, WebP, HEIC, MP4, MOV, WebM" },
         { status: 400 }
       );
     }
@@ -109,9 +120,23 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     const base64 = buffer.toString("base64");
 
+    const defaultMime = isVideo
+      ? ext === ".mov"
+        ? "video/quicktime"
+        : ext === ".webm"
+        ? "video/webm"
+        : "video/mp4"
+      : ext === ".png"
+      ? "image/png"
+      : ext === ".webp"
+      ? "image/webp"
+      : ext === ".heic"
+      ? "image/heic"
+      : "image/jpeg";
+
     const payload = {
       filename: `${ceremony}_${Date.now()}_${file.name}`,
-      mimeType: file.type || (ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".heic" ? "image/heic" : "image/jpeg"),
+      mimeType: file.type || defaultMime,
       base64: base64,
       ceremony: ceremony,
       uploaderEmail: uploaderEmail,
@@ -152,56 +177,60 @@ export async function POST(req: NextRequest) {
     const driveUrl = `https://lh3.googleusercontent.com/d/${data.id}=s0`;
     let facesIndexed = 0;
 
-    // Trigger AI Facial Recognition indexing
-    try {
-      const tmpFileName = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
-      tmpFilePath = path.join(os.tmpdir(), tmpFileName);
-      await fs.writeFile(tmpFilePath, buffer);
+    // Trigger AI Facial Recognition indexing for photos only
+    if (!isVideo) {
+      try {
+        const tmpFileName = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
+        tmpFilePath = path.join(os.tmpdir(), tmpFileName);
+        await fs.writeFile(tmpFilePath, buffer);
 
-      const pyPath = await resolvePythonExecutable();
-      const { scriptPath, mlDir } = await resolveScriptPath();
+        const pyPath = await resolvePythonExecutable();
+        const { scriptPath, mlDir } = await resolveScriptPath();
 
-      const { stdout } = await execFileAsync(
-        pyPath,
-        [
-          scriptPath,
-          "index-photo",
-          "--event",
-          eventId,
-          "--photo-id",
-          data.id,
-          "--image",
-          tmpFilePath,
-          "--url",
-          driveUrl,
-        ],
-        {
-          timeout: 15000,
-          env: {
-            ...process.env,
-            PYTHONPATH: mlDir,
-          },
+        const { stdout } = await execFileAsync(
+          pyPath,
+          [
+            scriptPath,
+            "index-photo",
+            "--event",
+            eventId,
+            "--photo-id",
+            data.id,
+            "--image",
+            tmpFilePath,
+            "--url",
+            driveUrl,
+          ],
+          {
+            timeout: 15000,
+            env: {
+              ...process.env,
+              PYTHONPATH: mlDir,
+            },
+          }
+        );
+
+        const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            facesIndexed = parsed.faces_indexed || 0;
+          } catch {
+            // Ignore JSON parse failure on stdout logging
+          }
         }
-      );
-
-      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const parsed = JSON.parse(jsonMatch[0]);
-          facesIndexed = parsed.faces_indexed || 0;
-        } catch {
-          // Ignore JSON parse failure on stdout logging
-        }
+      } catch (aiErr: unknown) {
+        const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+        console.warn("AI indexing notification:", msg);
       }
-    } catch (aiErr: unknown) {
-      const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
-      console.warn("AI indexing notification:", msg);
     }
 
     return NextResponse.json({
       success: true,
       fileId: data.id,
       url: driveUrl,
+      videoUrl: isVideo ? `https://drive.google.com/file/d/${data.id}/preview` : undefined,
+      mediaType: isVideo ? "video" : "image",
       name: file.name,
       ceremony: ceremony,
       facesIndexed: facesIndexed,

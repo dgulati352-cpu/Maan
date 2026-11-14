@@ -21,6 +21,8 @@ export interface DriveSyncedPhoto {
   approvalStatus: "approved";
   uploaderEmail?: string;
   driveFolderId: string;
+  mediaType?: "image" | "video";
+  videoUrl?: string;
 }
 
 const DEFAULT_DRIVE_FOLDER_ID = (
@@ -173,11 +175,14 @@ function buildDrivePhotoRecord(
   name: string,
   folderId: string,
   sizeBytes: number,
-  createdTime?: string
+  createdTime?: string,
+  isVideoParam?: boolean
 ): DriveSyncedPhoto {
   const { title, ceremony, createdAtMs } = parseDriveFilename(name, createdTime);
+  const isVideo = isVideoParam ?? /\.(mp4|mov|webm|m4v|3gp)$/i.test(name);
   const cdnUrl = `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
   const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+  const videoUrl = isVideo ? `https://drive.google.com/file/d/${fileId}/preview` : undefined;
 
   return {
     id: fileId,
@@ -195,6 +200,8 @@ function buildDrivePhotoRecord(
     photographer: "Guest Live Upload",
     approvalStatus: "approved",
     driveFolderId: folderId,
+    mediaType: isVideo ? "video" : "image",
+    videoUrl,
   };
 }
 
@@ -265,7 +272,8 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
 
       for (const file of data.files) {
         if (!file.id || !file.name) continue;
-        if (!file.mimeType?.startsWith("image/")) continue;
+        const isVideo = Boolean(file.mimeType?.startsWith("video/") || /\.(mp4|mov|webm|m4v|3gp)$/i.test(file.name));
+        if (!file.mimeType?.startsWith("image/") && !isVideo) continue;
         const sizeBytes = Number(file.size || 0);
         if (isDummyTestUpload(file.name, sizeBytes, file.id)) continue;
 
@@ -275,7 +283,8 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
             file.name,
             folderId,
             sizeBytes,
-            file.createdTime
+            file.createdTime,
+            isVideo
           )
         );
       }

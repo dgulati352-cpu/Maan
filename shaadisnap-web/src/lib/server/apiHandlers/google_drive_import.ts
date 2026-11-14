@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
 
     const importedPhotos = photos.map((item, index) => {
       const fileId = item.driveFileId || item.id;
+      const isVideo = /\.(mp4|mov|webm|m4v|3gp)$/i.test(item.name || item.url || "") || (item.url && item.url.includes("video"));
       const cdnUrl = item.url || formatGoogleDriveImage(fileId, 1200);
       const fallback =
         item.fallbackUrl || `https://lh3.googleusercontent.com/d/${fileId}=s0`;
@@ -40,12 +41,14 @@ export async function POST(req: NextRequest) {
       return {
         id: `gdrive_${fileId}_${Date.now()}_${index}`,
         driveFileId: fileId,
-        title: item.name || `Wedding_Drive_Photo_${index + 1}.jpg`,
+        title: item.name || `Wedding_Drive_Media_${index + 1}`,
         url: cdnUrl,
         fallbackUrl: fallback,
         ceremony: item.ceremony || ceremony,
         photographer: "Google Drive Import",
         importedAt: new Date().toISOString(),
+        mediaType: isVideo ? ("video" as const) : ("image" as const),
+        videoUrl: isVideo ? `https://drive.google.com/file/d/${fileId}/preview` : undefined,
       };
     });
 

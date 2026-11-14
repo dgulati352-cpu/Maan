@@ -217,6 +217,7 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
 
     // Save directly to weddingPhotoStore
     itemsToImport.forEach((item) => {
+      const isVideo = /\.(mp4|mov|webm|m4v|3gp)$/i.test(item.name || item.url);
       addUploadedPhoto({
         id: item.id,
         url: item.url,
@@ -224,6 +225,8 @@ export const GoogleDriveImportModal: React.FC<GoogleDriveImportModalProps> = ({
         title: item.name,
         ceremony: item.ceremony,
         photographer: "Google Drive Import",
+        mediaType: isVideo ? "video" : "image",
+        videoUrl: isVideo ? `https://drive.google.com/file/d/${item.driveFileId}/preview` : undefined,
       });
     });
 

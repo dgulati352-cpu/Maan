@@ -6,6 +6,7 @@ if (process.platform === "win32" && !process.env.NODE_OPTIONS?.includes(".next-m
 }
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   images: {
     remotePatterns: [
       {
