@@ -347,7 +347,7 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                 />
               )}
 
-              {/* Prev Button (Click & Left Arrow Navigation) */}
+              {/* Prev Button (Only on tablet/desktop to keep mobile video controls 100% unobstructed) */}
               {latestPhotos.length > 1 && (
                 <button
                   type="button"
@@ -356,15 +356,15 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                     e.stopPropagation();
                     navigateLightbox(-1);
                   }}
-                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-90 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  className="hidden sm:flex absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-90 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
                   title="Previous photo (Left Arrow / Click / Swipe Right)"
                   aria-label="Previous photo"
                 >
-                  <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 stroke-[2.5]" />
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
                 </button>
               )}
 
-              {/* Next Button (Click & Right Arrow Navigation) */}
+              {/* Next Button (Only on tablet/desktop to keep mobile video controls 100% unobstructed) */}
               {latestPhotos.length > 1 && (
                 <button
                   type="button"
@@ -373,11 +373,11 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                     e.stopPropagation();
                     navigateLightbox(1);
                   }}
-                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-90 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  className="hidden sm:flex absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 p-2.5 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-90 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
                   title="Next photo (Right Arrow / Click / Swipe Left)"
                   aria-label="Next photo"
                 >
-                  <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 stroke-[2.5]" />
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
                 </button>
               )}
             </div>
@@ -399,7 +399,59 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                 )}
               </span>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Mobile Quick Navigation Bar (Prev / View or Download / Next) */}
+              <div className="flex items-center gap-2 w-full sm:hidden pt-0.5">
+                {latestPhotos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => navigateLightbox(-1)}
+                    className="flex-1 py-2 px-2.5 rounded-xl bg-white border border-[#EADDE0] text-xs font-semibold text-[#633C49] flex items-center justify-center gap-1 active:bg-[#F1D5D5]/50 transition-colors shadow-2xs cursor-pointer"
+                    title="Previous item"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-[#A85D70]" />
+                    <span>Prev</span>
+                  </button>
+                )}
+
+                <a
+                  href={
+                    lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)
+                      ? getEffectiveVideoUrls(lightboxPhoto).downloadUrl
+                      : lightboxPhoto.url
+                  }
+                  download={
+                    lightboxPhoto.title ||
+                    (lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)
+                      ? "wedding_video.mp4"
+                      : "wedding_photo.jpg")
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-[2] py-2 px-3 rounded-xl text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] active:scale-98 transition-all flex items-center justify-center gap-1.5 shadow-sm text-center truncate cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">
+                    {lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)
+                      ? "Download HD"
+                      : "View Full HD"}
+                  </span>
+                </a>
+
+                {latestPhotos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => navigateLightbox(1)}
+                    className="flex-1 py-2 px-2.5 rounded-xl bg-white border border-[#EADDE0] text-xs font-semibold text-[#633C49] flex items-center justify-center gap-1 active:bg-[#F1D5D5]/50 transition-colors shadow-2xs cursor-pointer"
+                    title="Next item"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4 text-[#A85D70]" />
+                  </button>
+                )}
+              </div>
+
+              {/* Desktop View/Download Button */}
+              <div className="hidden sm:flex items-center gap-2">
                 <a
                   href={
                     lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)

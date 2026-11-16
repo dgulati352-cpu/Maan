@@ -36,7 +36,7 @@ export function getEffectiveVideoUrls(photo: WeddingPhoto): {
     : photo.videoPreviewUrl ||
       (photo.videoUrl?.includes("/preview") ? photo.videoUrl : "");
   const downloadUrl = fileId
-    ? `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download`
+    ? `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`
     : photo.videoUrl || photo.url;
 
   return { streamUrl, previewUrl, downloadUrl };

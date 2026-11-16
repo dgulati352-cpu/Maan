@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing or invalid video fileId" }, { status: 400 });
   }
 
-  const directStreamUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download`;
+  const directStreamUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
 
   return NextResponse.redirect(directStreamUrl, {
     status: 307,

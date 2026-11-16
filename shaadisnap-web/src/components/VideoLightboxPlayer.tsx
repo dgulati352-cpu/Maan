@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { WeddingPhoto } from "@/data/mockWeddingData";
 import { getEffectiveVideoUrls } from "@/lib/weddingPhotoStore";
-import { ExternalLink, Film, Globe, RefreshCw } from "lucide-react";
+import { ExternalLink, Globe, RefreshCw, Sparkles } from "lucide-react";
 
 interface VideoLightboxPlayerProps {
   photo: WeddingPhoto;
@@ -14,8 +14,8 @@ export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
   photo,
   className = "",
 }) => {
-  // Default to Google Drive High-Speed Adaptive Player for instant 0.2s start with zero buffer lag
-  const [useDrivePlayer, setUseDrivePlayer] = useState(true);
+  // Default to Native 100% Full HD Player for uncompressed, crystal-clear 1080p/4K playback
+  const [useDrivePlayer, setUseDrivePlayer] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,8 +23,8 @@ export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-center ${className}`}>
-      {/* Player Mode Switcher Bar */}
-      <div className="absolute top-2 right-2 z-20 flex items-center gap-1 sm:gap-1.5">
+      {/* Player Mode Switcher & Quality Indicator */}
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
         <button
           type="button"
           onClick={() => {
@@ -32,20 +32,20 @@ export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
             setHasError(false);
             setIsLoading(true);
           }}
-          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold text-white bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-md"
-          title={useDrivePlayer ? "Switch to Native HD Player" : "Switch to Google Drive High-Speed Player"}
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold text-white bg-black/70 hover:bg-black/90 active:scale-95 backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-lg"
+          title={useDrivePlayer ? "Switch to 100% Original HD Player" : "Switch to Google Drive Preview"}
         >
           {useDrivePlayer ? (
             <>
-              <Film className="w-3 h-3 text-emerald-400" />
-              <span className="hidden xs:inline">Native HD Player</span>
-              <span className="xs:hidden">HD Player</span>
+              <Globe className="w-3 h-3 text-amber-400" />
+              <span className="hidden xs:inline">Drive Preview (Switch to HD)</span>
+              <span className="xs:hidden">Drive (360p)</span>
             </>
           ) : (
             <>
-              <Globe className="w-3 h-3 text-[#D9B7A0]" />
-              <span className="hidden xs:inline">Drive Player (Instant)</span>
-              <span className="xs:hidden">Drive (Fast)</span>
+              <Sparkles className="w-3 h-3 text-emerald-400" />
+              <span className="hidden xs:inline">Original HD Quality</span>
+              <span className="xs:hidden">100% HD</span>
             </>
           )}
         </button>
@@ -54,16 +54,16 @@ export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
           href={previewUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1 rounded-full text-white/80 hover:text-white bg-black/50 hover:bg-black/75 backdrop-blur-md transition-colors"
-          title="Open video in new tab"
+          className="p-1.5 rounded-full text-white/80 hover:text-white bg-black/70 hover:bg-black/90 active:scale-95 backdrop-blur-md border border-white/20 transition-all shadow-lg"
+          title="Open in Google Drive"
         >
-          <ExternalLink className="w-3.5 h-3.5" />
+          <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
         </a>
       </div>
 
-      {/* Main Player Display */}
+      {/* Main Video Display */}
       {useDrivePlayer ? (
-        <div className="w-full h-[42vh] xs:h-[48vh] sm:h-[58vh] md:h-[65vh] flex items-center justify-center bg-black rounded-lg overflow-hidden relative shadow-2xl">
+        <div className="w-full h-[40vh] xs:h-[46vh] sm:h-[56vh] md:h-[62vh] flex items-center justify-center bg-black rounded-lg overflow-hidden relative shadow-2xl">
           <iframe
             src={previewUrl}
             className="w-full h-full border-0"
@@ -72,10 +72,10 @@ export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
           />
         </div>
       ) : (
-        <div className="relative w-full max-h-[50vh] sm:max-h-[65vh] flex items-center justify-center">
+        <div className="relative w-full max-h-[50vh] xs:max-h-[55vh] sm:max-h-[62vh] md:max-h-[68vh] flex items-center justify-center">
           {isLoading && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-black/20">
-              <span className="p-2.5 rounded-full bg-black/60 backdrop-blur-md text-white shadow-md">
+              <span className="p-2.5 rounded-full bg-black/70 backdrop-blur-md text-white shadow-xl">
                 <RefreshCw className="w-5 h-5 animate-spin text-[#D9B7A0]" />
               </span>
             </div>
@@ -93,10 +93,10 @@ export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
             onError={() => {
               setHasError(true);
               setIsLoading(false);
-              // Auto-fallback to Drive player if native player stalls
+              // Auto-fallback to Drive player if native player has codec error
               setUseDrivePlayer(true);
             }}
-            className="max-h-[65vh] w-auto max-w-full rounded-lg shadow-xl bg-black"
+            className="max-h-[50vh] xs:max-h-[54vh] sm:max-h-[62vh] md:max-h-[68vh] w-auto max-w-full rounded-lg shadow-2xl bg-black object-contain"
           >
             <source src={streamUrl} type="video/mp4" />
             <source src={downloadUrl} type="video/mp4" />
