@@ -329,7 +329,7 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              className="relative flex-1 overflow-hidden bg-black flex items-center justify-center p-1 sm:p-2 min-h-[250px] sm:min-h-[340px] max-h-[52vh] xs:max-h-[58vh] sm:max-h-[66vh] touch-pan-y"
+              className="relative flex-1 overflow-hidden bg-black flex items-center justify-center p-1 sm:p-2 min-h-[280px] sm:min-h-[360px] max-h-[58vh] xs:max-h-[64vh] sm:max-h-[72vh] touch-pan-y"
             >
               {lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.videoUrl || lightboxPhoto.url || lightboxPhoto.title) ? (
                 <VideoLightboxPlayer photo={lightboxPhoto} />
