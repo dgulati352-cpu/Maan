@@ -25,7 +25,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, getLocallyDeletedIds } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, getLocallyDeletedIds, getCachedSharedPhotos } from "@/lib/weddingPhotoStore";
 import { analyzeLocalImageFile, aiAnalyzeAndSortPhotos, sortWeddingPhotos, PhotoSortMode } from "@/lib/faceComparison";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
@@ -82,7 +82,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     typeof window !== "undefined" ? getStoredGoogleUser() : null
   );
   const [liveStreamPhotos, setLiveStreamPhotos] = useState<WeddingPhoto[]>(() =>
-    typeof window !== "undefined" ? getPhotosForCurrentUser() : []
+    typeof window !== "undefined" ? getCachedSharedPhotos() : []
   );
   const [favorites, setFavorites] = useState<string[]>([]);
   const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
@@ -112,7 +112,16 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           merged.push(lp);
         }
       }
-      setLiveStreamPhotos(merged);
+      setLiveStreamPhotos((prev) => {
+        if (
+          prev.length === merged.length &&
+          prev[0]?.id === merged[0]?.id &&
+          prev[prev.length - 1]?.id === merged[merged.length - 1]?.id
+        ) {
+          return prev;
+        }
+        return merged;
+      });
     };
 
     const handleSync = () => {

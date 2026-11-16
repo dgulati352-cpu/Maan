@@ -2,9 +2,45 @@ import { WeddingPhoto } from "@/data/mockWeddingData";
 import { getStoredGoogleUser } from "@/lib/googleAuth";
 
 const STORAGE_KEY = "shaadisnap_live_wedding_photos";
+const STORAGE_KEY_SHARED_CACHE = "shaadisnap_persistent_shared_photos_v2";
 const STORAGE_KEY_GUEST_LINK = "shaadisnap_ceo_guest_link_approved";
 const STORAGE_KEY_DELETED = "shaadisnap_deleted_photo_ids";
 const STORAGE_KEY_AI_META = "shaadisnap_ai_photo_meta";
+
+// Fast in-memory RAM cache across client component mounts
+let inMemorySharedCache: WeddingPhoto[] | null = null;
+
+export function getCachedSharedPhotos(): WeddingPhoto[] {
+  if (inMemorySharedCache && inMemorySharedCache.length > 0) {
+    return inMemorySharedCache;
+  }
+  if (typeof window === "undefined") {
+    return BASE_APPROVED_PHOTOS;
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SHARED_CACHE);
+    if (raw) {
+      const parsed: WeddingPhoto[] = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const deletedSet = getLocallyDeletedIds();
+        const valid = parsed.filter(
+          (p) =>
+            p &&
+            p.id &&
+            !deletedSet.has(p.id) &&
+            !(p.driveFileId && deletedSet.has(p.driveFileId))
+        );
+        if (valid.length > 0) {
+          inMemorySharedCache = valid;
+          return valid;
+        }
+      }
+    }
+  } catch {
+    // non-fatal
+  }
+  return getApprovedWeddingPhotos();
+}
 
 export interface AiPhotoMeta {
   facesCount?: number;
@@ -341,24 +377,9 @@ export async function fetchSharedGalleryPhotos(options?: {
   ceremony?: string;
   search?: string;
 }): Promise<WeddingPhoto[]> {
-  let fallbackLocal = getApprovedWeddingPhotos().filter((p) =>
-    matchesFilterOptions(p, options)
-  );
-
-  // Instant hydration from session cache so photos appear on screen in 0ms without blank wait
-  if (typeof window !== "undefined") {
-    try {
-      const cached = sessionStorage.getItem("shaadisnap_shared_photos_cache");
-      if (cached) {
-        const parsed: WeddingPhoto[] = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          fallbackLocal = parsed.filter((p) => matchesFilterOptions(p, options));
-        }
-      }
-    } catch {
-      // non-fatal
-    }
-  }
+  // Instant 0ms hydration from memory/disk cache so photos are immediately visible
+  const cachedAll = getCachedSharedPhotos();
+  const fallbackLocal = cachedAll.filter((p) => matchesFilterOptions(p, options));
 
   if (typeof window === "undefined") {
     return fallbackLocal;
@@ -373,9 +394,7 @@ export async function fetchSharedGalleryPhotos(options?: {
       params.set("search", options.search);
     }
 
-    const res = await fetch(`/api/gallery/photos?${params.toString()}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(`/api/gallery/photos?${params.toString()}`);
 
     if (!res.ok) {
       return fallbackLocal;
@@ -465,13 +484,13 @@ export async function fetchSharedGalleryPhotos(options?: {
       merged.push(enrichedCouple);
     }
 
-    // Persist to session cache so return visits and refreshes display photos in 0ms
-    if (typeof window !== "undefined" && (!options?.ceremony || options.ceremony === "All") && !options?.search) {
-      try {
-        sessionStorage.setItem("shaadisnap_shared_photos_cache", JSON.stringify(merged.slice(0, 200)));
-      } catch {
-        // non-fatal
-      }
+    // Persist to memory and disk cache so every future render/refresh displays photos in 0ms
+    if ((!options?.ceremony || options.ceremony === "All") && !options?.search) {
+      inMemorySharedCache = merged;
+      safeSetLocalStorage(
+        STORAGE_KEY_SHARED_CACHE,
+        JSON.stringify(merged.slice(0, 300))
+      );
     }
 
     return merged;

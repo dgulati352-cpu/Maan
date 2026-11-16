@@ -25,6 +25,7 @@ import {
   getApprovedWeddingPhotos,
   getPhotosForCurrentUser,
   fetchSharedGalleryPhotos,
+  getCachedSharedPhotos,
 } from "@/lib/weddingPhotoStore";
 import {
   aiAnalyzeAndSortPhotos,
@@ -43,7 +44,8 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
   onFindPhotos,
   onUploadPhotos,
 }) => {
-  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getApprovedWeddingPhotos());
+  // Instantly initialize from cache memory so all photos paint immediately on screen (0ms)
+  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getCachedSharedPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<"All" | "Photos" | "Videos">("All");
   const [subjectFilter, setSubjectFilter] = useState<"All" | "Solo" | "Couple" | "Group">("All");
@@ -65,10 +67,20 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
       try {
         const livePhotos = await fetchSharedGalleryPhotos();
         if (!active) return;
-        setPhotos(livePhotos);
+        // Avoid re-rendering if photos are identical (prevents images from re-loading or flickering)
+        setPhotos((prev) => {
+          if (
+            prev.length === livePhotos.length &&
+            prev[0]?.id === livePhotos[0]?.id &&
+            prev[prev.length - 1]?.id === livePhotos[livePhotos.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return livePhotos;
+        });
       } catch {
         if (active) {
-          setPhotos(getPhotosForCurrentUser());
+          setPhotos((prev) => (prev.length > 0 ? prev : getPhotosForCurrentUser()));
         }
       }
     };

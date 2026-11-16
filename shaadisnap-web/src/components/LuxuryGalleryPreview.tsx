@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, ExternalLink, ArrowRight, Camera, Video, Play } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { getApprovedWeddingPhotos, fetchSharedGalleryPhotos } from "@/lib/weddingPhotoStore";
+import { getApprovedWeddingPhotos, fetchSharedGalleryPhotos, getCachedSharedPhotos } from "@/lib/weddingPhotoStore";
 import { isVideoFile } from "@/lib/videoThumbnail";
 
 interface LuxuryGalleryPreviewProps {
@@ -15,7 +15,8 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
   onFindYourFace,
   onViewAllGallery,
 }) => {
-  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getApprovedWeddingPhotos());
+  // Instantly initialize from cache memory (0ms)
+  const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getCachedSharedPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
   const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
 
@@ -25,7 +26,16 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
     const syncLive = async () => {
       const livePhotos = await fetchSharedGalleryPhotos();
       if (active) {
-        setPhotos(livePhotos);
+        setPhotos((prev) => {
+          if (
+            prev.length === livePhotos.length &&
+            prev[0]?.id === livePhotos[0]?.id &&
+            prev[prev.length - 1]?.id === livePhotos[livePhotos.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return livePhotos;
+        });
       }
     };
 
