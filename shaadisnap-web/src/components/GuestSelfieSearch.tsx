@@ -641,20 +641,21 @@ export const GuestSelfieSearch: React.FC = () => {
 
                 {/* Viewfinder Controls Bar */}
                 {!cameraError && (
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FFF8F3] border border-[#EADDE0]">
+                  <div className="flex items-center justify-between gap-1.5 sm:gap-2 p-2.5 sm:p-3 rounded-2xl bg-[#FFF8F3] border border-[#EADDE0]">
 
                     {/* Timer Toggle */}
                     <button
                       type="button"
                       onClick={() => setUseCountdown(!useCountdown)}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${useCountdown
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${useCountdown
                           ? "bg-[#A85D70] text-white shadow-xs"
                           : "bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0]"
                         }`}
                       title="Toggle 3s countdown timer"
                     >
                       <Timer className="w-4 h-4" />
-                      <span>{useCountdown ? "3s Timer: ON" : "Timer: OFF"}</span>
+                      <span className="hidden xs:inline">{useCountdown ? "3s Timer: ON" : "Timer: OFF"}</span>
+                      <span className="xs:hidden">{useCountdown ? "3s ON" : "Timer"}</span>
                     </button>
 
                     {/* Main Shutter Capture Button */}
@@ -663,11 +664,11 @@ export const GuestSelfieSearch: React.FC = () => {
                         type="button"
                         onClick={triggerCapture}
                         disabled={countdown !== null}
-                        className="group relative flex items-center justify-center w-16 h-16 rounded-full bg-white border-4 border-[#A85D70] shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        className="group relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border-4 border-[#A85D70] shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
                         title="Take Selfie Snapshot"
                       >
-                        <div className="w-10 h-10 rounded-full bg-[#A85D70] group-hover:bg-[#914C60] transition-colors flex items-center justify-center">
-                          <Camera className="w-5 h-5 text-white" />
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#A85D70] group-hover:bg-[#914C60] transition-colors flex items-center justify-center">
+                          <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
                       </button>
                     </div>
@@ -676,11 +677,11 @@ export const GuestSelfieSearch: React.FC = () => {
                     <button
                       type="button"
                       onClick={toggleFacingMode}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0] transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-semibold bg-white text-[#765D62] hover:text-[#633C49] border border-[#EADDE0] transition-all cursor-pointer"
                       title="Switch camera lens"
                     >
                       <FlipHorizontal className="w-4 h-4 text-[#A85D70]" />
-                      <span className="hidden sm:inline">Flip</span>
+                      <span className="hidden xs:inline">Flip</span>
                     </button>
 
                   </div>

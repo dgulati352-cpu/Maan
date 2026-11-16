@@ -844,14 +844,14 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   Snap new candid photos, record wedding video clips, or select photos and videos from your phone gallery.
                 </p>
 
-                <div className="flex flex-wrap items-center justify-center gap-3">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center gap-2 sm:gap-3 w-full max-w-md mx-auto">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       cameraInputRef.current?.click();
                     }}
-                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-3.5 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
                     <span>Take Photo</span>
@@ -863,7 +863,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       e.stopPropagation();
                       videoRecordRef.current?.click();
                     }}
-                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#633C49] hover:bg-[#4E2E39] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-3.5 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#633C49] hover:bg-[#4E2E39] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
                   >
                     <Video className="w-4 h-4 text-[#D9B7A0]" />
                     <span>Record Video</span>
@@ -875,7 +875,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       e.stopPropagation();
                       videoInputRef.current?.click();
                     }}
-                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[#633C49] bg-[#FFF8F3] hover:bg-[#F1D5D5]/50 border border-[#A85D70]/40 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                    className="w-full sm:w-auto px-3.5 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[#633C49] bg-[#FFF8F3] hover:bg-[#F1D5D5]/50 border border-[#A85D70]/40 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer shadow-xs"
                   >
                     <Play className="w-3.5 h-3.5 fill-[#A85D70] text-[#A85D70]" />
                     <span>Add Videos</span>
@@ -887,10 +887,10 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       e.stopPropagation();
                       fileInputRef.current?.click();
                     }}
-                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                    className="w-full sm:w-auto px-3.5 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[#633C49] bg-white hover:bg-[#FFF8F3] border border-[#EADDE0] hover:border-[#A85D70] transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer shadow-xs"
                   >
                     <ImageIcon className="w-4 h-4 text-[#A85D70]" />
-                    <span>Choose From Gallery</span>
+                    <span>Gallery</span>
                   </button>
                 </div>
 
@@ -971,7 +971,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                             className="w-12 h-12 rounded-lg object-cover border border-[#EADDE0]"
                           />
                           <div>
-                            <p className="text-sm font-bold text-[#633C49] truncate max-w-xs">
+                            <p className="text-sm font-bold text-[#633C49] truncate max-w-[170px] xs:max-w-xs sm:max-w-md">
                               {file.name}
                             </p>
                             <span className="text-xs text-[#947A80] flex items-center gap-1.5 flex-wrap">

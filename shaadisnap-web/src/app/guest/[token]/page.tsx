@@ -83,6 +83,29 @@ export default function GuestPassPage({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [activeLightboxPhoto, setActiveLightboxPhoto] = useState<MatchedItem | null>(null);
 
+  // Touch Swipe Navigation for all Mobile / Tablet screens
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX === null || touchEndX === null) return;
+    const diff = touchStartX - touchEndX;
+    if (diff > 45) {
+      navigateGuestLightbox(1);
+    } else if (diff < -45) {
+      navigateGuestLightbox(-1);
+    }
+  };
+
   const navigateGuestLightbox = useCallback(
     (direction: 1 | -1) => {
       setActiveLightboxPhoto((current) => {
@@ -977,11 +1000,16 @@ export default function GuestPassPage({
               <X className="w-6 h-6" />
             </button>
 
-            <div className="relative flex items-center justify-center">
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="relative flex items-center justify-center touch-pan-y"
+            >
               <img
                 src={activeLightboxPhoto.url}
                 alt={activeLightboxPhoto.title}
-                className="max-h-[75vh] w-auto object-contain rounded-2xl shadow-2xl"
+                className="max-h-[55vh] xs:max-h-[65vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl"
               />
 
               {/* Prev Button (Click & Left Arrow Navigation) */}
@@ -993,11 +1021,11 @@ export default function GuestPassPage({
                     e.stopPropagation();
                     navigateGuestLightbox(-1);
                   }}
-                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
-                  title="Previous photo (Left Arrow / Click)"
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-90 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Previous photo (Left Arrow / Click / Swipe Right)"
                   aria-label="Previous photo"
                 >
-                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+                  <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 stroke-[2.5]" />
                 </button>
               )}
 
@@ -1010,18 +1038,18 @@ export default function GuestPassPage({
                     e.stopPropagation();
                     navigateGuestLightbox(1);
                   }}
-                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
-                  title="Next photo (Right Arrow / Click)"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-90 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Next photo (Right Arrow / Click / Swipe Left)"
                   aria-label="Next photo"
                 >
-                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+                  <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 stroke-[2.5]" />
                 </button>
               )}
             </div>
 
-            <div className="mt-4 flex items-center justify-between w-full text-white text-xs px-2">
-              <div>
-                <p className="font-semibold text-sm">{activeLightboxPhoto.title}</p>
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full text-white text-xs px-2">
+              <div className="text-left">
+                <p className="font-semibold text-sm truncate max-w-[220px] xs:max-w-xs sm:max-w-md">{activeLightboxPhoto.title}</p>
                 <p className="text-gray-300 text-xs">
                   {activeLightboxPhoto.ceremony} • {Math.round(activeLightboxPhoto.similarity * 100)}% ArcFace Match
                 </p>
@@ -1030,7 +1058,7 @@ export default function GuestPassPage({
               <button
                 type="button"
                 onClick={() => handleDownloadSingle(activeLightboxPhoto)}
-                className="inline-flex items-center gap-2 py-2 px-4 rounded-full text-xs font-bold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-md cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-2 px-5 rounded-full text-xs font-bold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-md cursor-pointer text-center"
               >
                 <Download className="w-4 h-4" />
                 <span>Download High-Res</span>
