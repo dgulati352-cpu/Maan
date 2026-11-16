@@ -25,7 +25,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, getLocallyDeletedIds } from "@/lib/weddingPhotoStore";
 import { analyzeLocalImageFile, aiAnalyzeAndSortPhotos, sortWeddingPhotos, PhotoSortMode } from "@/lib/faceComparison";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
@@ -102,14 +102,11 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
       const shared = await fetchSharedGalleryPhotos();
       if (!active) return;
       const localScoped = getPhotosForCurrentUser();
-      const sharedIds = new Set(
-        shared.flatMap((p) => [p.id, p.driveFileId].filter(Boolean) as string[])
-      );
+      const deletedSet = getLocallyDeletedIds();
       const merged = [...shared];
       for (const lp of localScoped) {
-        const isDriveBacked = Boolean(lp.driveFileId);
-        if (isDriveBacked && !sharedIds.has(lp.id) && !(lp.driveFileId && sharedIds.has(lp.driveFileId))) {
-          continue; // Photo was deleted from Drive on another device
+        if (deletedSet.has(lp.id) || (lp.driveFileId && deletedSet.has(lp.driveFileId))) {
+          continue; // Truly deleted photo
         }
         if (!merged.some((mp) => mp.id === lp.id || (lp.driveFileId && mp.driveFileId === lp.driveFileId))) {
           merged.push(lp);
@@ -258,10 +255,19 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           : WEDDING_EVENT.googleDriveFolderId;
       formData.append("driveFolderId", effectiveFolderId);
 
-      const res = await fetch("/api/upload-photo", {
+      let res = await fetch("/api/upload-photo", {
         method: "POST",
         body: formData,
       });
+
+      if (!res.ok && res.status >= 500) {
+        // Auto-retry transient serverless / Apps Script error once after 1.2s delay
+        await new Promise((r) => setTimeout(r, 1200));
+        res = await fetch("/api/upload-photo", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       const data = await res.json();
 
@@ -289,11 +295,6 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
         // Immediately update liveStreamPhotos so it reflects on screen right away
         setLiveStreamPhotos(getPhotosForCurrentUser());
-
-        // Automatically switch to gallery tab after brief celebration so user immediately sees their photo/video
-        setTimeout(() => {
-          setActiveSidebarItem("gallery");
-        }, 1200);
 
         if (item.previewUrl.startsWith("blob:") && !isVideo) {
           URL.revokeObjectURL(item.previewUrl);
@@ -402,16 +403,71 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
     }
 
     setUploadFiles((prev) => [...newItems, ...prev]);
-    newItems.forEach((item) => uploadSingleItem(item));
+
+    // Controlled concurrent upload pump (2 active in parallel)
+    // Prevents exhausting network bandwidth or hitting Google Apps Script concurrency caps
+    const queue = [...newItems];
+    const CONCURRENCY = 2;
+    let inFlight = 0;
+    let finishedCount = 0;
+
+    const pump = () => {
+      while (inFlight < CONCURRENCY && queue.length > 0) {
+        const item = queue.shift();
+        if (!item) break;
+        inFlight++;
+        uploadSingleItem(item).finally(() => {
+          inFlight--;
+          finishedCount++;
+          if (finishedCount === newItems.length) {
+            // Smoothly switch to gallery tab after all files in batch complete
+            setTimeout(() => {
+              setActiveSidebarItem("gallery");
+            }, 600);
+          } else {
+            pump();
+          }
+        });
+      }
+    };
+
+    pump();
   };
 
   const startBatchUpload = async () => {
     setIsBatchUploading(true);
-    for (const item of uploadFiles) {
-      if (item.status !== "completed" && item.status !== "uploading") {
-        await uploadSingleItem(item);
+    const pending = uploadFiles.filter(
+      (item) => item.status !== "completed" && item.status !== "uploading"
+    );
+    const queue = [...pending];
+    const CONCURRENCY = 2;
+    let inFlight = 0;
+
+    await new Promise<void>((resolve) => {
+      if (queue.length === 0) {
+        resolve();
+        return;
       }
-    }
+      let completed = 0;
+      const pump = () => {
+        while (inFlight < CONCURRENCY && queue.length > 0) {
+          const item = queue.shift();
+          if (!item) break;
+          inFlight++;
+          uploadSingleItem(item).finally(() => {
+            inFlight--;
+            completed++;
+            if (completed === pending.length) {
+              resolve();
+            } else {
+              pump();
+            }
+          });
+        }
+      };
+      pump();
+    });
+
     setIsBatchUploading(false);
   };
 

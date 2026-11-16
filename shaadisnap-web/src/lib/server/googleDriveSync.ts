@@ -234,13 +234,14 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
   const referer = rawReferer.endsWith("/") ? rawReferer : `${rawReferer}/`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const results: DriveSyncedPhoto[] = [];
     let pageToken = "";
 
-    for (let page = 0; page < 5; page++) {
+    // Paginate through up to 50 pages (5,000 photos) instead of capping at 5 pages
+    for (let page = 0; page < 50; page++) {
       const pageParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
       const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=createdTime%20desc&pageSize=100${pageParam}&key=${encodeURIComponent(
         apiKey
@@ -248,7 +249,7 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
 
       const res = await fetch(url, {
         headers: {
-          Referer: referer,
+          Referer: "https://maan-gulati.vercel.app/",
         },
         cache: "no-store",
         signal: controller.signal,

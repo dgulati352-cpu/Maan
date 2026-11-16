@@ -34,9 +34,11 @@ export async function GET(req: NextRequest) {
     const ceremony = searchParams.get("ceremony") || "All";
     const search = searchParams.get("search")?.toLowerCase();
     const parsedPage = parseInt(searchParams.get("page") || "1", 10);
-    const parsedLimit = parseInt(searchParams.get("limit") || "60", 10);
+    const rawLimit = searchParams.get("limit");
+    const parsedLimit = rawLimit ? parseInt(rawLimit, 10) : 5000;
     const page = Math.max(1, Number.isNaN(parsedPage) ? 1 : parsedPage);
-    const limit = Math.max(1, Math.min(100, Number.isNaN(parsedLimit) ? 60 : parsedLimit));
+    // Uncapped wedding photo limit (up to 10,000 photos instead of artificial 60 cap)
+    const limit = Math.max(1, Math.min(10000, Number.isNaN(parsedLimit) ? 5000 : parsedLimit));
 
     // Scope official Drive folder sync strictly to primary wedding event (or default)
     const drivePhotosPromise =

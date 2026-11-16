@@ -25,6 +25,27 @@ export function getAiPhotoMetaMap(): Record<string, AiPhotoMeta> {
   }
 }
 
+function safeSetLocalStorage(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`localStorage.setItem failed for key "${key}" (possibly quota exceeded):`, err);
+    try {
+      if (key === STORAGE_KEY) {
+        const parsed: WeddingPhoto[] = JSON.parse(value);
+        if (Array.isArray(parsed) && parsed.length > 100) {
+          // Keep newest 100 in local cache to stay within browser storage quota
+          const trimmed = parsed.slice(0, 100);
+          localStorage.setItem(key, JSON.stringify(trimmed));
+        }
+      }
+    } catch {
+      // ignore non-fatal storage fallback
+    }
+  }
+}
+
 export function saveAiPhotoMetaBatch(
   entries: Array<{ id: string; driveFileId?: string } & AiPhotoMeta>
 ): void {
@@ -82,7 +103,7 @@ function applyAiMeta(photo: WeddingPhoto, metaMap: Record<string, AiPhotoMeta>):
   };
 }
 
-function getLocallyDeletedIds(): Set<string> {
+export function getLocallyDeletedIds(): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
     const raw = localStorage.getItem(STORAGE_KEY_DELETED);
@@ -328,7 +349,7 @@ export async function fetchSharedGalleryPhotos(options?: {
   }
 
   try {
-    const params = new URLSearchParams({ limit: "100" });
+    const params = new URLSearchParams({ limit: "5000" });
     if (options?.ceremony && options.ceremony !== "All") {
       params.set("ceremony", options.ceremony);
     }

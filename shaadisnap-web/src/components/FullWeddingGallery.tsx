@@ -15,7 +15,6 @@ import {
   ChevronRight,
   CheckCircle2,
   Share2,
-  ArrowUpDown,
   RefreshCw,
   Video,
   Play,
@@ -352,39 +351,6 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                 )}
                 <span>{isAiSorting ? "AI Sorting..." : "AI Auto-Sort & Tag"}</span>
               </button>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF8F3] border border-[#EADDE0] font-semibold text-[#633C49]">
-                <ArrowUpDown className="w-3.5 h-3.5 text-[#A85D70]" />
-                <select
-                  aria-label="Sort gallery photos"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as PhotoSortMode)}
-                  className="bg-transparent outline-none cursor-pointer pr-1"
-                >
-                  <option value="newest">Sort: Newest</option>
-                  <option value="ai-smart">Sort: AI Best Quality</option>
-                  <option value="ceremony">Sort: Ceremony Flow</option>
-                  <option value="faces-desc">Sort: Most Faces</option>
-                  <option value="oldest">Sort: Oldest</option>
-                </select>
-              </div>
-
-              <div className="hidden sm:flex items-center gap-1 bg-[#FFF8F3] p-0.5 rounded-full border border-[#EADDE0]">
-                {(["All", "Solo", "Couple", "Group"] as const).map((subj) => (
-                  <button
-                    key={subj}
-                    type="button"
-                    onClick={() => setSubjectFilter(subj)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
-                      subjectFilter === subj
-                        ? "bg-[#633C49] text-white"
-                        : "text-[#765D62] hover:text-[#633C49]"
-                    }`}
-                  >
-                    {subj}
-                  </button>
-                ))}
-              </div>
 
               <button
                 type="button"
