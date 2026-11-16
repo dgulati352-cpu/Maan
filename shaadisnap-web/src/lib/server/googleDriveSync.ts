@@ -23,6 +23,7 @@ export interface DriveSyncedPhoto {
   driveFolderId: string;
   mediaType?: "image" | "video";
   videoUrl?: string;
+  videoPreviewUrl?: string;
 }
 
 const DEFAULT_DRIVE_FOLDER_ID = (
@@ -185,7 +186,8 @@ function buildDrivePhotoRecord(
   // High-speed 500px thumbnail for instant gallery grid rendering (~35KB instead of 1.5MB)
   const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
   const fallbackUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
-  const videoUrl = isVideo ? `https://drive.google.com/file/d/${fileId}/preview` : undefined;
+  const videoStreamUrl = isVideo ? `/api/gallery/video-stream?id=${fileId}` : undefined;
+  const videoPreviewUrl = isVideo ? `https://drive.google.com/file/d/${fileId}/preview` : undefined;
 
   return {
     id: fileId,
@@ -204,7 +206,8 @@ function buildDrivePhotoRecord(
     approvalStatus: "approved",
     driveFolderId: folderId,
     mediaType: isVideo ? "video" : "image",
-    videoUrl,
+    videoUrl: videoStreamUrl,
+    videoPreviewUrl: videoPreviewUrl,
   };
 }
 

@@ -33,6 +33,7 @@ import * as guestVerifyPass from "@/lib/server/apiHandlers/guest_verify_pass";
 import * as imageProxy from "@/lib/server/apiHandlers/image_proxy";
 import * as rsvp from "@/lib/server/apiHandlers/rsvp";
 import * as uploadPhoto from "@/lib/server/apiHandlers/upload_photo";
+import * as videoStream from "@/lib/server/apiHandlers/video_stream";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,8 @@ const routeTable: Record<string, HandlerModule> = {
 
   "face-search": faceSearch,
   "gallery/photos": galleryPhotos,
+  "gallery/video-stream": videoStream,
+  "video-stream": videoStream,
 
   "google-drive/albums": driveAlbums,
   "google-drive/import": driveImport,

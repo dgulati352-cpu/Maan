@@ -23,6 +23,7 @@ export interface WeddingPhoto {
   aiSorted?: boolean;
   mediaType?: "image" | "video";
   videoUrl?: string;
+  videoPreviewUrl?: string;
   thumbnailUrl?: string;
   duration?: number;
   durationFormatted?: string;

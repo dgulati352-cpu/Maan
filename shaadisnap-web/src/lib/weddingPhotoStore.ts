@@ -10,6 +10,38 @@ const STORAGE_KEY_AI_META = "shaadisnap_ai_photo_meta";
 // Fast in-memory RAM cache across client component mounts
 let inMemorySharedCache: WeddingPhoto[] | null = null;
 
+/**
+ * Resolves reliable video playback and download URLs for a WeddingPhoto or video item.
+ * - streamUrl: Direct uncompressed stream proxy supporting HTTP 206 range seeking and inline playback
+ * - previewUrl: Google Drive official preview player iframe URL
+ * - downloadUrl: Direct uncompressed master file download URL
+ */
+export function getEffectiveVideoUrls(photo: WeddingPhoto): {
+  streamUrl: string;
+  previewUrl: string;
+  downloadUrl: string;
+} {
+  const fileId =
+    photo.driveFileId ||
+    (photo.id && !photo.id.startsWith("photo_") && !photo.id.startsWith("upload_")
+      ? photo.id
+      : "");
+  const streamUrl = fileId
+    ? `/api/gallery/video-stream?id=${encodeURIComponent(fileId)}`
+    : photo.videoUrl && !photo.videoUrl.includes("/preview")
+    ? photo.videoUrl
+    : photo.url;
+  const previewUrl = fileId
+    ? `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`
+    : photo.videoPreviewUrl ||
+      (photo.videoUrl?.includes("/preview") ? photo.videoUrl : "");
+  const downloadUrl = fileId
+    ? `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download`
+    : photo.videoUrl || photo.url;
+
+  return { streamUrl, previewUrl, downloadUrl };
+}
+
 export function getCachedSharedPhotos(): WeddingPhoto[] {
   if (inMemorySharedCache && inMemorySharedCache.length > 0) {
     return inMemorySharedCache;
@@ -520,6 +552,7 @@ export function addUploadedPhoto(photo: {
   aiSorted?: boolean;
   mediaType?: "image" | "video";
   videoUrl?: string;
+  videoPreviewUrl?: string;
   thumbnailUrl?: string;
   duration?: number;
   durationFormatted?: string;
@@ -564,6 +597,7 @@ export function addUploadedPhoto(photo: {
       aiSorted: photo.aiSorted,
       mediaType: photo.mediaType || (photo.url && /\.(mp4|mov|webm|m4v|3gp)/i.test(photo.url) ? "video" : "image"),
       videoUrl: photo.videoUrl || (photo.mediaType === "video" ? photo.url : undefined),
+      videoPreviewUrl: photo.videoPreviewUrl,
       thumbnailUrl: photo.thumbnailUrl || persistentFallbackUrl,
       duration: photo.duration,
       durationFormatted: photo.durationFormatted,

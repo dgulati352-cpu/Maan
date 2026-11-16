@@ -25,12 +25,13 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
-import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, getLocallyDeletedIds, getCachedSharedPhotos } from "@/lib/weddingPhotoStore";
+import { addUploadedPhoto, getWeddingPhotos, getPhotosForCurrentUser, fetchSharedGalleryPhotos, getLocallyDeletedIds, getCachedSharedPhotos, getEffectiveVideoUrls } from "@/lib/weddingPhotoStore";
 import { analyzeLocalImageFile, aiAnalyzeAndSortPhotos, sortWeddingPhotos, PhotoSortMode } from "@/lib/faceComparison";
 import { GoogleDriveImportModal } from "@/components/GoogleDriveImportModal";
 import { getStoredGoogleUser, switchActiveUser, GoogleDriveUser } from "@/lib/googleAuth";
 import { compressImage, formatBytes } from "@/lib/imageCompression";
 import { generateVideoThumbnail, isVideoFile } from "@/lib/videoThumbnail";
+import { VideoLightboxPlayer } from "@/components/VideoLightboxPlayer";
 
 const ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
 const ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".mov", ".webm", ".m4v", ".3gp"];
@@ -240,6 +241,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                   ...f,
                   progress: 50,
                   isVideo: true,
+                  size: item.rawFile ? formatBytes(item.rawFile.size) : f.size,
                   thumbnailUrl: thumbUrl || f.thumbnailUrl,
                   durationFormatted: durFormatted || f.durationFormatted,
                   duration: durSec || f.duration,
@@ -296,7 +298,8 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
           shotType: isVideo ? "scenic" : aiMeta.shotType,
           aiSorted: selectedCeremony === "AI Auto",
           mediaType: isVideo ? "video" : "image",
-          videoUrl: isVideo ? data.videoUrl || data.url : undefined,
+          videoUrl: isVideo ? data.videoUrl || `/api/gallery/video-stream?id=${data.fileId}` : undefined,
+          videoPreviewUrl: isVideo ? data.videoPreviewUrl || `https://drive.google.com/file/d/${data.fileId}/preview` : undefined,
           thumbnailUrl: item.thumbnailUrl,
           duration: item.duration,
           durationFormatted: item.durationFormatted,
@@ -929,9 +932,16 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                             </p>
                             <span className="text-xs text-[#947A80] flex items-center gap-1.5 flex-wrap">
                               <span>{file.size}</span>
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#A85D70] bg-[#F1D5D5]/50 px-1.5 py-0.5 rounded border border-[#A85D70]/20">
-                                Compressed 2K
-                              </span>
+                              {file.isVideo ? (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300">
+                                  <Video className="w-2.5 h-2.5 text-emerald-700" />
+                                  Original 100% Quality (No Compression)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#A85D70] bg-[#F1D5D5]/50 px-1.5 py-0.5 rounded border border-[#A85D70]/20">
+                                  Original Master
+                                </span>
+                              )}
                               <span>•</span>
                               <span>{file.detectedCeremony || (selectedCeremony === "AI Auto" ? "AI Detecting..." : selectedCeremony)}</span>
                               {typeof file.facesDetected === "number" && (
@@ -948,13 +958,13 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                           {file.status === "uploading" && (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#633C49] bg-white px-2.5 py-1 rounded-full border border-[#EADDE0]">
                               <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#A85D70]" />
-                              Compressing & Uploading...
+                              {file.isVideo ? "Uploading Original HD Video (100% Quality)..." : "Uploading HD..."}
                             </span>
                           )}
                           {file.status === "completed" && (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              Optimized & Stored
+                              {file.isVideo ? "Original HD Video Stored" : "Stored in Full HD"}
                             </span>
                           )}
                           {file.status === "error" && (
@@ -1484,14 +1494,7 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
             <div className="relative flex-1 bg-black flex items-center justify-center p-2 min-h-[320px] max-h-[65vh] overflow-hidden">
               {lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.videoUrl || lightboxPhoto.url || lightboxPhoto.title) ? (
-                <video
-                  src={lightboxPhoto.videoUrl || lightboxPhoto.url}
-                  poster={lightboxPhoto.thumbnailUrl || lightboxPhoto.fallbackUrl}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="max-h-[65vh] w-auto max-w-full rounded-xl shadow-lg"
-                />
+                <VideoLightboxPlayer photo={lightboxPhoto} />
               ) : (
                 <img
                   src={lightboxPhoto.url || lightboxPhoto.fallbackUrl}
@@ -1518,14 +1521,27 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
               </button>
 
               <a
-                href={lightboxPhoto.videoUrl || lightboxPhoto.url}
-                download={lightboxPhoto.title || (lightboxPhoto.mediaType === "video" ? "wedding_clip.mp4" : "wedding_photo.jpg")}
+                href={
+                  lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)
+                    ? getEffectiveVideoUrls(lightboxPhoto).downloadUrl
+                    : lightboxPhoto.url
+                }
+                download={
+                  lightboxPhoto.title ||
+                  (lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)
+                    ? "wedding_clip.mp4"
+                    : "wedding_photo.jpg")
+                }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-xs cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.videoUrl || lightboxPhoto.url) ? "Download Video" : "Download High-Res"}</span>
+                <span>
+                  {lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.url || lightboxPhoto.title)
+                    ? "Download Original HD Video"
+                    : "Download High-Res"}
+                </span>
               </a>
             </div>
           </div>

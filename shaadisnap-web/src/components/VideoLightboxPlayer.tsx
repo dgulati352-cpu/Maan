@@ -1,0 +1,106 @@
+"use client";
+
+import React, { useState } from "react";
+import { WeddingPhoto } from "@/data/mockWeddingData";
+import { getEffectiveVideoUrls } from "@/lib/weddingPhotoStore";
+import { ExternalLink, Film, Globe, RefreshCw } from "lucide-react";
+
+interface VideoLightboxPlayerProps {
+  photo: WeddingPhoto;
+  className?: string;
+}
+
+export const VideoLightboxPlayer: React.FC<VideoLightboxPlayerProps> = ({
+  photo,
+  className = "",
+}) => {
+  const [useDrivePlayer, setUseDrivePlayer] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { streamUrl, previewUrl, downloadUrl } = getEffectiveVideoUrls(photo);
+
+  return (
+    <div className={`relative w-full h-full flex flex-col items-center justify-center ${className}`}>
+      {/* Player Mode Switcher Bar */}
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            setUseDrivePlayer((prev) => !prev);
+            setHasError(false);
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold text-white bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-md"
+          title={useDrivePlayer ? "Switch to Native HD Player" : "Switch to Google Drive Web Player"}
+        >
+          {useDrivePlayer ? (
+            <>
+              <Film className="w-3 h-3 text-emerald-400" />
+              <span>Native HD Player</span>
+            </>
+          ) : (
+            <>
+              <Globe className="w-3 h-3 text-[#D9B7A0]" />
+              <span>Drive Player</span>
+            </>
+          )}
+        </button>
+
+        <a
+          href={previewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1 rounded-full text-white/80 hover:text-white bg-black/50 hover:bg-black/75 backdrop-blur-md transition-colors"
+          title="Open video in new tab"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
+
+      {/* Main Player Display */}
+      {useDrivePlayer ? (
+        <div className="w-full h-[60vh] sm:h-[65vh] flex items-center justify-center bg-black rounded-lg overflow-hidden relative">
+          <iframe
+            src={previewUrl}
+            className="w-full h-full border-0"
+            allow="autoplay; fullscreen"
+            title={photo.title || "Wedding Video Player"}
+          />
+        </div>
+      ) : (
+        <div className="relative w-full max-h-[65vh] flex items-center justify-center">
+          {isLoading && !hasError && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-black/20">
+              <span className="p-2.5 rounded-full bg-black/60 backdrop-blur-md text-white shadow-md">
+                <RefreshCw className="w-5 h-5 animate-spin text-[#D9B7A0]" />
+              </span>
+            </div>
+          )}
+
+          <video
+            key={streamUrl}
+            src={streamUrl}
+            poster={photo.thumbnailUrl || photo.fallbackUrl}
+            controls
+            autoPlay
+            playsInline
+            preload="auto"
+            onLoadedData={() => setIsLoading(false)}
+            onPlaying={() => setIsLoading(false)}
+            onError={() => {
+              setHasError(true);
+              setIsLoading(false);
+              // Auto-fallback to Drive player if browser codec fails
+              setUseDrivePlayer(true);
+            }}
+            className="max-h-[65vh] w-auto max-w-full rounded-lg shadow-xl bg-black"
+          >
+            <source src={streamUrl} type="video/mp4" />
+            <source src={downloadUrl} type="video/mp4" />
+            Your browser does not support HTML5 video playback.
+          </video>
+        </div>
+      )}
+    </div>
+  );
+};
