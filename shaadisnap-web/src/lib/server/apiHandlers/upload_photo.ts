@@ -4,6 +4,7 @@ import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import { invalidateDriveFolderCache } from "@/lib/server/googleDriveSync";
 
 const execFileAsync = promisify(execFile);
 
@@ -224,6 +225,9 @@ export async function POST(req: NextRequest) {
         console.warn("AI indexing notification:", msg);
       }
     }
+
+    // Immediately invalidate server cache so the newly uploaded photo appears instantly across all devices
+    invalidateDriveFolderCache();
 
     return NextResponse.json({
       success: true,

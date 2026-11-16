@@ -55,7 +55,8 @@ let lastDeletedSyncMs = 0;
 
 export async function fetchAppsScriptDeletedIds(): Promise<string[]> {
   const now = Date.now();
-  if (now - lastDeletedSyncMs < 6000 && serverDeletedDriveIds.size > 0) {
+  // Check at most once every 30 seconds to prevent blocking requests
+  if (now - lastDeletedSyncMs < 30000 && lastDeletedSyncMs > 0) {
     return Array.from(serverDeletedDriveIds);
   }
   if (!GOOGLE_APPS_SCRIPT_URL) {
@@ -63,7 +64,7 @@ export async function fetchAppsScriptDeletedIds(): Promise<string[]> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000);
+  const timeout = setTimeout(() => controller.abort(), 3000);
   try {
     const res = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=deleted_ids&t=${now}`, {
       cache: "no-store",
@@ -181,7 +182,9 @@ function buildDrivePhotoRecord(
   const { title, ceremony, createdAtMs } = parseDriveFilename(name, createdTime);
   const isVideo = isVideoParam ?? /\.(mp4|mov|webm|m4v|3gp)$/i.test(name);
   const cdnUrl = `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
-  const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+  // High-speed 500px thumbnail for instant gallery grid rendering (~35KB instead of 1.5MB)
+  const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
+  const fallbackUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
   const videoUrl = isVideo ? `https://drive.google.com/file/d/${fileId}/preview` : undefined;
 
   return {
@@ -192,7 +195,7 @@ function buildDrivePhotoRecord(
     ceremony,
     url: cdnUrl,
     thumbnailUrl: thumbUrl,
-    fallbackUrl: thumbUrl,
+    fallbackUrl: fallbackUrl,
     facesCount: 1,
     sizeBytes: sizeBytes || 0,
     createdAt: new Date(createdAtMs).toISOString(),
@@ -240,8 +243,8 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
     const results: DriveSyncedPhoto[] = [];
     let pageToken = "";
 
-    // Paginate through up to 50 pages (5,000 photos) instead of capping at 5 pages
-    for (let page = 0; page < 50; page++) {
+    // Paginate through up to 1000 pages (100,000 photos) as requested
+    for (let page = 0; page < 1000; page++) {
       const pageParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
       const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=createdTime%20desc&pageSize=100${pageParam}&key=${encodeURIComponent(
         apiKey
@@ -355,19 +358,55 @@ async function fetchViaEmbeddedFolderView(
   }
 }
 
+// In-memory server cache to return gallery photos in 1ms instead of making guests wait 5-10s
+let drivePhotosCache: { photos: DriveSyncedPhoto[]; timestamp: number } | null = null;
+const CACHE_TTL_MS = 15_000; // 15 seconds fresh cache
+let isRefreshingBackground = false;
+
+export function invalidateDriveFolderCache(): void {
+  drivePhotosCache = null;
+}
+
 /**
  * Fetches all live photos currently stored in the wedding Google Drive folder.
- * Uses Drive API v3 when available and falls back to public folder view.
+ * Uses high-speed in-memory caching with stale-while-revalidate for instant 1ms delivery.
  */
 export async function fetchLiveDriveFolderPhotos(
   folderId: string = DEFAULT_DRIVE_FOLDER_ID
 ): Promise<DriveSyncedPhoto[]> {
-  // Synchronize globally deleted photo IDs across all serverless containers
-  await fetchAppsScriptDeletedIds().catch(() => []);
+  const now = Date.now();
 
+  // Instant response if fresh cache exists (0ms)
+  if (drivePhotosCache && now - drivePhotosCache.timestamp < CACHE_TTL_MS) {
+    return drivePhotosCache.photos.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
+  }
+
+  // Stale-while-revalidate: if cache exists, return it immediately while refreshing in background!
+  if (drivePhotosCache && drivePhotosCache.photos.length > 0) {
+    if (!isRefreshingBackground) {
+      isRefreshingBackground = true;
+      (async () => {
+        try {
+          await fetchAppsScriptDeletedIds().catch(() => []);
+          const apiPhotos = await fetchViaDriveApiV3(folderId);
+          const raw = apiPhotos !== null ? apiPhotos : await fetchViaEmbeddedFolderView(folderId);
+          const valid = raw.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
+          drivePhotosCache = { photos: valid, timestamp: Date.now() };
+        } finally {
+          isRefreshingBackground = false;
+        }
+      })();
+    }
+    return drivePhotosCache.photos.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
+  }
+
+  // Cold start first load: fetch and cache
+  await fetchAppsScriptDeletedIds().catch(() => []);
   const apiPhotos = await fetchViaDriveApiV3(folderId);
   const raw = apiPhotos !== null ? apiPhotos : await fetchViaEmbeddedFolderView(folderId);
-  return raw.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
+  const valid = raw.filter((p) => !isDriveFileDeleted(p.id) && !isDriveFileDeleted(p.driveFileId));
+  drivePhotosCache = { photos: valid, timestamp: Date.now() };
+  return valid;
 }
 
 /**

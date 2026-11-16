@@ -341,15 +341,31 @@ export async function fetchSharedGalleryPhotos(options?: {
   ceremony?: string;
   search?: string;
 }): Promise<WeddingPhoto[]> {
-  const fallbackLocal = getApprovedWeddingPhotos().filter((p) =>
+  let fallbackLocal = getApprovedWeddingPhotos().filter((p) =>
     matchesFilterOptions(p, options)
   );
+
+  // Instant hydration from session cache so photos appear on screen in 0ms without blank wait
+  if (typeof window !== "undefined") {
+    try {
+      const cached = sessionStorage.getItem("shaadisnap_shared_photos_cache");
+      if (cached) {
+        const parsed: WeddingPhoto[] = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          fallbackLocal = parsed.filter((p) => matchesFilterOptions(p, options));
+        }
+      }
+    } catch {
+      // non-fatal
+    }
+  }
+
   if (typeof window === "undefined") {
     return fallbackLocal;
   }
 
   try {
-    const params = new URLSearchParams({ limit: "5000" });
+    const params = new URLSearchParams({ limit: "100000" });
     if (options?.ceremony && options.ceremony !== "All") {
       params.set("ceremony", options.ceremony);
     }
@@ -447,6 +463,15 @@ export async function fetchSharedGalleryPhotos(options?: {
       !merged.some((p) => p.id === "hero_couple_photo")
     ) {
       merged.push(enrichedCouple);
+    }
+
+    // Persist to session cache so return visits and refreshes display photos in 0ms
+    if (typeof window !== "undefined" && (!options?.ceremony || options.ceremony === "All") && !options?.search) {
+      try {
+        sessionStorage.setItem("shaadisnap_shared_photos_cache", JSON.stringify(merged.slice(0, 200)));
+      } catch {
+        // non-fatal
+      }
     }
 
     return merged;

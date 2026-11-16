@@ -1002,6 +1002,8 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                           <img
                             src={photo.thumbnailUrl || photo.url || photo.fallbackUrl}
                             alt={photo.title}
+                            loading="lazy"
+                            decoding="async"
                             referrerPolicy="no-referrer"
                             onError={(e) => {
                               if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
@@ -1182,6 +1184,8 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                       <img
                         src={photo.thumbnailUrl || photo.url || photo.fallbackUrl}
                         alt={photo.title}
+                        loading="lazy"
+                        decoding="async"
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {

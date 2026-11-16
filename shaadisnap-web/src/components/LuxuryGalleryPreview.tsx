@@ -157,6 +157,8 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                     <img
                       src={photo.thumbnailUrl || photo.url}
                       alt={photo.title}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                       onError={(e) => {

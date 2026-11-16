@@ -470,6 +470,8 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                   <img
                     src={photo.thumbnailUrl || photo.url}
                     alt={photo.title}
+                    loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
                     onError={(e) => {
