@@ -42,6 +42,7 @@ type HandlerModule = {
   POST?: (req: NextRequest) => Promise<NextResponse | Response> | NextResponse | Response;
   PUT?: (req: NextRequest) => Promise<NextResponse | Response> | NextResponse | Response;
   DELETE?: (req: NextRequest) => Promise<NextResponse | Response> | NextResponse | Response;
+  HEAD?: (req: NextRequest) => Promise<NextResponse | Response> | NextResponse | Response;
 };
 
 const routeTable: Record<string, HandlerModule> = {
@@ -81,7 +82,7 @@ const routeTable: Record<string, HandlerModule> = {
   "upload-photo": uploadPhoto,
 };
 
-async function dispatch(req: NextRequest, method: "GET" | "POST" | "PUT" | "DELETE", params: { slug?: string[] }) {
+async function dispatch(req: NextRequest, method: "GET" | "POST" | "PUT" | "DELETE" | "HEAD", params: { slug?: string[] }) {
   const path = (params.slug || []).join("/");
   const handlerMod = routeTable[path];
 
@@ -100,6 +101,11 @@ async function dispatch(req: NextRequest, method: "GET" | "POST" | "PUT" | "DELE
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
   const p = await params;
   return dispatch(req, "GET", p);
+}
+
+export async function HEAD(req: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
+  const p = await params;
+  return dispatch(req, "HEAD", p);
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
