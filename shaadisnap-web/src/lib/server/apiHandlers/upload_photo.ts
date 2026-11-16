@@ -4,7 +4,7 @@ import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import { invalidateDriveFolderCache } from "@/lib/server/googleDriveSync";
+import { invalidateDriveFolderCache, fetchLiveDriveFolderPhotos } from "@/lib/server/googleDriveSync";
 
 const execFileAsync = promisify(execFile);
 
@@ -23,8 +23,8 @@ const ALLOWED_IMAGE_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".heic"];
 const ALLOWED_VIDEO_EXTS = [".mp4", ".mov", ".webm", ".m4v", ".3gp"];
 const ALLOWED_EXTENSIONS = [...ALLOWED_IMAGE_EXTS, ...ALLOWED_VIDEO_EXTS];
 
-const MAX_IMAGE_SIZE = 25 * 1024 * 1024; // 25 MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
 
 async function resolvePythonExecutable(): Promise<string> {
   const envPy = process.env.PYTHON_PATH || process.env.PYTHON_BIN;
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: `File exceeds maximum allowed size limit (${isVideo ? "100MB for video" : "25MB for photo"})` },
+        { error: `File exceeds maximum allowed size limit of 5GB per file` },
         { status: 400 }
       );
     }
@@ -114,6 +114,39 @@ export async function POST(req: NextRequest) {
         { error: "Invalid file type. Allowed formats: JPG, PNG, WebP, HEIC, MP4, MOV, WebM" },
         { status: 400 }
       );
+    }
+
+    // Server-side duplicate detection to prevent duplicate uploads
+    try {
+      const existingPhotos = await fetchLiveDriveFolderPhotos(driveFolderId);
+      const cleanFileName = file.name.trim().toLowerCase();
+      const duplicate = existingPhotos.find((p) => {
+        const existingName = (p.title || p.filename || "").toLowerCase();
+        const isNameMatch =
+          existingName === cleanFileName ||
+          existingName.endsWith(`_${cleanFileName}`) ||
+          cleanFileName.endsWith(`_${existingName}`);
+        const isSizeMatch = p.sizeBytes > 0 && p.sizeBytes === file.size;
+        return isNameMatch || isSizeMatch;
+      });
+
+      if (duplicate) {
+        return NextResponse.json({
+          success: true,
+          isDuplicate: true,
+          fileId: duplicate.id,
+          url: duplicate.url,
+          videoUrl: duplicate.videoUrl,
+          videoPreviewUrl: duplicate.videoPreviewUrl,
+          mediaType: duplicate.mediaType || (isVideo ? "video" : "image"),
+          name: file.name,
+          ceremony: duplicate.ceremony || ceremony,
+          facesIndexed: duplicate.facesCount || 0,
+          message: `Duplicate detected: "${file.name}" is already in the wedding album. Skipped re-upload.`,
+        });
+      }
+    } catch {
+      // Non-fatal if folder check fails, proceed with safe upload
     }
 
     // Convert file to Base64

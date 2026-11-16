@@ -36,6 +36,7 @@ import {
 import { ShareGuestLinkModal } from "@/components/ShareGuestLinkModal";
 import { isVideoFile } from "@/lib/videoThumbnail";
 import { VideoLightboxPlayer } from "@/components/VideoLightboxPlayer";
+import { GalleryVideoCard } from "@/components/GalleryVideoCard";
 
 interface FullWeddingGalleryProps {
   onFindPhotos?: () => void;
@@ -215,23 +216,32 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
 
   const navigateLightbox = useCallback(
     (direction: 1 | -1) => {
-      if (lightboxIndex === null || filteredPhotos.length === 0) return;
-      const nextIndex =
-        (lightboxIndex + direction + filteredPhotos.length) % filteredPhotos.length;
-      setLightboxIndex(nextIndex);
+      setLightboxIndex((prev) => {
+        if (prev === null || filteredPhotos.length === 0) return null;
+        return (prev + direction + filteredPhotos.length) % filteredPhotos.length;
+      });
     },
-    [lightboxIndex, filteredPhotos]
+    [filteredPhotos.length]
   );
 
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightboxIndex(null);
-      if (e.key === "ArrowRight") navigateLightbox(1);
-      if (e.key === "ArrowLeft") navigateLightbox(-1);
+      if (e.key === "Escape" || e.code === "Escape") {
+        e.preventDefault();
+        setLightboxIndex(null);
+      } else if (e.key === "ArrowRight" || e.key === "Right" || e.code === "ArrowRight") {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateLightbox(1);
+      } else if (e.key === "ArrowLeft" || e.key === "Left" || e.code === "ArrowLeft") {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateLightbox(-1);
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, [lightboxIndex, navigateLightbox]);
 
   const currentLightboxPhoto =
@@ -471,7 +481,9 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                       setLightboxIndex(index);
                     }
                   }}
-                  className={`group photo-card-sheen relative rounded-2xl overflow-hidden bg-white border transition-all duration-300 cursor-pointer text-left shadow-rose-sm hover:shadow-[0_20px_45px_rgba(99,60,73,0.14)] ${
+                  className={`group photo-card-sheen relative rounded-2xl overflow-hidden ${
+                    isVideo ? "bg-[#1E1719]" : "bg-white"
+                  } border transition-all duration-300 cursor-pointer text-left shadow-rose-sm hover:shadow-[0_20px_45px_rgba(99,60,73,0.14)] ${
                     isCenterfold
                       ? "col-span-2 aspect-[16/10] sm:aspect-[16/9]"
                       : "aspect-[3/4]"
@@ -481,34 +493,22 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                       : "border-[#EADDE0] hover:border-[#D9B7A0]"
                   }`}
                 >
-                  <img
-                    src={photo.thumbnailUrl || photo.url}
-                    alt={photo.title}
-                    loading="lazy"
-                    decoding="async"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                    onError={(e) => {
-                      if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
-                        e.currentTarget.src = photo.fallbackUrl;
-                      }
-                    }}
-                  />
-
-                  {/* Video Play Badge Overlay */}
-                  {isVideo && (
-                    <>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-11 h-11 rounded-full bg-black/55 backdrop-blur-md text-white border border-white/50 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
-                        </div>
-                      </div>
-                      {photo.durationFormatted && (
-                        <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[10px] font-mono font-medium z-10">
-                          {photo.durationFormatted}
-                        </span>
-                      )}
-                    </>
+                  {isVideo ? (
+                    <GalleryVideoCard photo={photo} />
+                  ) : (
+                    <img
+                      src={photo.thumbnailUrl || photo.url}
+                      alt={photo.title}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                      onError={(e) => {
+                        if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                          e.currentTarget.src = photo.fallbackUrl;
+                        }
+                      }}
+                    />
                   )}
 
                   {/* Top Overlay Controls */}
@@ -658,27 +658,37 @@ export const FullWeddingGallery: React.FC<FullWeddingGalleryProps> = ({
                 />
               )}
 
-              {/* Prev Button */}
+              {/* Prev Button (Click & Left Arrow Navigation) */}
               {filteredPhotos.length > 1 && (
                 <button
                   type="button"
-                  onClick={() => navigateLightbox(-1)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md transition-all cursor-pointer shadow-lg z-30"
-                  title="Previous photo (Left Arrow)"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigateLightbox(-1);
+                  }}
+                  className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Previous photo (Left Arrow / Click)"
+                  aria-label="Previous photo"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
                 </button>
               )}
 
-              {/* Next Button */}
+              {/* Next Button (Click & Right Arrow Navigation) */}
               {filteredPhotos.length > 1 && (
                 <button
                   type="button"
-                  onClick={() => navigateLightbox(1)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md transition-all cursor-pointer shadow-lg z-30"
-                  title="Next photo (Right Arrow)"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigateLightbox(1);
+                  }}
+                  className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Next photo (Right Arrow / Click)"
+                  aria-label="Next photo"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
                 </button>
               )}
             </div>

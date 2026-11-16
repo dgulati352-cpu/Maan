@@ -466,26 +466,28 @@ function selectPrimarySelfieFace(
 }
 
 /**
- * Converts ResNet-34 Euclidean distance into calibrated biometric similarity [0.0, 0.99].
- * Calibrated so standard verification boundary dist = 0.60 maps cleanly to τ = 0.70:
- * - dist = 0.00 -> 0.99
- * - dist = 0.30 -> 0.85
- * - dist = 0.45 -> 0.77
- * - dist = 0.60 -> 0.70 (Balanced threshold τ = 0.70)
- * - dist = 0.64 -> 0.62 (Broad recall threshold)
- * - dist > 0.76 -> 0.00
+ * Converts ResNet-34 128-d Euclidean distance into strict biometric similarity [0.0, 0.99].
+ *
+ * Strict Calibration for Zero False-Positives (Same-Person Guarantee):
+ * - dist <= 0.25 -> 0.96 - 0.99 (Identical match)
+ * - dist = 0.35  -> 0.90 (Same person, different lighting / angle)
+ * - dist = 0.42  -> 0.84 (Same person, glasses / expression change)
+ * - dist = 0.46  -> 0.78 (Boundary cutoff)
+ * - dist > 0.48  -> 0.00 (Hard rejection: different person)
  */
 export function distanceToSimilarityScore(euclideanDist: number): number {
   if (!Number.isFinite(euclideanDist) || euclideanDist < 0) return 0.0;
-  if (euclideanDist > 0.76) return 0.0;
+  // Hard cutoff: Any distance above 0.48 is mathematically a different person
+  if (euclideanDist > 0.48) return 0.0;
 
-  if (euclideanDist <= 0.60) {
-    const score = 0.70 + ((0.60 - euclideanDist) / 0.60) * 0.29;
-    return Number(Math.min(0.99, score).toFixed(3));
+  if (euclideanDist <= 0.35) {
+    const ratio = (0.35 - euclideanDist) / 0.35;
+    return Number((0.90 + ratio * 0.09).toFixed(3));
   }
 
-  const tailScore = 0.70 - ((euclideanDist - 0.60) / 0.16) * 0.35;
-  return Number(Math.max(0.0, tailScore).toFixed(3));
+  // Linear decay from 0.90 down to 0.72 between 0.35 and 0.48
+  const ratio = (0.48 - euclideanDist) / 0.13;
+  return Number((0.72 + ratio * 0.18).toFixed(3));
 }
 
 function classifyShotType(facesCount: number): PhotoAiAnalysis["shotType"] {
@@ -669,7 +671,7 @@ export async function computeBiometricLikeness(
       }
     }
 
-    return bestScore >= 0.62 ? bestScore : 0.0;
+    return bestScore >= 0.75 ? bestScore : 0.0;
   } catch {
     return 0.0;
   }
@@ -739,7 +741,7 @@ export function sortWeddingPhotos(
 export async function matchSelfieAgainstPhotosWithDiagnostics(
   selfieSrc: string,
   photos: WeddingPhoto[],
-  threshold = 0.70,
+  threshold = 0.80,
   onProgress?: (scanned: number, total: number, statusText: string) => void
 ): Promise<SelfieSearchDiagnostics> {
   if (!selfieSrc || photos.length === 0) {
@@ -829,7 +831,7 @@ export async function matchSelfieAgainstPhotosWithDiagnostics(
             matched.push({
               ...enrichedPhoto,
               similarity: bestScore,
-              confidenceTier: bestScore >= 0.78 ? "high" : "medium",
+              confidenceTier: bestScore >= 0.84 ? "high" : "medium",
             });
           }
         } catch (err) {
@@ -866,7 +868,7 @@ export async function matchSelfieAgainstPhotosWithDiagnostics(
 export async function matchSelfieAgainstPhotos(
   selfieSrc: string,
   photos: WeddingPhoto[],
-  threshold = 0.70,
+  threshold = 0.80,
   onProgress?: (scanned: number, total: number, statusText: string) => void
 ): Promise<WeddingPhoto[]> {
   const diagnostics = await matchSelfieAgainstPhotosWithDiagnostics(

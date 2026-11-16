@@ -178,14 +178,20 @@ function buildDrivePhotoRecord(
   folderId: string,
   sizeBytes: number,
   createdTime?: string,
-  isVideoParam?: boolean
+  isVideoParam?: boolean,
+  thumbnailLink?: string
 ): DriveSyncedPhoto {
   const { title, ceremony, createdAtMs } = parseDriveFilename(name, createdTime);
   const isVideo = isVideoParam ?? /\.(mp4|mov|webm|m4v|3gp)$/i.test(name);
-  const cdnUrl = `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
-  // High-speed 500px thumbnail for instant gallery grid rendering (~35KB instead of 1.5MB)
-  const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
+  
+  // High-resolution poster frame for video or crisp photo thumbnail
+  const thumbUrl = thumbnailLink
+    ? thumbnailLink.replace(/=s\d+/, "=s600")
+    : `https://drive.google.com/thumbnail?id=${fileId}&sz=w600`;
   const fallbackUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+  const cdnUrl = isVideo
+    ? (thumbnailLink ? thumbnailLink.replace(/=s\d+/, "=s1200") : fallbackUrl)
+    : `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
   const videoStreamUrl = isVideo ? `/api/gallery/video-stream?id=${fileId}` : undefined;
   const videoPreviewUrl = isVideo ? `https://drive.google.com/file/d/${fileId}/preview` : undefined;
 
@@ -270,6 +276,7 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
           mimeType?: string;
           createdTime?: string;
           size?: string;
+          thumbnailLink?: string;
         }>;
       };
 
@@ -291,7 +298,8 @@ async function fetchViaDriveApiV3(folderId: string): Promise<DriveSyncedPhoto[] 
             folderId,
             sizeBytes,
             file.createdTime,
-            isVideo
+            isVideo,
+            file.thumbnailLink
           )
         );
       }

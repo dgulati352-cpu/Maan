@@ -65,7 +65,7 @@ export const GuestSelfieSearch: React.FC = () => {
   const [matchedPhotos, setMatchedPhotos] = useState<WeddingPhoto[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<WeddingPhoto | null>(null);
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
-  const [matchThreshold, setMatchThreshold] = useState<number>(0.70);
+  const [matchThreshold, setMatchThreshold] = useState<number>(0.80);
   const [sortBy, setSortBy] = useState<PhotoSortMode>("similarity");
   const [scanSummary, setScanSummary] = useState<{
     scannedCount: number;
@@ -246,8 +246,8 @@ export const GuestSelfieSearch: React.FC = () => {
       setErrorMessage("Please upload a valid image file (JPG, PNG, WebP, or HEIC).");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      setErrorMessage("Photo exceeds 20MB maximum allowed size limit.");
+    if (file.size > 5 * 1024 * 1024 * 1024) {
+      setErrorMessage("Photo exceeds 5GB maximum allowed size limit.");
       return;
     }
 
@@ -359,7 +359,7 @@ export const GuestSelfieSearch: React.FC = () => {
       for (const m of apiMatches) {
         const id = m.photo_id || m.photoId;
         const sim = typeof m.max_similarity === "number" ? m.max_similarity : (typeof m.similarity === "number" ? m.similarity : 0.85);
-        if (id) {
+        if (id && sim >= activeThreshold) {
           matchMap.set(id, { similarity: sim });
         }
       }
@@ -373,7 +373,7 @@ export const GuestSelfieSearch: React.FC = () => {
           return {
             ...p,
             similarity: Math.min(0.99, Math.max(activeThreshold, Number(sim.toFixed(3)))),
-            confidenceTier: sim >= 0.78 ? ("high" as const) : ("medium" as const),
+            confidenceTier: sim >= 0.84 ? ("high" as const) : ("medium" as const),
           };
         });
     } else if (selfieImage && photoPool.length > 0) {
@@ -736,7 +736,7 @@ export const GuestSelfieSearch: React.FC = () => {
 
                 {/* Mobile Camera Direct Link & Format Info */}
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-[#947A80]">
-                  <span>Supports JPG, PNG, WebP (Max 20MB)</span>
+                  <span>Supports JPG, PNG, WebP (Max 5GB)</span>
                   <span>•</span>
                   <button
                     type="button"
@@ -838,9 +838,9 @@ export const GuestSelfieSearch: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {[
-                      { label: "Strict (78%)", val: 0.78 },
-                      { label: "Balanced (70%)", val: 0.70 },
-                      { label: "Broad (62%)", val: 0.62 },
+                      { label: "Exact Person Only (80%)", val: 0.80 },
+                      { label: "Strict (85%)", val: 0.85 },
+                      { label: "Balanced (75%)", val: 0.75 },
                     ].map((opt) => (
                       <button
                         key={opt.val}
@@ -983,7 +983,7 @@ export const GuestSelfieSearch: React.FC = () => {
                   </h3>
                   <p className="text-sm text-[#765D62] max-w-lg mx-auto leading-relaxed">
                     We scanned the wedding gallery with neural facial recognition at threshold τ = {matchThreshold.toFixed(2)} and found no verified matches above this cutoff.
-                    {matchThreshold > 0.63 ? " If lighting or glasses varied, try Broad Sensitivity (62%) below." : ""}
+                    {matchThreshold > 0.75 ? " If lighting or expression varied, try Balanced Sensitivity (75%) below." : ""}
                   </p>
                 </div>
 
@@ -1027,15 +1027,15 @@ export const GuestSelfieSearch: React.FC = () => {
 
                 {/* Call-to-Action Buttons */}
                 <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 pt-2">
-                  {matchThreshold > 0.63 && selfieImage && (
+                  {matchThreshold > 0.75 && selfieImage && (
                     <button
                       type="button"
                       disabled={isProcessing}
-                      onClick={() => runSearchSimulation(true, 0.62)}
+                      onClick={() => runSearchSimulation(true, 0.75)}
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold text-white bg-[#A85D70] hover:bg-[#914C60] transition-colors shadow-sm cursor-pointer"
                     >
                       <Sparkles className="w-4 h-4" />
-                      <span>Try Broad Sensitivity (62%)</span>
+                      <span>Try Balanced Sensitivity (75%)</span>
                     </button>
                   )}
 

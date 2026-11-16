@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const eventId = (formData.get("eventId") as string) || "marwaha-gulati-2026";
     const guestId = (formData.get("guestId") as string) || `guest_${Date.now()}`;
-    const rawThreshold = parseFloat((formData.get("threshold") as string) || "0.70");
-    const threshold = isNaN(rawThreshold) ? 0.70 : Math.max(0.1, Math.min(0.99, rawThreshold));
+    const rawThreshold = parseFloat((formData.get("threshold") as string) || "0.80");
+    const threshold = isNaN(rawThreshold) ? 0.80 : Math.max(0.1, Math.min(0.99, rawThreshold));
     const hasConsent = formData.get("hasConsent");
 
     if (hasConsent !== "true" && hasConsent !== "1") {

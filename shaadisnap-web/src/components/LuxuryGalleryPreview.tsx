@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Sparkles, ExternalLink, ArrowRight, Camera, Video, Play } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Sparkles, ExternalLink, ArrowRight, Camera, Video, Play, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { WEDDING_EVENT, WeddingPhoto } from "@/data/mockWeddingData";
 import { getApprovedWeddingPhotos, fetchSharedGalleryPhotos, getCachedSharedPhotos, getEffectiveVideoUrls } from "@/lib/weddingPhotoStore";
 import { isVideoFile } from "@/lib/videoThumbnail";
 import { VideoLightboxPlayer } from "@/components/VideoLightboxPlayer";
+import { GalleryVideoCard } from "@/components/GalleryVideoCard";
 
 interface LuxuryGalleryPreviewProps {
   onFindYourFace: () => void;
@@ -19,7 +20,7 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
   // Instantly initialize from cache memory (0ms)
   const [photos, setPhotos] = useState<WeddingPhoto[]>(() => getCachedSharedPhotos());
   const [selectedCeremony, setSelectedCeremony] = useState<string>("All");
-  const [lightboxPhoto, setLightboxPhoto] = useState<WeddingPhoto | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -69,6 +70,41 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
 
   // Show only latest 15 photos as requested
   const latestPhotos = filtered.slice(0, 15);
+
+  const navigateLightbox = useCallback(
+    (direction: 1 | -1) => {
+      setLightboxIndex((prev) => {
+        if (prev === null || latestPhotos.length === 0) return null;
+        return (prev + direction + latestPhotos.length) % latestPhotos.length;
+      });
+    },
+    [latestPhotos.length]
+  );
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.code === "Escape") {
+        e.preventDefault();
+        setLightboxIndex(null);
+      } else if (e.key === "ArrowRight" || e.key === "Right" || e.code === "ArrowRight") {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateLightbox(1);
+      } else if (e.key === "ArrowLeft" || e.key === "Left" || e.code === "ArrowLeft") {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateLightbox(-1);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [lightboxIndex, navigateLightbox]);
+
+  const lightboxPhoto =
+    lightboxIndex !== null && lightboxIndex < latestPhotos.length
+      ? latestPhotos[lightboxIndex]
+      : null;
 
   return (
     <section className="relative py-20 lg:py-28 bg-[#FFF8F3] border-t border-[#EADDE0] overflow-hidden">
@@ -157,61 +193,55 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                   : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5"
               }`}
             >
-              {latestPhotos.map((photo) => {
+              {latestPhotos.map((photo, index) => {
                 const isVideo = photo.mediaType === "video" || isVideoFile(photo.url || photo.title);
                 return (
                   <div
                     key={photo.id}
-                    onClick={() => setLightboxPhoto(photo)}
-                    className="photo-card-sheen group relative rounded-2xl overflow-hidden bg-white border border-white shadow-[0_10px_26px_rgba(99,60,73,0.08)] hover:shadow-[0_20px_38px_rgba(99,60,73,0.18)] hover:-translate-y-1 transition-all duration-300 cursor-pointer aspect-[3/4]"
+                    onClick={() => setLightboxIndex(index)}
+                    className={`photo-card-sheen group relative rounded-2xl overflow-hidden ${
+                      isVideo ? "bg-[#1E1719]" : "bg-white"
+                    } border border-[#EADDE0] shadow-[0_10px_26px_rgba(99,60,73,0.08)] hover:shadow-[0_20px_38px_rgba(99,60,73,0.18)] hover:-translate-y-1 transition-all duration-300 cursor-pointer aspect-[3/4]`}
                   >
-                    <img
-                      src={photo.thumbnailUrl || photo.url}
-                      alt={photo.title}
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
-                          e.currentTarget.src = photo.fallbackUrl;
-                        }
-                      }}
-                    />
-
-                    {/* Video Play Badge Overlay */}
-                    {isVideo && (
-                      <>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-11 h-11 rounded-full bg-black/55 backdrop-blur-md text-white border border-white/50 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                            <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
-                          </div>
-                        </div>
-                        {photo.durationFormatted && (
-                          <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[10px] font-mono font-medium z-10">
-                            {photo.durationFormatted}
-                          </span>
-                        )}
-                      </>
+                    {isVideo ? (
+                      <GalleryVideoCard photo={photo} />
+                    ) : (
+                      <img
+                        src={photo.thumbnailUrl || photo.url}
+                        alt={photo.title}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                            e.currentTarget.src = photo.fallbackUrl;
+                          }
+                        }}
+                      />
                     )}
 
-                    {/* Hover / Tap Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 sm:p-5 flex flex-col justify-between">
-                      <div className="flex justify-end">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center gap-1">
-                          {isVideo && <Video className="w-2.5 h-2.5 text-[#D9B7A0]" />}
-                          <span>{photo.ceremony}</span>
-                        </span>
-                      </div>
+                    {/* Top Overlay Ceremony Badge */}
+                    <div className="absolute top-3 inset-x-3 flex items-center justify-between z-10 pointer-events-none">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/85 backdrop-blur-md text-[#633C49] border border-white/40 flex items-center gap-1 shadow-xs">
+                        {isVideo && <Video className="w-2.5 h-2.5 text-[#A85D70]" />}
+                        <span>{photo.ceremony}</span>
+                      </span>
+                    </div>
 
-                      <div>
-                        <h4 className="font-serif text-base sm:text-lg font-bold text-white truncate">
-                          {photo.title}
-                        </h4>
-                        <p className="text-xs text-emerald-300 mt-0.5 flex items-center gap-1.5 font-medium">
+                    {/* Sliding Editorial Info on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 sm:p-5 flex flex-col justify-end text-white pointer-events-none">
+                      <h4 className="font-serif text-base sm:text-lg font-bold text-white truncate">
+                        {photo.title}
+                      </h4>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[10px] text-emerald-300 flex items-center gap-1 font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          {isVideo ? "Video Clip" : photo.facesCount === 1 ? "1 Person Available" : `${photo.facesCount || 1} Persons Available`}
-                        </p>
+                          {isVideo ? "HD Video Clip" : photo.facesCount === 1 ? "1 Person" : `${photo.facesCount || 1} Persons`}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-white/70 font-semibold">
+                          Click to Expand
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -240,33 +270,39 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
       {/* Responsive Fullscreen Lightbox Modal */}
       {lightboxPhoto && (
         <div
-          onClick={() => setLightboxPhoto(null)}
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 sm:p-8 flex items-center justify-center animate-fade-in"
+          onClick={() => setLightboxIndex(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md p-4 sm:p-8 flex items-center justify-center animate-fadeIn"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#EADDE0]"
+            className="relative bg-white rounded-3xl overflow-hidden max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-[#EADDE0]"
           >
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#EADDE0]">
               <div>
-                <span className="text-[10px] font-bold text-[#A85D70] uppercase tracking-wider">
-                  {lightboxPhoto.ceremony} Ceremony
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-[#A85D70] uppercase tracking-wider">
+                    {lightboxPhoto.ceremony} Ceremony
+                  </span>
+                  <span className="text-[10px] text-[#947A80]">
+                    ({(lightboxIndex || 0) + 1} of {latestPhotos.length})
+                  </span>
+                </div>
                 <h3 className="font-serif text-lg sm:text-xl font-bold text-[#633C49] truncate max-w-xs sm:max-w-md">
                   {lightboxPhoto.title}
                 </h3>
               </div>
 
               <button
-                onClick={() => setLightboxPhoto(null)}
+                type="button"
+                onClick={() => setLightboxIndex(null)}
                 className="p-2 rounded-full hover:bg-[#FFF8F3] text-[#765D62] hover:text-[#633C49] transition-colors cursor-pointer"
                 title="Close Lightbox"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-black flex items-center justify-center p-2 min-h-[300px]">
+            <div className="relative flex-1 overflow-hidden bg-black flex items-center justify-center p-2 min-h-[320px] max-h-[65vh]">
               {lightboxPhoto.mediaType === "video" || isVideoFile(lightboxPhoto.videoUrl || lightboxPhoto.url || lightboxPhoto.title) ? (
                 <VideoLightboxPlayer photo={lightboxPhoto} />
               ) : (
@@ -281,6 +317,40 @@ export const LuxuryGalleryPreview: React.FC<LuxuryGalleryPreviewProps> = ({
                     }
                   }}
                 />
+              )}
+
+              {/* Prev Button (Click & Left Arrow Navigation) */}
+              {latestPhotos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigateLightbox(-1);
+                  }}
+                  className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Previous photo (Left Arrow / Click)"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+                </button>
+              )}
+
+              {/* Next Button (Click & Right Arrow Navigation) */}
+              {latestPhotos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigateLightbox(1);
+                  }}
+                  className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Next photo (Right Arrow / Click)"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+                </button>
               )}
             </div>
 

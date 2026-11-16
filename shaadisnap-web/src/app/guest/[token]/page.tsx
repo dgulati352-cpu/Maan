@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, use } from "react";
+import React, { useState, useEffect, useRef, useCallback, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -82,6 +82,39 @@ export default function GuestPassPage({
   const [matchedPhotos, setMatchedPhotos] = useState<MatchedItem[]>([]);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [activeLightboxPhoto, setActiveLightboxPhoto] = useState<MatchedItem | null>(null);
+
+  const navigateGuestLightbox = useCallback(
+    (direction: 1 | -1) => {
+      setActiveLightboxPhoto((current) => {
+        if (!current || matchedPhotos.length === 0) return null;
+        const idx = matchedPhotos.findIndex((p) => p.id === current.id);
+        if (idx === -1) return current;
+        const nextIdx = (idx + direction + matchedPhotos.length) % matchedPhotos.length;
+        return matchedPhotos[nextIdx];
+      });
+    },
+    [matchedPhotos]
+  );
+
+  useEffect(() => {
+    if (!activeLightboxPhoto) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.code === "Escape") {
+        e.preventDefault();
+        setActiveLightboxPhoto(null);
+      } else if (e.key === "ArrowRight" || e.key === "Right" || e.code === "ArrowRight") {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateGuestLightbox(1);
+      } else if (e.key === "ArrowLeft" || e.key === "Left" || e.code === "ArrowLeft") {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateGuestLightbox(-1);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [activeLightboxPhoto, navigateGuestLightbox]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -262,7 +295,7 @@ export default function GuestPassPage({
       formData.append("token", token);
       formData.append("file", blob, "selfie.jpg");
       formData.append("hasConsent", "true");
-      formData.append("threshold", "0.70");
+      formData.append("threshold", "0.80");
 
       // Record authentic guest search event telemetry
       recordActualSearch(token);
@@ -312,10 +345,10 @@ export default function GuestPassPage({
       // If backend returned zero matches (e.g. serverless environment), use perceptual likeness comparison
       if (finalMatched.length === 0 && capturedImage) {
         try {
-          const clientMatches = await matchSelfieAgainstPhotos(capturedImage, allApprovedPhotos, 0.70);
+          const clientMatches = await matchSelfieAgainstPhotos(capturedImage, allApprovedPhotos, 0.80);
           finalMatched = clientMatches.map((p) => ({
             ...p,
-            similarity: p.similarity ?? 0.75,
+            similarity: p.similarity ?? 0.84,
           }));
         } catch {
           // Keep empty if zero likeness detected
@@ -699,7 +732,7 @@ export default function GuestPassPage({
                   No Matching Photos Found
                 </h3>
                 <p className="text-xs sm:text-sm text-[#765D62] leading-relaxed">
-                  We analyzed all indexed wedding photographs for this celebration, but couldn&apos;t find photos matching your selfie under our strict similarity threshold (τ = 0.70).
+                  We analyzed all indexed wedding photographs for this celebration, but couldn&apos;t find photos matching your selfie under our strict similarity threshold (τ = 0.80).
                 </p>
 
                 <div className="p-4 rounded-2xl bg-[#FFF8F3] border border-[#EADDE0] text-xs text-left text-[#765D62] space-y-1.5">
@@ -944,11 +977,47 @@ export default function GuestPassPage({
               <X className="w-6 h-6" />
             </button>
 
-            <img
-              src={activeLightboxPhoto.url}
-              alt={activeLightboxPhoto.title}
-              className="max-h-[75vh] w-auto object-contain rounded-2xl shadow-2xl"
-            />
+            <div className="relative flex items-center justify-center">
+              <img
+                src={activeLightboxPhoto.url}
+                alt={activeLightboxPhoto.title}
+                className="max-h-[75vh] w-auto object-contain rounded-2xl shadow-2xl"
+              />
+
+              {/* Prev Button (Click & Left Arrow Navigation) */}
+              {matchedPhotos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigateGuestLightbox(-1);
+                  }}
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Previous photo (Left Arrow / Click)"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+                </button>
+              )}
+
+              {/* Next Button (Click & Right Arrow Navigation) */}
+              {matchedPhotos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigateGuestLightbox(1);
+                  }}
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-3 sm:p-3.5 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 text-white backdrop-blur-md transition-all cursor-pointer shadow-2xl z-50 pointer-events-auto border border-white/20 hover:border-white/50"
+                  title="Next photo (Right Arrow / Click)"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+                </button>
+              )}
+            </div>
 
             <div className="mt-4 flex items-center justify-between w-full text-white text-xs px-2">
               <div>

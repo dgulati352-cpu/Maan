@@ -8,7 +8,7 @@ import crypto from "crypto";
 export const dynamic = "force-dynamic";
 
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File exceeds maximum allowed size of 25 MB.` },
+        { error: `File exceeds maximum allowed size of 5 GB.` },
         { status: 400 }
       );
     }

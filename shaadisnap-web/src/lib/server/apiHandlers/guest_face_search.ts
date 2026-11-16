@@ -81,8 +81,8 @@ export async function POST(req: NextRequest) {
     const token = formData.get("token") as string | null;
     const file = formData.get("file") as File | null;
     const hasConsent = formData.get("hasConsent");
-    const rawThreshold = parseFloat((formData.get("threshold") as string) || "0.70");
-    const threshold = isNaN(rawThreshold) ? 0.70 : Math.max(0.1, Math.min(0.99, rawThreshold));
+    const rawThreshold = parseFloat((formData.get("threshold") as string) || "0.80");
+    const threshold = isNaN(rawThreshold) ? 0.80 : Math.max(0.1, Math.min(0.99, rawThreshold));
 
     // 1. Mandatory Token Validation
     if (!token) {

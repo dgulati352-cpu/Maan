@@ -41,8 +41,8 @@ const ALLOWED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/hei
 const ALLOWED_VIDEO_MIMES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v", "video/3gpp"];
 const ALLOWED_MIME_TYPES = [...ALLOWED_IMAGE_MIMES, ...ALLOWED_VIDEO_MIMES];
 
-const MAX_IMAGE_SIZE = 25 * 1024 * 1024; // 25 MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5 GB
 
 interface UploadFileItem {
   id: string;
@@ -50,7 +50,7 @@ interface UploadFileItem {
   size: string;
   previewUrl: string;
   progress: number;
-  status: "pending" | "compressing" | "uploading" | "completed" | "error";
+  status: "pending" | "compressing" | "uploading" | "completed" | "error" | "duplicate";
   facesDetected?: number;
   sharpness?: number;
   detectedCeremony?: string;
@@ -282,6 +282,23 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
 
       const data = await res.json();
 
+      if (data.isDuplicate) {
+        setUploadFiles((current) =>
+          current.map((f) =>
+            f.id === item.id
+              ? {
+                  ...f,
+                  progress: 100,
+                  status: "duplicate",
+                  previewUrl: f.thumbnailUrl || data.url || item.previewUrl,
+                  driveFileId: data.fileId,
+                }
+              : f
+          )
+        );
+        return;
+      }
+
       if (data.success && data.fileId) {
         addUploadedPhoto({
           id: data.fileId,
@@ -364,9 +381,36 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
       }
       const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
       if (file.size > maxSize) {
-        errors.push(`${file.name}: Exceeds ${isVideo ? "100MB" : "25MB"} limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+        errors.push(`${file.name}: Exceeds 5GB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
         return;
       }
+
+      // Check if file is already queued in current uploadFiles
+      const isAlreadyQueued = uploadFiles.some(
+        (uf) => uf.name.toLowerCase() === file.name.toLowerCase() && uf.rawFile?.size === file.size
+      );
+      if (isAlreadyQueued) {
+        errors.push(`Duplicate skipped: "${file.name}" is already in your upload list.`);
+        return;
+      }
+
+      // Check if file is already in the wedding album
+      const isAlreadyInGallery = liveStreamPhotos.some((gp) => {
+        const titleLower = (gp.title || (gp as unknown as { filename?: string }).filename || "").toLowerCase();
+        const fileLower = file.name.toLowerCase();
+        const nameMatch =
+          titleLower === fileLower ||
+          titleLower.endsWith(`_${fileLower}`) ||
+          fileLower.endsWith(`_${titleLower}`);
+        const gpSizeBytes = (gp as unknown as { sizeBytes?: number }).sizeBytes;
+        const sizeMatch = typeof gpSizeBytes === "number" && gpSizeBytes > 0 && gpSizeBytes === file.size;
+        return nameMatch || sizeMatch;
+      });
+      if (isAlreadyInGallery) {
+        errors.push(`Duplicate skipped: "${file.name}" is already in the wedding gallery.`);
+        return;
+      }
+
       validFiles.push({ file, isVideo });
     });
 
@@ -965,6 +1009,12 @@ export const GuestPhotoUpload: React.FC<GuestPhotoUploadProps> = ({ onNavigate }
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               {file.isVideo ? "Original HD Video Stored" : "Stored in Full HD"}
+                            </span>
+                          )}
+                          {file.status === "duplicate" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+                              Duplicate Skipped (Already Saved)
                             </span>
                           )}
                           {file.status === "error" && (
